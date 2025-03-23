@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Display</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #3b2f28;
+            font-family: 'Bookman Old Style', serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .character {
+            position: absolute;
+            width: 12px; /* Set emblem size to 16px by 16px */
+            height: 12px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            transition: transform 0.3s ease, left 0.5s ease, top 0.5s ease; /* Smooth movement */
+            cursor: pointer;
+        }
+
+        .status-section {
+            width: 100%;
+            height: 27%; /* 30% of the screen height */
+            background-color: #4a3d34;
+            color: #e0d5c1;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .status-column {
+            flex: 1;
+            padding: 0 10px;
+            font-size: 10px;
+            line-height: 1;
+        }
+
+        .status-column h4 {
+            font-size: 12px;
+            margin-bottom: 1px;
+			margin-top: 1px;
+        }
+
+        .status-emblem {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .circles-container {
+            width: 100%;
+            height: 70%; /* 70% of the screen height */
+            position: relative;
+            background-color: #3b2f28;
+        }
+
+        button {
+            font-size: 12px;
+            padding: 8px 12px;
+            background-color: #5a4c42;
+            color: #e0d5c1;
+            border: 2px solid #6d5c4b;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #7a665b;
+            border-color: #9d8872;
+        }
+    </style>
+</head>
+<body>
+  <!-- Circles Container (70% of the screen height) -->
+    <div class="circles-container" id="circlesContainer">
+        <!-- The character circles will be added here dynamically -->
+    </div>
+
+    <!-- Status Section (30% of the screen height) -->
+    <div class="status-section" id="statusSection">
+        <!-- Column 1: Emblem and Name -->
+        <div class="status-column" id="column1">
+            <div class="status-emblem" id="statusEmblem"></div>
+            <h4 id="statusName"></h4>
+			<button onclick="resumeMovement()">Unpause</button> 
+			<button onclick="pauseMovement()">Pause</button> 
+			<button onclick="initializeCharacters()">Start</button> 
+        </div>
+        <!-- Column 2: Potential and Attributes -->
+        <div class="status-column" id="column2"></div>
+        <!-- Column 3: Physical Appearance and Characteristics -->
+        <div class="status-column" id="column3"></div>
+        <!-- Column 4: Condition and Environment -->
+        <div class="status-column" id="column4"></div>
+        <!-- Column 5: Combat -->
+        <div class="status-column" id="column5"></div>
+    </div>
+
+  
+    <script>
+        let movementIntervals = []; // Array to track the intervals for moving characters
+        let allIntervalsPaused = false; // Flag to track if all movements are paused
+
+        // Function to initialize the characters and animate them
+        function initializeCharacters() {
+            const request = indexedDB.open("characterDatabase", 2);
+            request.onsuccess = function (event) {
+                const db = event.target.result;
+                const transaction = db.transaction(["characters"], "readonly");
+                const objectStore = transaction.objectStore("characters");
+                const cursorRequest = objectStore.openCursor();
+
+                cursorRequest.onsuccess = function (event) {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        const character = cursor.value;
+
+                        // Create a new character circle (div element)
+                        const characterElement = document.createElement('div');
+                        characterElement.classList.add('character');
+                        characterElement.style.backgroundImage = `url(${character.pixelArtImage})`;  // Use pixelArtImage URL for the emblem
+
+                        // Set a random position for each character (restricted to top 70% of the screen)
+                        const screenWidth = window.innerWidth;
+                        const screenHeight = window.innerHeight * 0.68; // Restrict to top 70%
+                        // Find a non-overlapping position
+let x, y;
+let attempts = 0; // To prevent infinite loops
+do {
+    x = Math.random() * (screenWidth - 16); // Random X position
+    y = Math.random() * (screenHeight - 16); // Random Y position
+    attempts++;
+} while (checkCollisionAtSpawn(x, y) && attempts < 100); // Limit attempts to avoid infinite loops
+
+// Set the final non-overlapping position
+characterElement.style.left = `${x}px`;
+characterElement.style.top = `${y}px`;
+
+                        // Append the circle to the container
+                        document.getElementById('circlesContainer').appendChild(characterElement);
+
+                        // Add click event listener to show status and pause movement
+                        characterElement.addEventListener('click', () => onCharacterClick(character, characterElement));
+
+                        // Animate the movement of the character
+                        const intervalId = setInterval(() => moveCharacterRandomly(characterElement), 1000); // Move every 1 second
+                        movementIntervals.push({ intervalId, characterElement, isMoving: true }); // Track movement interval
+
+                        cursor.continue(); // Continue iterating through the cursor
+                    }
+                };
+            };
+        }
+ 
+   function moveCharacterRandomly(characterElement) {
+    if (allIntervalsPaused) return; // Do nothing if all movements are paused
+
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight * 0.68; // Restrict to top 70%
+    const distance = Math.floor(Math.random() * 10) + 5; // Random distance between 5 and 15px
+
+    // Get the current position of the character
+    let x = parseFloat(characterElement.style.left);
+    let y = parseFloat(characterElement.style.top);
+
+    // Randomly pick a direction to move: 0 = up, 1 = down, 2 = left, 3 = right
+    const direction = Math.floor(Math.random() * 4);
+
+    // Calculate the new position
+    switch (direction) {
+        case 0: // Move up
+            y = Math.max(0, y - distance);
+            break;
+        case 1: // Move down
+            y = Math.min(screenHeight - 16, y + distance);
+            break;
+        case 2: // Move left
+            x = Math.max(0, x - distance);
+            break;
+        case 3: // Move right
+            x = Math.min(screenWidth - 16, x + distance);
+            break;
+    }
+
+    // Check for collisions and adjust the position to avoid overlaps
+    if (!checkCollision(characterElement, x, y)) {
+        characterElement.style.left = `${x}px`;
+        characterElement.style.top = `${y}px`;
+    }
+}
+function checkCollision(movingElement, newX, newY) {
+    const elements = document.querySelectorAll('.character');
+    const radius = 16; // Circle size (16px by 16px)
+
+    for (const element of elements) {
+        if (element === movingElement) continue; // Skip checking itself
+
+        // Get the current position of the other circle
+        const otherX = parseFloat(element.style.left);
+        const otherY = parseFloat(element.style.top);
+
+        // Calculate the distance between the two circles
+        const dx = newX - otherX;
+        const dy = newY - otherY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Check if the circles overlap
+        if (distance < radius) {
+            return true; // Collision detected
+        }
+    }
+
+    return false; // No collision detected
+}
+
+
+// Function triggered when a character circle is clicked
+function onCharacterClick(character, characterElement) {
+    // Show the statusText and emblem
+    showStatusSection(character);
+}
+
+// Function to show the status of the clicked character
+function showStatusSection(character) {
+    const statusSection = document.getElementById('statusSection');
+
+    // Parse and display the status text into columns
+    displayStatus(character);
+
+    // Make the status section visible
+    statusSection.style.display = 'flex';
+}
+function displayStatus(character) {
+    const statusText = character.statusText;
+
+    // Column 1: Emblem and Name
+    document.getElementById('statusEmblem').style.backgroundImage = `url(${character.pixelArtImage})`;
+    document.getElementById('statusName').innerHTML = `
+        <strong>${character.firstName} ${character.lastName}</strong><br>
+        <em>Race: ${character.race}</em>
+    `;
+
+    // Column 2: Potential and Attributes
+    const attributesText = statusText.match(/Potential:([\s\S]*?)Physical Appearance/)[1].trim();
+    const attributes = parseAttributes(attributesText);  // Parsing function
+    let attributesHTML = '';
+    attributes.forEach(attr => {
+        attributesHTML += `<div>${attr}</div>`; // Rendering label-value pairs
+    });
+    document.getElementById('column2').innerHTML = `
+        <h4>Potential & Attributes</h4>
+        ${attributesHTML}
+    `;
+
+    // Column 3: Physical Appearance and Characteristics
+    const physicalText = statusText.match(/Physical Appearance([\s\S]*?)Physical Characteristics/)[1].trim();
+    const appearance = parseAppearance(physicalText);  // Parsing function
+    let appearanceHTML = '';
+    appearance.forEach(item => {
+        appearanceHTML += `<div>${item}</div>`; // Rendering label-value pairs
+    });
+
+    const physicalCharacteristicsText = statusText.match(/Physical Characteristics([\s\S]*?)Condition/)[1].trim();
+    const physicalCharacteristics = parsePhysicalCharacteristics(physicalCharacteristicsText);  // Parsing function
+    let physicalCharacteristicsHTML = '';
+    physicalCharacteristics.forEach(item => {
+        physicalCharacteristicsHTML += `<div>${item}</div>`; // Rendering label-value pairs
+    });
+
+    document.getElementById('column3').innerHTML = `
+        <h4>Appearance & Traits</h4>
+        ${appearanceHTML}
+        <h4>Physical Characteristics</h4>
+        ${physicalCharacteristicsHTML}
+    `;
+
+    // Column 4: Condition and Environment
+    const conditionText = statusText.match(/Condition([\s\S]*?)Environment/)[1].trim();
+    const condition = parseCondition(conditionText);  // Parsing function
+    let conditionHTML = '';
+    condition.forEach(item => {
+        conditionHTML += `<div>${item}</div>`; // Rendering label-value pairs
+    });
+    const environmentText = statusText.match(/Environment([\s\S]*?)Combat/)[1].trim();
+    const environment = parseEnvironment(environmentText);  // Parsing function
+    let environmentHTML = '';
+    environment.forEach(item => {
+        environmentHTML += `<div>${item}</div>`; // Rendering label-value pairs
+    });
+
+    document.getElementById('column4').innerHTML = `
+        <h4>Condition & Environment</h4>
+        ${conditionHTML}
+        ${environmentHTML}
+    `;
+
+    // Column 5: Combat
+    const combatText = statusText.match(/Combat([\s\S]*)/)[1].trim();
+    const combat = parseCombat(combatText);  // Parsing function
+    let combatHTML = '';
+    combat.forEach(item => {
+        combatHTML += `<div>${item}</div>`; // Rendering label-value pairs
+    });
+    document.getElementById('column5').innerHTML = `
+        <h4>Combat</h4>
+        ${combatHTML}
+    `;
+}
+
+
+
+// New function to safely extract the value from the regex match
+function extractValue(text, label, nextLabel) {
+    // Build a dynamic regular expression for each label-value pair
+    const regex = new RegExp(`${label}:\\s*([^\n]+?)(?=(\\s+${nextLabel}:|$))`, 'i');  // Stop at the next label or end of the text
+    const match = text.match(regex);
+    if (match && match[1]) {
+        return match[1].trim();
+    }
+    return "Not Available"; // Return a default message if no match is found
+}
+
+// New function to parse the Attributes section and combine label with value
+function parseAttributes(attributesText) {
+    const attributes = [
+        `Strength: ${extractValue(attributesText, 'Strength', 'Constitution')}`,
+        `Constitution: ${extractValue(attributesText, 'Constitution', 'Dexterity')}`,
+        `Dexterity: ${extractValue(attributesText, 'Dexterity', 'Intelligence')}`,
+        `Intelligence: ${extractValue(attributesText, 'Intelligence', 'Resolve')}`,
+        `Resolve: ${extractValue(attributesText, 'Resolve', 'Perception')}`,
+        `Perception: ${extractValue(attributesText, 'Perception', 'Physical Appearance')}`
+    ];
+    return attributes;
+}
+
+// New function to safely extract the value from the regex match
+function extractValue(text, label, nextLabel) {
+    // Build a dynamic regular expression for each label-value pair
+    const regex = new RegExp(`${label}:\\s*([^\n]+?)(?=(\\s+${nextLabel}:|$))`, 'i');  // Stop at the next label or end of the text
+    const match = text.match(regex);
+    if (match && match[1]) {
+        return match[1].trim();
+    }
+    return "Not Available"; // Return a default message if no match is found
+}
+
+// New function to parse the Attributes section and combine label with value
+function parseAttributes(attributesText) {
+    const attributes = [
+        `Strength: ${extractValue(attributesText, 'Strength', 'Constitution')}`,
+        `Constitution: ${extractValue(attributesText, 'Constitution', 'Dexterity')}`,
+        `Dexterity: ${extractValue(attributesText, 'Dexterity', 'Intelligence')}`,
+        `Intelligence: ${extractValue(attributesText, 'Intelligence', 'Resolve')}`,
+        `Resolve: ${extractValue(attributesText, 'Resolve', 'Perception')}`,
+        `Perception: ${extractValue(attributesText, 'Perception', 'Physical Appearance')}`
+    ];
+    return attributes;
+}
+
+// New function to parse the Physical Appearance section and combine label with value
+function parseAppearance(physicalText) {
+    const appearance = [
+        `Blood Type: ${extractValue(physicalText, 'Blood Type', 'Skin Color')}`,
+        `Skin Color: ${extractValue(physicalText, 'Skin Color', 'Left Eye Color')}`,
+        `Left Eye Color: ${extractValue(physicalText, 'Left Eye Color', 'Right Eye Color')}`,
+        `Right Eye Color: ${extractValue(physicalText, 'Right Eye Color', 'Hair Color')}`,
+        `Hair Color: ${extractValue(physicalText, 'Hair Color', 'Hair Style')}`,
+        `Hair Style: ${extractValue(physicalText, 'Hair Style', 'Race Traits')}`,  // Ensure Race Traits is captured correctly
+        `Race Traits: ${extractValue(physicalText, 'Race Traits', 'Physical Characteristics')}` // Make sure Race Traits is included here
+    ];
+    return appearance;
+}
+
+// New function to parse the Physical Characteristics section and combine label with value
+function parsePhysicalCharacteristics(physicalCharacteristicsText) {
+    const physicalCharacteristics = [
+        `Height: ${extractValue(physicalCharacteristicsText, 'Height', 'Weight')}`,
+        `Weight: ${extractValue(physicalCharacteristicsText, 'Weight', 'Body Build')}`,
+        `Body Build: ${extractValue(physicalCharacteristicsText, 'Body Build', 'Condition')}`, // Updated to also consider Body Build if needed
+    ];
+    return physicalCharacteristics;
+}
+
+// New function to parse the Condition section and combine label with value
+function parseCondition(conditionText) {
+    const condition = [
+        `Pain: ${extractValue(conditionText, 'Pain', 'Thirst')}`,
+        `Thirst: ${extractValue(conditionText, 'Thirst', 'Rest')}`,
+        `Rest: ${extractValue(conditionText, 'Rest', 'Hunger')}`,
+        `Hunger: ${extractValue(conditionText, 'Hunger', 'Environment')}`
+    ];
+    return condition;
+}
+
+// New function to parse the Environment section and combine label with value
+function parseEnvironment(environmentText) {
+    const environment = [
+        `Heat: ${extractValue(environmentText, 'Heat', 'Place')}`,
+        `Place: ${extractValue(environmentText, 'Place', 'Lighting')}`,
+        `Lighting: ${extractValue(environmentText, 'Lighting', 'Weather')}`,
+        `Weather: ${extractValue(environmentText, 'Weather', 'Moon')}`,
+        `Moon: ${extractValue(environmentText, 'Moon', 'Date')}`,
+        `Date: ${extractValue(environmentText, 'Date', 'Time')}`,
+        `Time: ${extractValue(environmentText, 'Time', 'Wind')}`,
+        `Wind: ${extractValue(environmentText, 'Wind', 'Temperature')}`,
+        `Temperature: ${extractValue(environmentText, 'Temperature', 'Combat')}`
+    ];
+    return environment;
+}
+
+// New function to parse the Combat section and combine label with value
+function parseCombat(combatText) {
+    const combat = [
+        `Combat Class: ${extractValue(combatText, 'Combat Class', 'Combat Technique')}`,
+        `Combat Technique: ${extractValue(combatText, 'Combat Technique', 'Main Hand')}`,
+        `Main Hand: ${extractValue(combatText, 'Main Hand', 'Offhand')}`,
+        `Offhand: ${extractValue(combatText, 'Offhand', '')}` // No next label for the last item in this section
+    ];
+    return combat;
+}
+
+
+
+    // Function to close the status section and resume all movements
+    function resumeMovement() {
+	
+        // Resume all movements
+        allIntervalsPaused = false;
+    }
+	 function pauseMovement() {
+	
+        // Resume all movements
+        allIntervalsPaused = true;
+    }
+function checkCollisionAtSpawn(newX, newY) {
+    const elements = document.querySelectorAll('.character');
+    const radius = 16; // Circle size (16px by 16px)
+
+    for (const element of elements) {
+        // Get the current position of the other circle
+        const otherX = parseFloat(element.style.left);
+        const otherY = parseFloat(element.style.top);
+
+        // Calculate the distance between the two circles
+        const dx = newX - otherX;
+        const dy = newY - otherY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Check if the circles overlap
+        if (distance < radius) {
+            return true; // Overlap detected
+        }
+    }
+
+    return false; // No overlap detected
+}
+    </script>
+
+</body>
+</html>

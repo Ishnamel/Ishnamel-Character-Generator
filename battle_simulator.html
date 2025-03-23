@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Simulator</title>
+<style>
+    /* General styles */
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #3b2f28;
+        color: #e0d5c1;
+        font-family: 'Trajan Pro', serif;
+        text-align: center;
+    }
+
+    h1 {
+        color: #d8c7a7;
+        text-shadow: 2px 2px 4px #2b211a;
+        margin: 10px 0;
+    }
+
+    .top-section {
+        display: flex;
+        flex-direction: column; /* Stack dropdowns above displays */
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        padding: 10 10px;
+    }
+
+    .display-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    /* Styling for the dropdown containers */
+    .dropdown-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 10px; /* Space between dropdowns and character displays */
+        padding: 10 10px;
+    }
+
+    .character-dropdown {
+        width: 45%;
+        font-size: 14px; /* Smaller font size for dropdown */
+        padding: 5px;
+        background-color: #5a4c42;
+        color: #e0d5c1;
+        border: 2px solid #6d5c4b;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    /* Styling for each character display section */
+    .character-display {
+        flex: 1;
+        background-color: #4a3d34;
+        margin: 5px;
+        padding: 10px;
+        box-sizing: border-box;
+        border: 2px solid #6d5c4b;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        max-width: 45%; /* Prevent exceeding half the screen width */
+        overflow-y: auto;
+        height: calc(70vh - 40px); /* Adjust for better visibility */
+    }
+
+    /* Styling for the character names */
+    .character-display h2 {
+        font-size: 20px; /* Reduced font size */
+        margin: 5px 0; /* Reduced gap above and below */
+        text-align: center;
+    }
+
+    /* Styling for the emblem */
+    .status-content figure img {
+        width: 20px; /* Reduced emblem size */
+        height: 20px;
+        border-radius: 5px;
+        border: 2px solid #6d5c4b;
+        margin-bottom: 1px; /* Slight spacing below the image */
+    }
+
+    /* Compact styling for the status text */
+    .status-content pre {
+        font-size: 12px; /* Reduced font size for content */
+        line-height: 0.8; /* Tighter line spacing */
+        max-height: auto; /* Limit height */
+        margin: 5px 0; /* Reduced gap between sections */
+		text-align: start;
+    }
+    /* Styling for the battle log */
+    .battle-log {
+        display: flex;
+        height: 30%; /* Occupy 30% of the viewport */
+        background-color: #4e4037;
+        margin: 10px 5px;
+        padding: 5px;
+        overflow-y: auto;
+        border: 2px solid #6d5c4b;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        font-size: 14px; /* Reduced font size for compactness */
+        border-radius: 10px;
+        line-height: 1.5;
+    }
+
+    .battle-log-left, .battle-log-right {
+        flex: 1;
+        background-color: #3b2f28;
+        color: #e0d5c1;
+        padding: 5px;
+        border-radius: 5px;
+        overflow-y: auto;
+    }
+
+    .battle-log-center {
+        flex: 2;
+        text-align: center;
+        background-color: #4a3d34;
+        color: #d8c7a7;
+        padding: 5px;
+        margin: 0 5px;
+        border-radius: 5px;
+    }
+
+    /* New styling to ensure the character displays are on the left and right */
+    .character-display-left {
+        margin-right: 1px;
+
+    }
+
+    .character-display-right {
+        margin-left: 1px;
+    }
+	/* Styling for the stat bars (HP/MP) */
+.bar-container {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.bar {
+    height: 20px;
+    background-color: #56cfe1;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    transition: width 0.3s ease-in-out; /* Smooth animation when the bar changes */
+}
+
+.bar-container p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #e0d5c1;
+}
+/* Emblems Section Style */
+.top-emblems-section {
+    width: 50%;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 20px; /* Adjust spacing */
+}
+
+figure {
+    margin: 0;
+    padding: 0;
+}
+
+#emblemOne, #emblemTwo {
+    width: 40px;
+    height: 40px;
+    transition: transform 0.5s ease; /* Animation for emblem movement */
+}
+
+/* You can style the 'VS' text between the emblems */
+.top-emblems-section p {
+    font-size: 20px;
+    font-weight: bold;
+    color: #e0d5c1;
+}
+#emblemOne, #emblemTwo {
+    width: 50px;
+    height: 80px;
+    clip-path: url(#humanClipPath); /* Apply the human-shaped clip path */
+    -webkit-clip-path: url(#humanClipPath); /* Safari support */
+    object-fit: cover; /* Ensure the image fits nicely within the shape */
+    border: 0px solid #e0d5c1; /* Add a border to emphasize the shape */
+    border-radius: 0px; /* Slightly rounded corners for better appearance */
+}
+
+</style>
+
+<svg width="0" height="0" xmlns="http://www.w3.org/2000/svg" style="position: absolute;">
+    <defs>
+        <clipPath id="humanClipPath" clipPathUnits="objectBoundingBox">
+            <path d="M0.667,0.583H0.333A0.208,0.208,0,0,0,0,0.792V1H1V0.792A0.208,0.208,0,0,0,0.667,0.583ZM0.5,0.25A0.25,0.25,0,1,0,0.75,0.5,0.25,0.25,0,0,0,0.5,0.25Z" />
+        </clipPath>
+    </defs>
+</svg>
+
+
+</head>
+<body>
+<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+ width="64px" height="64px" viewBox="0 0 640.000000 640.000000"
+ preserveAspectRatio="xMidYMid meet">
+
+<g transform="translate(0.000000,640.000000) scale(0.100000,-0.100000)"
+fill="#000000" stroke="none">
+<path d="M0 3200 l0 -000 0 0 00 0 0 3200 0 000 -3200 0 -00 0 0
+-3200z m2405 999 c177 -21 340 -92 473 -206 28 -24 123 -129 210 -232 632
+-754 695 -826 748 -857 143 -84 327 -93 472 -22 44 21 192 152 192 169 0 5
+-108 9 -240 9 l-240 0 0 120 0 120 285 0 285 0 0 53 c0 108 -53 243 -132 332
+-133 151 -355 206 -556 136 -101 -35 -115 -46 -302 -227 l-149 -145 -39 43
+c-21 24 -74 84 -116 135 l-77 92 133 129 c197 192 266 244 388 292 190 75 393
+85 585 28 276 -81 500 -312 576 -595 29 -105 37 -310 16 -408 -44 -208 -155
+-386 -317 -509 -82 -63 -138 -93 -237 -125 -279 -94 -573 -42 -812 142 -50 38
+-183 191 -391 446 -47 57 -110 134 -140 171 -87 107 -297 349 -358 413 -99
+104 -231 153 -387 144 -109 -6 -185 -32 -273 -94 -142 -101 -221 -269 -209
+-449 9 -129 64 -244 163 -338 l44 -43 0 -196 0 -196 -45 16 c-58 19 -182 100
+-246 160 -242 226 -326 580 -217 910 70 213 227 396 423 496 96 48 260 90 375
+96 14 0 66 -4 115 -10z m-95 -1364 l0 -725 -130 0 -130 0 0 188 c-1 103 -2
+429 -3 724 l-2 538 133 0 132 0 0 -725z m666 444 l104 -124 -144 -140 c-92
+-89 -147 -150 -151 -168 -14 -53 0 -179 24 -226 103 -200 341 -257 574 -139
+33 16 63 26 67 21 60 -67 200 -249 197 -256 -6 -20 -173 -108 -251 -133 -211
+-66 -397 -55 -586 38 -67 33 -102 59 -170 127 -96 95 -136 158 -175 274 -52
+157 -41 339 29 482 30 60 59 95 196 229 109 107 165 155 171 149 6 -6 57 -66
+115 -134z"/>
+</g>
+</svg>
+  <div class="top-section">
+    <!-- Dropdowns Above -->
+    <div class="dropdown-container">
+        <select id="characterOneDropdown" class="character-dropdown" onchange="loadCharacterFromDropdown(1)">
+            <option value="">Select a character...</option>
+        </select>
+        <select id="characterTwoDropdown" class="character-dropdown" onchange="loadCharacterFromDropdown(2)">
+            <option value="">Select a character...</option>
+        </select>
+    </div>
+
+
+    <!-- Character Displays Below -->
+    <div class="display-container">
+        <!-- Left Character Display -->
+        <div class="character-display character-display-left" id="characterOneDisplay">
+            <div id="characterOneStatus" class="status-content">
+                <figure style="display: flex; flex-direction: column; align-items: center;">
+                    <figcaption style="text-align: center; margin-bottom: 8px;">Emblem</figcaption>
+                    <img src="emblem_placeholder.png" alt="Pixel Art">
+                </figure>
+                <p>Status text for character one will appear here...</p>
+            </div>
+        </div>
+
+        <!-- Right Character Display -->
+        <div class="character-display character-display-right" id="characterTwoDisplay">
+            <div id="characterTwoStatus" class="status-content">
+                <figure style="display: flex; flex-direction: column; align-items: center;">
+                    <figcaption style="text-align: center; margin-bottom: 8px;">Emblem</figcaption>
+                    <img src="emblem_placeholder.png" alt="Pixel Art">
+                </figure>
+                <pre>Status text for character two will appear here...</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- Battle text will appear here --><button id="startBattleButton" style="margin-top: 10px; padding: 10px; background-color: #5a4c42; color: #e0d5c1; border-radius: 5px;">Start Battlee</button>
+<button id="stopBattleButton" style="margin-top: 10px; padding: 10px; background-color: #e84a5f; color: #e0d5c1; border-radius: 5px; display: none;">
+    Stop Battle
+</button>
+
+
+    <!-- Battle Log Section -->
+    <div class="battle-log">
+        <div class="battle-log-left" id="battleLogLeft">
+            <!-- Character One's stats will appear here -->
+        </div>
+		
+        <div class="battle-log-center" id="battleLogCenter">
+    
+            <p>Battle events will be displayed here...</p>
+        </div>
+        <div class="battle-log-right" id="battleLogRight">
+            <!-- Character Two's stats will appear here -->
+        </div>
+    </div>
+
+    <script>
+        // Combat class mapping for damage type and scaling
+        const combatClassMapping = {
+    Juggernaut: { coreStat: "strength", subStat: "constitution", damageType: "pure physical" },
+    BladeDancer: { coreStat: "strength", subStat: "dexterity", damageType: "hybrid A" },
+    Chieftain: { coreStat: "strength", subStat: "intelligence", damageType: "hybrid A" },
+    IronWill: { coreStat: "strength", subStat: "resolve", damageType: "pure physical" },
+    Berserker: { coreStat: "strength", subStat: "perception", damageType: "pure physical" },
+    Titan: { coreStat: "constitution", subStat: "strength", damageType: "pure physical" },
+    StalwartDefender: { coreStat: "constitution", subStat: "resolve", damageType: "pure physical" },
+    Mercenery: { coreStat: "constitution", subStat: "dexterity", damageType: "pure physical" },
+    Bladecaster: { coreStat: "dexterity", subStat: "intelligence", damageType: "hybrid A" },
+    MartialArtist: { coreStat: "dexterity", subStat: "resolve", damageType: "hybrid A" },
+    Sentinel: { coreStat: "constitution", subStat: "perception", damageType: "pure physical" },
+    SavageSwifter: { coreStat: "dexterity", subStat: "strength", damageType: "pure physical" },
+    Swiftblade: { coreStat: "dexterity", subStat: "constitution", damageType: "pure physical" },
+    AuraWarrior: { coreStat: "resolve", subStat: "strength", damageType: "hybrid A" },
+    Assassin: { coreStat: "dexterity", subStat: "perception", damageType: "hybrid A" },
+    Tactician: { coreStat: "intelligence", subStat: "strength", damageType: "hybrid A" },
+    Colossus: { coreStat: "strength", subStat: "strength", damageType: "pure physical" },
+    FleshFortress: { coreStat: "constitution", subStat: "constitution", damageType: "pure physical" },
+    Tempest: { coreStat: "dexterity", subStat: "dexterity", damageType: "pure physical" },
+    IronAura: { coreStat: "resolve", subStat: "constitution", damageType: "hybrid A" },
+    PhantomBlade: { coreStat: "resolve", subStat: "dexterity", damageType: "hybrid B" },
+    Deadeye: { coreStat: "perception", subStat: "dexterity", damageType: "pure physical" },
+    Scout: { coreStat: "perception", subStat: "resolve", damageType: "pure physical" },
+    Trickshot: { coreStat: "perception", subStat: "intelligence", damageType: "hybrid A" },
+    Powershot: { coreStat: "perception", subStat: "strength", damageType: "pure physical" },
+    Vanguard: { coreStat: "perception", subStat: "constitution", damageType: "pure physical" },
+    ArcaneArcher: { coreStat: "intelligence", subStat: "dexterity", damageType: "hybrid B" },
+    GodEye: { coreStat: "perception", subStat: "perception", damageType: "pure physical" },
+    Sorcerer: { coreStat: "resolve", subStat: "intelligence", damageType: "pure magic" },
+    Spiritist: { coreStat: "resolve", subStat: "perception", damageType: "pure magic" },
+    Mage: { coreStat: "intelligence", subStat: "resolve", damageType: "pure magic" },
+    Diviner: { coreStat: "intelligence", subStat: "perception", damageType: "pure magic" },
+    ManaWeaver: { coreStat: "intelligence", subStat: "intelligence", damageType: "pure magic" },
+    MentalFortress: { coreStat: "resolve", subStat: "resolve", damageType: "hybrid B" },
+    BattlePriest: { coreStat: "constitution", subStat: "intelligence", damageType: "hybrid B" },
+    Sage: { coreStat: "intelligence", subStat: "constitution", damageType: "hybrid B" },
+};
+
+        // Function to determine damage type and stats scaling
+        function determineDamageType(combatClass, attributes) {
+            const classInfo = combatClassMapping[combatClass];
+            if (!classInfo) {
+                console.warn(`Combat class ${combatClass} not found in mapping.`);
+                return { coreStat: null, damageType: "unknown" };
+            }
+
+            const { coreStat, subStat, damageType } = classInfo;
+            return { coreStat, subStat, damageType };
+        }
+
+function parseStatsFromStatusText(statusText) {
+    const stats = {
+        strength: 0,
+        constitution: 0,
+        dexterity: 0,
+        intelligence: 0,
+        resolve: 0,
+        perception: 0,
+    };
+
+    // Match and extract values from the statusText
+    const regex = /(Strength|Constitution|Dexterity|Intelligence|Resolve|Perception): (\d+)/g;
+    let match;
+    while ((match = regex.exec(statusText)) !== null) {
+        const statName = match[1].toLowerCase();
+        const statValue = parseInt(match[2], 10);
+        if (stats.hasOwnProperty(statName)) {
+            stats[statName] = statValue;
+        }
+    }
+
+    return stats;
+}
+
+function initializeCharacter(characterData) {
+    const stats = parseStatsFromStatusText(characterData.statusText);
+
+    const combatClassInfo = combatClassMapping[characterData.combatClass] || { damageType: "unknown" };
+
+    const hp = stats.constitution * 10;
+    let mp = (stats.intelligence + stats.resolve) * 5; // Base MP calculation
+    const physicalResistance = stats.constitution * 0.8;
+    const magicResistance = stats.resolve * 0.8;
+    let physicalDamage = stats.strength * 1.5 + stats.dexterity * 0.5; // Strength + 50% Dexterity
+    let magicDamage = stats.intelligence * 1.5 + stats.resolve * 0.5; // Major Int, minor Resolve
+    const attackSpeed = stats.dexterity * 0.8;
+    const evasion = stats.dexterity * 0.8 + stats.perception * 0.4;
+    const criticalChance = stats.perception * 1.2;
+
+    // Initialize hybrid damage values
+    let hybridADamage = 0;
+    let hybridBDamage = 0;
+
+    // Adjust damage stats based on damage type
+    if (combatClassInfo.damageType === "pure physical") {
+        magicDamage = 0; // No magic damage for pure physical types
+        mp = 0; // Pure physical classes have no mana
+    } else if (combatClassInfo.damageType === "pure magic") {
+        physicalDamage = 0; // No physical damage for pure magic types
+		 physicalDamage = 0; // No physical damage for pure magic types
+        magicDamage = (stats.intelligence * 2) + (stats.resolve * 0.8); // Adjusted magic damage scaling
+    } else if (combatClassInfo.damageType === "hybrid A") {
+        // Hybrid A: Mostly physical
+        hybridADamage = (physicalDamage * 0.8) + (magicDamage * 0.2);
+    } else if (combatClassInfo.damageType === "hybrid B") {
+        // Hybrid B: Mostly magic
+        hybridBDamage = (magicDamage * 0.8) + (physicalDamage * 0.2);
+    }
+
+    return {
+        name: `${characterData.firstName || "Unknown"} ${characterData.lastName || "Character"}`,
+        pixelArtImage: characterData.pixelArtImage, // Include pixelArtImage
+        hp,
+        mp,
+        physicalResistance,
+        magicResistance,
+        physicalDamage,
+        magicDamage,
+        hybridADamage,
+        hybridBDamage,
+        attackSpeed,
+        evasion,
+        criticalChance,
+        damageType: combatClassInfo.damageType, // Include damage type
+        stats,
+    };
+
+}
+function displayCharacterStats(character, side) {
+    const container = side === "left" ? document.getElementById("battleLogLeft") : document.getElementById("battleLogRight");
+
+    // Determine if hybrid combined damage should be displayed
+    let combinedDamage = null;
+    if (character.damageType === "hybrid A") {
+        combinedDamage = character.hybridADamage.toFixed(1);
+    } else if (character.damageType === "hybrid B") {
+        combinedDamage = character.hybridBDamage.toFixed(1);
+    }
+
+    // Calculate HP and MP percentages
+    const hpPercentage = (character.hp / (character.stats.constitution * 10)) * 100;
+    const mpPercentage = (character.mp / ((character.stats.intelligence + character.stats.resolve) * 5)) * 100;
+
+    container.innerHTML = `
+        <h3>${character.name}</h3>
+        <div class="stat-display">
+            <div class="bar-container">
+                <p>HP</p>
+                <div class="bar" style="width: ${hpPercentage}%"></div>
+                <p>${character.hp.toFixed(1)} / ${character.stats.constitution * 10}</p>
+            </div>
+            <div class="bar-container">
+                <p>MP</p>
+                <div class="bar" style="width: ${mpPercentage}%"></div>
+                <p>${character.mp.toFixed(1)} / ${(character.stats.intelligence + character.stats.resolve) * 5}</p>
+            </div>
+            <p>Damage Type: ${character.damageType}</p>
+            <p>Physical Damage: ${character.physicalDamage}</p>
+            <p>Magic Damage: ${character.magicDamage}</p>
+            ${
+                combinedDamage !== null
+                    ? `<p><strong>Combined Hybrid Damage:</strong> ${combinedDamage}</p>`
+                    : ""
+            }
+            <p>Physical Resistance: ${character.physicalResistance}</p>
+            <p>Magic Resistance: ${character.magicResistance}</p>
+            <p>Attack Speed: ${character.attackSpeed}</p>
+            <p>Evasion: ${character.evasion.toFixed(1)}</p>
+            <p>Critical Hit Chance: ${character.criticalChance.toFixed(1)}%</p>
+        </div>
+    `;
+}
+
+  function loadCharacterFromDropdown(characterNumber) {
+    const dropdown = characterNumber === 1
+        ? document.getElementById("characterOneDropdown")
+        : document.getElementById("characterTwoDropdown");
+    const characterKey = dropdown.value;
+
+    if (!characterKey) return;
+
+    const request = indexedDB.open("characterDatabase", 2);
+    request.onsuccess = function (event) {
+        const db = event.target.result;
+        const transaction = db.transaction(["characters"], "readonly");
+        const objectStore = transaction.objectStore("characters");
+        const getRequest = objectStore.get(characterKey);
+
+        getRequest.onsuccess = function () {
+            const characterData = getRequest.result;
+
+            if (characterData) {
+                console.log("Loaded character data:", characterData); // Log fetched data for debugging
+
+                // Initialize the character stats
+                const character = initializeCharacter(characterData);
+                
+                // Display character stats
+                const side = characterNumber === 1 ? "left" : "right";
+                displayCharacterStats(character, side);
+
+               // Function to omit "Condition" and "Environment" sections from the status text
+function filterStatusText(statusText) {
+    // Use regular expressions to remove the "Condition" section and everything after it until "Combat"
+    return statusText.replace(/Condition\s+[\s\S]*?Combat\s+/g, "Combat\n");
+}
+// Display status text and pixel art
+const statusElement = characterNumber === 1 
+    ? document.getElementById("characterOneStatus") 
+    : document.getElementById("characterTwoStatus");
+
+// Filter the status text
+const filteredStatusText = filterStatusText(characterData.statusText);
+
+statusElement.innerHTML = `
+    <figure style="display: flex; flex-direction: column; align-items: center;">
+        <figcaption style="text-align: center; margin-bottom: 1px;">Emblem</figcaption>
+        <img src="${characterData.pixelArtImage}" alt="Pixel Art" style="width: 50px; height: 50px;">
+    </figure>
+    <pre>${filteredStatusText}</pre>
+`;
+
+            } else {
+                console.error("No character data found for key:", characterKey);
+            }
+        };
+
+        getRequest.onerror = function () {
+            console.error("Error fetching character data:", getRequest.error);
+        };
+    };
+}
+let characterOne; // Use 'let' to allow reassignment
+let characterTwo;
+let turn = 1;
+function determineFirstAttacker(characterOne, characterTwo) {
+    if (characterOne.stats.dexterity > characterTwo.stats.dexterity) {
+        return { first: characterOne, second: characterTwo };
+    } else if (characterOne.stats.dexterity < characterTwo.stats.dexterity) {
+        return { first: characterTwo, second: characterOne };
+    } else {
+        // In case of a tie, randomly decide
+        return Math.random() < 0.5
+            ? { first: characterOne, second: characterTwo }
+            : { first: characterTwo, second: characterOne };
+    }
+}
+document.getElementById('startBattleButton').addEventListener('click', startBattle);
+document.getElementById('stopBattleButton').addEventListener('click', stopBattle);
+
+let battleInterval; // Declare battleInterval globally to access it later
+
+function startBattle() {
+    // Fetch character keys from dropdowns
+    const characterOneKey = document.getElementById('characterOneDropdown').value;
+    const characterTwoKey = document.getElementById('characterTwoDropdown').value;
+
+    if (!characterOneKey || !characterTwoKey) {
+        console.error("Both characters must be selected to start the battle.");
+        return;
+    }
+
+    // Fetch characters from IndexedDB
+    const request = indexedDB.open("characterDatabase", 2);
+    request.onsuccess = function (event) {
+        const db = event.target.result;
+        const transaction = db.transaction(["characters"], "readonly");
+        const objectStore = transaction.objectStore("characters");
+
+
+// Get character data for both players
+const characterOneRequest = objectStore.get(characterOneKey);
+const characterTwoRequest = objectStore.get(characterTwoKey);
+
+characterOneRequest.onsuccess = function () {
+    const characterOneData = characterOneRequest.result;
+    const initializedCharacterOne = initializeCharacter(characterOneData); // Initialize character
+
+    characterTwoRequest.onsuccess = function () {
+        const characterTwoData = characterTwoRequest.result;
+        const initializedCharacterTwo = initializeCharacter(characterTwoData); // Initialize character
+
+                // Clear the battle log before starting
+                document.getElementById("battleLogCenter").innerHTML = '';
+                document.getElementById("battleLogLeft").innerHTML = '';
+                document.getElementById("battleLogRight").innerHTML = '';
+
+                // Display the emblems inside the battle log center
+                displayEmblems(initializedCharacterOne, initializedCharacterTwo);
+
+                // Display initial character stats in the battle log
+                displayCharacterStats(initializedCharacterOne, "left");
+                displayCharacterStats(initializedCharacterTwo, "right");
+
+                // Show stop button
+                document.getElementById('stopBattleButton').style.display = 'inline-block';
+
+                // Initialize the battle simulation
+                let turn = 1;
+                const battleLog = document.getElementById("battleLogCenter");
+
+                function logMessage(message) {
+                    const logEntry = document.createElement('p');
+                    logEntry.textContent = message;
+                    battleLog.appendChild(logEntry);
+                    battleLog.scrollTop = battleLog.scrollHeight; // Auto-scroll
+                }
+
+           function calculateDamage(attacker, defender, type, reductionPercent, attacksThisTurn) {
+    let baseDamage;
+    let mitigation;
+
+    // Determine base damage and resistance
+    if (type === 'physical') {
+        baseDamage = attacker.physicalDamage;
+        mitigation = defender.physicalResistance;
+    } else if (type === 'magic') {
+        const totalMpRequired = 40 * attacksThisTurn; // Total MP required for all attacks this turn
+        if (attacker.mp < totalMpRequired) {
+            return { damage: 0, message: `${attacker.name} has insufficient mana for a magic attack!` };
+        }
+        baseDamage = attacker.magicDamage;
+        mitigation = 0.8 * defender.magicResistance + 0.2 * defender.physicalResistance;
+        attacker.mp -= totalMpRequired; // Deduct MP for all magic attacks
+    } else if (type === 'hybridA') {
+        const totalMpRequired = 20 * attacksThisTurn; // Total MP required for hybrid A
+        if (attacker.mp < totalMpRequired) {
+            return { damage: 0, message: `${attacker.name} has insufficient mana for a hybrid attack!` };
+        }
+        baseDamage = attacker.hybridADamage;
+        mitigation = 0.65 * defender.physicalResistance + 0.35 * defender.magicResistance;
+        attacker.mp -= totalMpRequired; // Deduct MP at reduced cost
+    } else if (type === 'hybridB') {
+        const totalMpRequired = 30 * attacksThisTurn; // Total MP required for hybrid B
+        if (attacker.mp < totalMpRequired) {
+            return { damage: 0, message: `${attacker.name} has insufficient mana for a hybrid attack!` };
+        }
+        baseDamage = attacker.hybridBDamage;
+        mitigation = 0.7 * defender.magicResistance + 0.3 * defender.physicalResistance;
+        attacker.mp -= totalMpRequired; // Deduct MP at reduced cost
+    }
+
+
+    // Critical hit and miss logic
+    const effectiveCritChance = attacker.criticalChance / (0.5 + defender.evasion / 100);
+    const isCritical = Math.random() < effectiveCritChance / 100;
+    const isMiss = Math.random() < (1 - attacker.stats.perception / defender.evasion);
+
+    if (isMiss) {
+        return { damage: 0, message: `${attacker.name} missed!` };
+    }
+
+    let damage = baseDamage;
+
+    // Apply critical hit multiplier
+    if (isCritical) {
+        damage *= 1.5 + (attacker.stats.perception / 100);
+    }
+
+    // Apply damage reduction for successive attacks
+    damage *= (1 - reductionPercent / 100);
+
+    // Apply mitigation after critical and reduction
+    damage -= mitigation;
+
+    // Ensure no negative damage
+    damage = Math.max(damage, 0);
+
+    const critMessage = isCritical ? " (Critical Hit!)" : "";
+    return { damage, message: `${attacker.name} attacked ${defender.name} for ${damage.toFixed(1)} damage.${critMessage}` };
+}
+
+function determineAttacks(attackSpeed) {
+    if (attackSpeed <= 6) {
+        // 0-6: 50% chance for 1 guaranteed attack
+        return { guaranteed: Math.random() < 0.5 ? 1 : 0, chance: 0 };
+    } else if (attackSpeed <= 30) {
+        // 7-30: 1 guaranteed attack, chance for 2 attacks
+        return { guaranteed: 1, chance: (attackSpeed - 7) / 23 };
+    } else if (attackSpeed <= 70) {
+        // 30-70: 2 guaranteed attacks, chance for 3 attacks
+        return { guaranteed: 2, chance: (attackSpeed - 30) / 40 };
+    } else if (attackSpeed <= 120) {
+        // 70-120: 3 guaranteed attacks, chance for 4 attacks
+        return { guaranteed: 3, chance: (attackSpeed - 70) / 50 };
+    } else if (attackSpeed <= 200) {
+        // 120-200: 4 guaranteed attacks, chance for 5 attacks
+        return { guaranteed: 4, chance: (attackSpeed - 120) / 80 };
+    } else {
+        // Attack speed > 200: Max 5 guaranteed attacks
+        return { guaranteed: 5, chance: 0 };
+    }
+}
+
+
+function takeTurn(attacker, defender) {
+    passiveMPRegeneration(attacker); // Apply passive MP regeneration
+
+    // Apply resistance decay if boosted
+    if (defender.boostApplied) {
+        defender.defenseBoostDuration--;
+        if (defender.defenseBoostDuration <= 0) {
+            defender.magicResistance /= (1.5 + defender.stats.resolve / 100);
+            defender.physicalResistance /= (1.5 + defender.stats.constitution / 100);
+            defender.boostApplied = false; // Reset boost status
+        }
+    }
+
+    // Determine number of attacks based on attack speed (dexterity)
+    const attackSpeed = attacker.stats.dexterity;
+    const attackInfo = determineAttacks(attackSpeed);
+
+    // Guaranteed attacks
+    let attacksThisTurn = attackInfo.guaranteed;
+
+    // Chance-based extra attack
+    if (Math.random() < attackInfo.chance) {
+        attacksThisTurn++;
+    }
+
+    // Handle no attacks scenario
+    if (attacksThisTurn === 0) {
+        logMessage(`${attacker.name} was too slow to react this turn.`);
+        return; // No attack occurs
+    }
+
+    logMessage(`${attacker.name} attacks ${attacksThisTurn} times this turn!`);
+
+    // Handle Pure Physical Attackers
+    if (attacker.damageType === 'pure physical') {
+        const shouldDefend = decideToDefend(attacker);
+
+        if (shouldDefend) {
+            logMessage(`${attacker.name} chooses to defend, boosting resistances.`);
+            applyDefenseBoost(attacker);
+        } else {
+            // Execute attacks
+            for (let i = 0; i < attacksThisTurn; i++) {
+                const reductionPercent = i * 20; // 20% reduction for successive attacks
+                const { damage, message } = calculateDamage(attacker, defender, 'physical', reductionPercent, attacksThisTurn);
+                logMessage(message);
+                defender.hp -= damage;
+
+                if (defender.hp <= 0) {
+                    logMessage(`${defender.name} has been defeated!`);
+                    break;
+                }
+            }
+        }
+
+        // Move emblem for physical attackers
+        moveEmblem(attacker.name === characterOne.name ? 'one' : 'two');
+
+        // Re-render stats
+        displayCharacterStats(attacker, attacker.name === characterOne.name ? "left" : "right");
+        displayCharacterStats(defender, defender.name === characterOne.name ? "left" : "right");
+        return;
+    }
+
+    // Handle Magic and Hybrid Attackers
+    const mpCostPerAttack = attacker.damageType === 'pure magic'
+        ? 40
+        : attacker.damageType.startsWith('hybrid')
+        ? 30
+        : 50; // Default MP cost
+    const totalMpRequired = mpCostPerAttack * attacksThisTurn;
+
+    if (attacker.mp < totalMpRequired) {
+        // Insufficient MP: Defend instead
+        logMessage(`${attacker.name} has insufficient mana and chooses to defend.`);
+        applyDefenseBoost(attacker);
+        attacker.mp += attacker.stats.resolve * 5; // Regenerate MP when defending
+        attacker.mp = Math.min(attacker.mp, (attacker.stats.intelligence + attacker.stats.resolve) * 5); // Cap MP
+
+        // Re-render stats
+        displayCharacterStats(attacker, attacker.name === characterOne.name ? "left" : "right");
+        displayCharacterStats(defender, defender.name === characterOne.name ? "left" : "right");
+        return;
+    }
+
+    // Execute attacks
+    for (let i = 0; i < attacksThisTurn; i++) {
+        const reductionPercent = i * 20; // 20% reduction for successive attacks
+        const attackType = attacker.damageType === 'pure magic'
+            ? 'magic'
+            : attacker.damageType === 'hybrid A'
+            ? 'hybridA'
+            : 'hybridB';
+
+        const { damage, message } = calculateDamage(attacker, defender, attackType, reductionPercent, attacksThisTurn);
+        logMessage(message);
+
+        defender.hp -= damage;
+        attacker.mp -= mpCostPerAttack; // Deduct MP for each attack
+
+        if (defender.hp <= 0) {
+            logMessage(`${defender.name} has been defeated!`);
+            break;
+        }
+    }
+
+    // Move emblem if attacks occurred
+    if (attacksThisTurn > 0) {
+        moveEmblem(attacker.name === characterOne.name ? 'one' : 'two');
+    } else {
+        logMessage(`${attacker.name} couldn't attack this turn.`);
+    }
+
+    // Re-render stats
+    displayCharacterStats(attacker, attacker.name === characterOne.name ? "left" : "right");
+    displayCharacterStats(defender, defender.name === characterOne.name ? "left" : "right");
+}
+
+// Enhanced decision-making logic for defend or fallback attacks
+function decideToDefend(attacker) {
+    const healthFactor = attacker.hp / (attacker.stats.constitution * 10); // Attacker's current HP as a percentage of max HP
+
+    // Pure physical attackers defend only if their HP is below 30%
+    if (attacker.damageType === 'pure physical') {
+        return healthFactor < 0.3; // Defend if HP < 30%
+    }
+
+    // Default logic for other attack types
+    return false; // Magic/hybrid attackers do not use this logic
+}
+
+
+
+// Passive MP regeneration for magic-based attackers
+function passiveMPRegeneration(attacker) {
+    if (attacker.damageType === 'pure magic' || attacker.damageType.startsWith('hybrid')) {
+        attacker.mp += attacker.stats.resolve * 0.05; // Regenerate 5% of resolve per turn
+        attacker.mp = Math.min(attacker.mp, (attacker.stats.intelligence + attacker.stats.resolve) * 5); // Cap MP
+    }
+}
+
+// Updated fallback for physical attack scaling
+function adjustPhysicalDamage(attacker) {
+    if (attacker.damageType === 'pure magic') {
+        attacker.physicalDamage = attacker.stats.resolve * 0.5 + attacker.stats.perception * 0.3; // Scale by resolve and perception
+    } else if (attacker.damageType === 'hybrid A' || attacker.damageType === 'hybrid B') {
+        attacker.physicalDamage *= 0.7; // Hybrids retain 70% of physical damage
+    }
+}
+// Apply defense boost
+function applyDefenseBoost(defender) {
+    const magicBoost = 1.5 + (defender.stats.resolve / 100);
+    const physicalBoost = 1.5 + (defender.stats.constitution / 100);
+
+    defender.magicResistance *= magicBoost;
+    defender.physicalResistance *= physicalBoost;
+
+    // Set duration for the boost
+    defender.defenseBoostDuration = 1 + Math.floor(defender.stats.resolve / 100);
+    defender.boostApplied = true; // Track that boost is active
+}
+
+
+                function moveEmblem(attacker) {
+                    // Move the emblem horizontally
+                    const attackerEmblem = attacker === 'one' ? document.getElementById('emblemOne') : document.getElementById('emblemTwo');
+                    const defenderEmblem = attacker === 'one' ? document.getElementById('emblemTwo') : document.getElementById('emblemOne');
+
+                    // If the attacker is character 1, move their emblem towards the right
+                    if (attacker === 'one') {
+                        attackerEmblem.style.transform = 'translateX(50px)'; // Move right
+                    } else {
+                        // If the attacker is character 2, move their emblem towards the left
+                        attackerEmblem.style.transform = 'translateX(-50px)'; // Move left
+                    }
+
+                    // After animation ends, reset the emblem's position
+                    setTimeout(() => {
+                        attackerEmblem.style.transform = 'translateX(0)';
+                    }, 200); // Duration of the movement animation
+                }
+
+function displayEmblems(characterOne, characterTwo) {
+    const battleLogCenter = document.getElementById("battleLogCenter");
+
+    battleLogCenter.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">
+            <figure style="display: flex; flex-direction: column; align-items: center; margin-right: 20px;">
+                <figcaption style="text-align: center; margin-bottom: 1px;">${characterOne.name}'s Emblem</figcaption>
+                <img id="emblemOne" src="${characterOne.pixelArtImage}" alt="${characterOne.name}'s Emblem">
+            </figure>
+            <p style="font-size: 20px; color: #e0d5c1; font-weight: bold;">VS</p>
+            <figure style="display: flex; flex-direction: column; align-items: center; margin-left: 20px;">
+                <figcaption style="text-align: center; margin-bottom: 1px;">${characterTwo.name}'s Emblem</figcaption>
+                <img id="emblemTwo" src="${characterTwo.pixelArtImage}" alt="${characterTwo.name}'s Emblem">
+            </figure>
+        </div>
+    `;
+}
+
+// Determine first attacker
+const { first, second } = determineFirstAttacker(initializedCharacterOne, initializedCharacterTwo);
+
+// Update global character variables
+characterOne = first;
+characterTwo = second;
+
+    logMessage(`${characterOne.name} goes first!`);
+
+    
+
+    function battleLoop() {
+        logMessage(`--- Turn ${turn} ---`);
+        const attacker = turn % 2 === 1 ? characterOne : characterTwo;
+        const defender = turn % 2 === 1 ? characterTwo : characterOne;
+
+        takeTurn(attacker, defender);
+
+        if (defender.hp <= 0) {
+            logMessage(`${defender.name} has been defeated!`);
+            clearInterval(battleInterval);
+            document.getElementById('stopBattleButton').style.display = 'none'; // Hide stop button after battle ends
+            return;
+        }
+
+        turn++;
+    }
+
+    battleInterval = setInterval(battleLoop, 2000); // Run every 1 second
+};
+        };
+    };
+}
+
+function stopBattle() {
+    // Stop the ongoing battle by clearing the interval
+    clearInterval(battleInterval);  // This will stop the battle loop from continuing
+    document.getElementById('stopBattleButton').style.display = 'none'; // Hide the stop button
+    document.getElementById("battleLogCenter").innerHTML += '<p>Battle has been stopped!</p>';
+}
+
+
+
+        // Function to populate dropdowns with characters
+        function updateCharacterDropdowns() {
+            const request = indexedDB.open("characterDatabase", 2);
+            request.onsuccess = function (event) {
+                const db = event.target.result;
+                const transaction = db.transaction(["characters"], "readonly");
+                const objectStore = transaction.objectStore("characters");
+                const cursorRequest = objectStore.openCursor();
+
+                cursorRequest.onsuccess = function (event) {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        const character = cursor.value;
+                        const option1 = document.createElement("option");
+                        const option2 = document.createElement("option");
+
+                        option1.value = option2.value = character.key;
+                        option1.textContent = option2.textContent = `${character.firstName} ${character.lastName}`;
+
+                        document.getElementById("characterOneDropdown").appendChild(option1);
+                        document.getElementById("characterTwoDropdown").appendChild(option2);
+
+                        cursor.continue();
+                    }
+                };
+            };
+        }
+
+        // Initialize dropdowns on page load
+        updateCharacterDropdowns();
+
+
+    </script>
+</body>
+</html>
