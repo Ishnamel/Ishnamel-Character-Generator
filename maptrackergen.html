@@ -956,11 +956,15 @@
         <label for="showHillshade">3D Hillshade</label>
       </div>
 
-      <div class="checkbox-group">
+     <div class="checkbox-group">
         <input type="checkbox" id="showPois" checked>
         <label for="showPois">Settlements</label>
       </div>
 
+      <div class="checkbox-group">
+        <input type="checkbox" id="showWaterZones" checked>
+        <label for="showWaterZones" style="color: #74b9ff;">🌊 Water Zones</label>
+      </div>
       <div class="checkbox-group">
         <input type="checkbox" id="showCharacters" checked>
         <label for="showCharacters">Heroes &amp; Wanderers</label>
@@ -980,35 +984,41 @@
           <div class="dropdown-section-title">Realm &amp; Zone Titles</div>
           <div class="dropdown-grid">
             <label><input type="checkbox" class="lbl-toggle" id="lbl_grand" checked> Grand Zones</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_med" checked> Medium Zones</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_small" checked> Small Zones</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_med" > Medium Zones</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_small" > Small Zones</label>
           </div>
 
           <div class="dropdown-section-title">Major Settlements</div>
           <div class="dropdown-grid">
             <label><input type="checkbox" class="lbl-toggle" id="lbl_capital" checked> Capitals</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_city" checked> Major Cities</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_town" checked> Walled Towns</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_city" > Major Cities</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_town" > Walled Towns</label>
           </div>
 
           <div class="dropdown-section-title">Rural Settlements</div>
           <div class="dropdown-grid">
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_village" checked> Villages</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_hamlet" checked> Hamlets</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_village" > Villages</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_hamlet" > Hamlets</label>
+          </div>
+
+          <div class="dropdown-section-title">Bodies of Water &amp; Rivers</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_water" checked> Water Names</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_river" checked> River Names</label>
           </div>
 
           <div class="dropdown-section-title">Strategic &amp; Resource POIs</div>
           <div class="dropdown-grid">
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_port" checked> Coastal Ports</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_fort" checked> Border Forts</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_spire" checked> Arcane Spires</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_mine" checked> Mines</label>
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_ruins" checked> Ancient Ruins</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_port" > Coastal Ports</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_fort" > Border Forts</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_spire" > Arcane Spires</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_mine" > Mines</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_ruins" > Ancient Ruins</label>
           </div>
 
           <div class="dropdown-section-title">Wandering Heroes</div>
           <div class="dropdown-grid">
-            <label><input type="checkbox" class="lbl-toggle" id="lbl_character" checked> Hero Names</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_character" > Hero Names</label>
           </div>
         </div>
       </div>
@@ -1066,9 +1076,11 @@
     <div class="sidebar-controls">
       <input type="text" id="sidebarSearch" class="sidebar-search-input" placeholder="🔍 Search by name, character or realm..." />
       <div class="sidebar-filter-row">
-        <select id="sidebarTypeFilter">
+       <select id="sidebarTypeFilter">
           <option value="all">All Types</option>
           <option value="character">Characters / Heroes</option>
+          <option value="water">Bodies of Water / Gulfs</option>
+          <option value="river">Major Rivers</option>
           <option value="capital">Capitals</option>
           <option value="city">Major Cities</option>
           <option value="town">Walled Towns</option>
@@ -1100,7 +1112,7 @@
     <div class="char-sidebar-body">
       <div class="char-emblem-container">
         <img id="csEmblemImg" class="char-emblem-img" src="" alt="Hero Emblem" />
-        <div id="csFullName" class="char-hero-title">Aethelgard Hero</div>
+        <div id="csFullName" class="char-hero-title">Ishnamel Hero</div>
         <div class="char-badge-row">
           <span id="csRaceBadge" class="char-pill">Human</span>
           <span id="csClassBadge" class="char-pill" style="background:#5a3825; border-color:#d4af37;">Juggernaut</span>
@@ -1499,7 +1511,41 @@ const POI_DESCRIPTORS = {
   mine: ["Iron Mine", "Gold Excavation", "Deep Delve", "Quarry", "Silver Pit", "Deep Mine"],
   port: ["Harbor", "Bay Anchorage", "Wharf", "Haven Dock", "Pier Head", "Seaport", "Quay"]
 };
+// --- Water & River Naming Pool ---
+const WATER_NAMES = {
+  oceanPrefixes: ["Great", "Grand", "Endless", "Abyssal", "Sovereign", "Azure", "Cerulean", "Sapphire", "Cobalt", "Stormy", "Whispering", "Boundless", "Silent", "Deep", "Northern", "Southern", "Eastern", "Western", "Frozen", "Golden"],
+  oceanSuffixes: ["Ocean", "Expanse", "Abyss", "Deep", "Tides", "Main", "Reach", "Waters"],
+  gulfTypes: ["Gulf", "Bay", "Sound", "Strait", "Fjord", "Channel"],
+  lakeTypes: ["Lake", "Loch", "Mere", "Waters"],
+  riverPatterns: ["River {name}", "{name} River", "{name} Flow", "{name} Run", "{name} Waters"]
+};
 
+function generateWaterZoneName(type, nearbyCulture, rng) {
+  let baseName = rng.next() < 0.65 ? generateThemedName(nearbyCulture, rng) : safeSample(WATER_NAMES.oceanPrefixes, rng, "Azure");
+
+  if (type === "ocean") {
+    let s = safeSample(WATER_NAMES.oceanSuffixes, rng, "Ocean");
+    let p = safeSample(WATER_NAMES.oceanPrefixes, rng, "Great");
+    return rng.next() < 0.4 ? `${p} ${baseName} ${s}` : `${baseName} ${s}`;
+  } else if (type === "gulf" || type === "bay" || type === "strait" || type === "sound" || type === "fjord") {
+    let t = safeSample(WATER_NAMES.gulfTypes, rng, "Gulf");
+    if (t === "Gulf" || t === "Bay" || t === "Strait" || t === "Channel") {
+      return rng.next() < 0.55 ? `${t} of ${baseName}` : `${baseName} ${t}`;
+    }
+    return `${baseName} ${t}`;
+  } else if (type === "sea") {
+    return rng.next() < 0.5 ? `Sea of ${baseName}` : `${baseName} Sea`;
+  } else {
+    let t = safeSample(WATER_NAMES.lakeTypes, rng, "Lake");
+    return rng.next() < 0.5 ? `${t} ${baseName}` : `${baseName} ${t}`;
+  }
+}
+
+function generateRiverName(culture, rng) {
+  let base = generateThemedName(culture, rng);
+  let pat = safeSample(WATER_NAMES.riverPatterns, rng, "River {name}");
+  return pat.replace("{name}", base);
+}
 function generateThemedName(themeKey, rng) {
   let pool = THEME_POOLS[themeKey] || THEME_POOLS.medieval;
   if (pool.stems && pool.stems.length > 0 && rng.next() < 0.35) {
@@ -1584,7 +1630,7 @@ function getNonGreenColor(index, alpha = 0.40) {
     fillR, fillG, fillB, alpha,
     borderR: Math.min(255, Math.round(fillR * 1.25 + 20)),
     borderG: Math.min(255, Math.round(fillG * 1.25 + 20)),
-    borderB: Math.min(255, Math.round(fillG * 1.25 + 20)),
+    borderB: Math.min(255, Math.round(fillB * 1.25 + 20)),
     nameColor: `rgb(${Math.min(255, fillR + 70)}, ${Math.min(255, fillG + 70)}, ${Math.min(255, fillB + 70)})`
   };
 }
@@ -1599,6 +1645,8 @@ let isSimulationRunning = false;
 let simRafId = null;
 let lastSimTime = 0;
 let simSpeedMultiplier = 1.0;
+let wasSimRunningBeforeBattle = false;
+let encounterCheckTimer = 0;
 
 // --- Active Character Following Controller ---
 let followedCharacter = null;
@@ -1680,7 +1728,7 @@ function updateFollowCamera() {
   if (followedCharacter.simState === "traveling") {
     locDesc = `En route (${followedCharacter.assignedLocationName})`;
   } else if (followedCharacter.simState === "resting") {
-    locDesc = `Resting at ${followedCharacter.stationedNode ? followedCharacter.stationedNode.name : 'Settlement'}`;
+    locDesc = `Stationed at ${followedCharacter.stationedNode ? followedCharacter.stationedNode.name : 'Settlement'}`;
   }
   document.getElementById('ttRealm').innerText = `${locDesc} • 🎥 Following`;
 
@@ -1696,11 +1744,10 @@ function updateFollowCamera() {
   }
   tooltip.style.display = 'block';
 
-  // Real-time sidebar update if character status panel is open
   const charSidebar = document.getElementById('characterStatusSidebar');
   if (charSidebar && charSidebar.classList.contains('active')) {
     let csLocDesc = followedCharacter.assignedLocationName || "Unknown Location";
-    if (followedCharacter.simState === "traveling") csLocDesc = "Traveling on Trade Highway (" + followedCharacter.assignedLocationName + ")";
+    if (followedCharacter.simState === "traveling") csLocDesc = "Traveling (" + followedCharacter.assignedLocationName + ")";
     else if (followedCharacter.simState === "resting") csLocDesc = "Resting at " + (followedCharacter.stationedNode ? followedCharacter.stationedNode.name : "Settlement");
     document.getElementById('csLocationDesc').innerText = csLocDesc;
     document.getElementById('csRealmDesc').innerText = getResolvedRealmString(followedCharacter);
@@ -1722,14 +1769,16 @@ function smoothPathChaikin(path, iterations = 2) {
         y: 0.75 * p0.y + 0.25 * p1.y,
         px: 0.75 * p0.px + 0.25 * p1.px,
         py: 0.75 * p0.py + 0.25 * p1.py,
-        flow: p0.flow || p1.flow
+        flow: p0.flow || p1.flow,
+        type: p0.type || p1.type
       });
       next.push({
         x: 0.25 * p0.x + 0.75 * p1.x,
         y: 0.25 * p0.y + 0.75 * p1.y,
         px: 0.25 * p0.px + 0.75 * p1.px,
         py: 0.25 * p0.py + 0.75 * p1.py,
-        flow: p1.flow || p0.flow
+        flow: p1.flow || p0.flow,
+        type: p1.type || p0.type
       });
     }
     next.push(current[current.length - 1]);
@@ -1742,6 +1791,8 @@ function smoothPathChaikin(path, iterations = 2) {
 function generateWorldMap() {
   pauseSimulation();
   stopFollowing();
+  wasSimRunningBeforeBattle = false;
+  encounterCheckTimer = 0;
 
   const canvas = document.getElementById('mapCanvas');
   const width = canvas.width;
@@ -1768,6 +1819,8 @@ function generateWorldMap() {
   const grandState = new Int8Array(totalCells);
   const medState = new Int16Array(totalCells);
   const smallState = new Int16Array(totalCells);
+  const waterZoneState = new Int16Array(totalCells).fill(-1);
+  const isWaterBorder = new Uint8Array(totalCells);
   const hillshade = new Float32Array(totalCells);
   const isGrandBorder = new Uint8Array(totalCells);
   const isMedBorder = new Uint8Array(totalCells);
@@ -1813,14 +1866,18 @@ function generateWorldMap() {
     if (!w) rawLandCells.push(idx);
   }
 
-  // Connected Landmass Component Analysis
+ // Connected Landmass & Water Body Component Analysis
   const componentId = new Int16Array(totalCells).fill(-1);
   let numComponents = 0;
   const componentSizes = [];
   const componentCoasts = [];
   const componentCells = [];
 
+  const waterBodyId = new Int16Array(totalCells).fill(-1);
+  let numWaterBodies = 0;
+
   for (let idx = 0; idx < totalCells; idx++) {
+    // Analyze Land Components
     if (!isWater[idx] && componentId[idx] === -1) {
       let compId = numComponents++;
       componentSizes[compId] = 0;
@@ -1855,6 +1912,29 @@ function generateWorldMap() {
             let nIdx = n.y * gw + n.x;
             if (!isWater[nIdx] && componentId[nIdx] === -1) {
               componentId[nIdx] = compId;
+              queue.push(nIdx);
+            }
+          }
+        }
+      }
+    }
+
+    // Analyze Water Bodies (Distinguish oceans from inland lakes)
+    if (isWater[idx] && waterBodyId[idx] === -1) {
+      let wbId = numWaterBodies++;
+      let queue = [idx];
+      waterBodyId[idx] = wbId;
+      let head = 0;
+
+      while (head < queue.length) {
+        let curr = queue[head++];
+        let cx = curr % gw, cy = Math.floor(curr / gw);
+        const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+        for (let n of neighbors) {
+          if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+            let nIdx = n.y * gw + n.x;
+            if (isWater[nIdx] && waterBodyId[nIdx] === -1) {
+              waterBodyId[nIdx] = wbId;
               queue.push(nIdx);
             }
           }
@@ -1926,7 +2006,7 @@ function generateWorldMap() {
     if (d !== -1) flow[d] += flow[idx];
   }
 
-  // Watershed Rivers
+// Watershed Rivers & River Naming
   let riverMouths = [];
   for (let y = 1; y < gh - 1; y++) {
     let yOffset = y * gw;
@@ -1943,7 +2023,8 @@ function generateWorldMap() {
   let selectedMouths = riverMouths.slice(0, targetRivers);
 
   let riverPaths = [];
-  for (let mouthIdx of selectedMouths) {
+  for (let rIdx = 0; rIdx < selectedMouths.length; rIdx++) {
+    let mouthIdx = selectedMouths[rIdx];
     let rawPath = [];
     let currIdx = mouthIdx;
     let visited = new Set();
@@ -1980,11 +2061,301 @@ function generateWorldMap() {
       }
       currIdx = upstream;
     }
+
     if (rawPath.length > 5) {
-      riverPaths.push(smoothPathChaikin(rawPath, 2));
+      let smoothed = smoothPathChaikin(rawPath, 2);
+      let midIdx = Math.floor(smoothed.length * 0.45);
+      let midPt = smoothed[midIdx] || smoothed[0];
+      let gId = grandState[Math.min(totalCells - 1, Math.floor(midPt.y) * gw + Math.floor(midPt.x))];
+      let cult = (gId >= 0 && grandZones[gId]) ? grandZones[gId].culture : "medieval";
+      let rName = generateRiverName(cult, rng);
+
+      let nextPt = smoothed[Math.min(smoothed.length - 1, midIdx + 4)] || midPt;
+      let angleDeg = Math.atan2(nextPt.py - midPt.py, nextPt.px - midPt.px) * (180 / Math.PI);
+      if (angleDeg > 90 || angleDeg < -90) angleDeg += 180;
+
+      smoothed.id = `river_${rIdx}`;
+      smoothed.name = rName;
+      smoothed.type = "river";
+      smoothed.tier = "river";
+      smoothed.px = midPt.px;
+      smoothed.py = midPt.py;
+      smoothed.angle = angleDeg;
+      smoothed.lengthLeagues = Math.round(smoothed.length * 1.6);
+      riverPaths.push(smoothed);
+    }
+  }
+// --- DISTANCE-TO-LAND & HIGH-PRECISION ENCLOSURE ANALYSIS ---
+  const distToLand = new Int16Array(totalCells).fill(0);
+  const landEnclosure = new Float32Array(totalCells).fill(0);
+  let coastQueue = [];
+
+  for (let y = 0; y < gh; y++) {
+    let yOffset = y * gw;
+    for (let x = 0; x < gw; x++) {
+      let idx = yOffset + x;
+      if (isWater[idx]) {
+        let touchesLand = (x > 0 && !isWater[idx - 1]) ||
+                          (x < gw - 1 && !isWater[idx + 1]) ||
+                          (y > 0 && !isWater[idx - gw]) ||
+                          (y < gh - 1 && !isWater[idx + gw]);
+        if (touchesLand) {
+          distToLand[idx] = 1;
+          coastQueue.push(idx);
+        }
+      }
     }
   }
 
+  let head = 0;
+  while (head < coastQueue.length) {
+    let curr = coastQueue[head++];
+    let cx = curr % gw, cy = Math.floor(curr / gw);
+    let curDist = distToLand[curr];
+    const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+    for (let n of neighbors) {
+      if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+        let nIdx = n.y * gw + n.x;
+        if (isWater[nIdx] && distToLand[nIdx] === 0) {
+          distToLand[nIdx] = curDist + 1;
+          coastQueue.push(nIdx);
+        }
+      }
+    }
+  }
+
+  // Measure radial land enclosure (8 raycasts up to 40 cells radius)
+  const sampleRadius = 40;
+  const rayDirs = [
+    {dx: 1, dy: 0}, {dx: -1, dy: 0}, {dx: 0, dy: 1}, {dx: 0, dy: -1},
+    {dx: 0.707, dy: 0.707}, {dx: -0.707, dy: 0.707}, {dx: 0.707, dy: -0.707}, {dx: -0.707, dy: -0.707}
+  ];
+
+  for (let y = 2; y < gh - 2; y += 2) {
+    let yOffset = y * gw;
+    for (let x = 2; x < gw - 2; x += 2) {
+      let idx = yOffset + x;
+      if (!isWater[idx] || distToLand[idx] > 60) continue;
+
+      let landHits = 0;
+      for (let dir of rayDirs) {
+        for (let r = 5; r <= sampleRadius; r += 5) {
+          let rx = Math.floor(x + dir.dx * r);
+          let ry = Math.floor(y + dir.dy * r);
+          if (rx >= 0 && rx < gw && ry >= 0 && ry < gh) {
+            if (!isWater[ry * gw + rx]) { landHits++; break; }
+          }
+        }
+      }
+      let val = landHits / 8.0;
+      landEnclosure[idx] = val;
+      landEnclosure[idx + 1] = val;
+      landEnclosure[idx + gw] = val;
+      landEnclosure[idx + gw + 1] = val;
+    }
+  }
+
+  // --- SUBDIVIDE WATER: GRAND OCEANS (1st Iteration) + NATURALLY CUT-OFF GULFS ---
+  let waterZones = [];
+  let globalWaterZoneId = 0;
+
+  // Identify the largest water body (Open Ocean) vs True Landlocked Inland Lakes
+  let waterBodySizes = new Int32Array(numWaterBodies);
+  for (let i = 0; i < totalCells; i++) {
+    if (isWater[i] && waterBodyId[i] >= 0) waterBodySizes[waterBodyId[i]]++;
+  }
+
+  let maxOceanSize = 0, mainOceanWbId = 0;
+  for (let wb = 0; wb < numWaterBodies; wb++) {
+    if (waterBodySizes[wb] > maxOceanSize) {
+      maxOceanSize = waterBodySizes[wb];
+      mainOceanWbId = wb;
+    }
+  }
+
+  for (let wbId = 0; wbId < numWaterBodies; wbId++) {
+    let bodySize = waterBodySizes[wbId];
+    if (bodySize < 120) continue; // Ignore tiny puddles
+
+    let bodyIndices = [];
+    for (let i = 0; i < totalCells; i++) {
+      if (waterBodyId[i] === wbId) bodyIndices.push(i);
+    }
+
+    // 1. INLAND LAKES (Strictly landlocked water bodies that do not touch the ocean)
+    if (wbId !== mainOceanWbId && bodySize < 10000) {
+      let maxDistCell = bodyIndices[0], maxD = 0;
+      for (let idx of bodyIndices) {
+        waterZoneState[idx] = globalWaterZoneId;
+        if (distToLand[idx] > maxD) {
+          maxD = distToLand[idx];
+          maxDistCell = idx;
+        }
+      }
+      let bx = maxDistCell % gw, by = Math.floor(maxDistCell / gw);
+      let sampleGId = grandState[Math.min(totalCells - 1, by * gw + bx)];
+      let cult = (sampleGId >= 0 && grandZones[sampleGId]) ? grandZones[sampleGId].culture : "medieval";
+      let zType = bodySize < 1200 ? "mere" : (bodySize < 3000 ? "loch" : "lake");
+      let zName = generateWaterZoneName(zType, cult, rng);
+
+      waterZones.push({
+        id: globalWaterZoneId,
+        name: zName,
+        type: "lake",
+        subType: zType.toUpperCase(),
+        x: bx, y: by,
+        px: bx * STEP + STEP / 2,
+        py: by * STEP + STEP / 2,
+        cellCount: bodySize,
+        color: { fillR: 40, fillG: 120, fillB: 180, alpha: 0.15 }
+      });
+      globalWaterZoneId++;
+    } 
+    // 2. OCEAN & COASTAL GULFS/BAYS
+    else {
+      let gulfSeeds = [];
+      let oceanSeeds = [];
+
+      // A. Seed ONLY deep, truly enclosed coastal gulfs/bays (>= 50% enclosed, spaced far apart)
+      let gulfCandidates = bodyIndices.filter(idx => distToLand[idx] >= 6 && distToLand[idx] <= 28 && landEnclosure[idx] >= 0.50);
+      gulfCandidates.sort((a, b) => (landEnclosure[b] * 70 + distToLand[b]) - (landEnclosure[a] * 70 + distToLand[a]));
+
+      for (let idx of gulfCandidates) {
+        if (gulfSeeds.length >= 8) break; // Limit to only prominent bays/gulfs
+        let gx = idx % gw, gy = Math.floor(idx / gw);
+        let tooClose = gulfSeeds.some(sp => Math.hypot(sp.x - gx, sp.y - gy) < 220);
+        if (!tooClose) {
+          let enc = landEnclosure[idx];
+          let subType = enc >= 0.65 ? "gulf" : (enc >= 0.50 ? "bay" : "strait");
+          gulfSeeds.push({
+            id: globalWaterZoneId + gulfSeeds.length,
+            x: gx, y: gy, idx: idx,
+            category: "gulf",
+            subType: subType,
+            isGulf: true
+          });
+        }
+      }
+
+      // B. Macro Ocean Division (Only 2 to 4 vast grand ocean sectors as in the 1st iteration)
+      let numOceanSectors = Math.max(1, Math.min(4, Math.round(bodySize / 55000)));
+      let stepGap = Math.floor(bodySize / numOceanSectors);
+
+      for (let k = 0; k < numOceanSectors; k++) {
+        let sampleIdx = bodyIndices[Math.min(bodySize - 1, k * stepGap + Math.floor(rng.next() * (stepGap * 0.4)))];
+        let ox = sampleIdx % gw, oy = Math.floor(sampleIdx / gw);
+        oceanSeeds.push({
+          id: globalWaterZoneId + gulfSeeds.length + k,
+          x: ox, y: oy, idx: sampleIdx,
+          category: "ocean",
+          subType: "ocean",
+          isGulf: false
+        });
+      }
+
+      // C. STRICT GULF EXPANSION CUTOFF:
+      // Gulfs expand ONLY inside enclosed water (landEnclosure >= 0.38 and distToLand <= 32).
+      // The moment they reach the mouth of the bay, expansion stops immediately!
+      let waterPQ = new PriorityQueue();
+
+      for (let sp of gulfSeeds) {
+        waterZoneState[sp.idx] = sp.id;
+        waterPQ.push({ idx: sp.idx, zId: sp.id, isGulf: true, cost: 0 }, 0);
+      }
+
+      while (!waterPQ.isEmpty()) {
+        let curr = waterPQ.pop();
+        let cx = curr.idx % gw, cy = Math.floor(curr.idx / gw);
+        const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+        for (let n of neighbors) {
+          if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+            let nIdx = n.y * gw + n.x;
+            // HARD CUTOFF AT BAY MOUTH:
+            if (isWater[nIdx] && waterBodyId[nIdx] === wbId && waterZoneState[nIdx] === -1 && landEnclosure[nIdx] >= 0.38 && distToLand[nIdx] <= 32) {
+              waterZoneState[nIdx] = curr.zId;
+              waterPQ.push({ idx: nIdx, zId: curr.zId, isGulf: true, cost: curr.cost + 1 }, curr.cost + 1);
+            }
+          }
+        }
+      }
+
+      // D. Open Ocean fills ALL remaining open waters outside the gulfs
+      for (let sp of oceanSeeds) {
+        if (waterZoneState[sp.idx] === -1) {
+          waterZoneState[sp.idx] = sp.id;
+          waterPQ.push({ idx: sp.idx, zId: sp.id, isGulf: false, cost: 0 }, 0);
+        } else {
+          let freeCell = bodyIndices.find(i => waterZoneState[i] === -1 && distToLand[i] > 30) || bodyIndices.find(i => waterZoneState[i] === -1);
+          if (freeCell) {
+            waterZoneState[freeCell] = sp.id;
+            waterPQ.push({ idx: freeCell, zId: sp.id, isGulf: false, cost: 0 }, 0);
+          }
+        }
+      }
+
+      while (!waterPQ.isEmpty()) {
+        let curr = waterPQ.pop();
+        let cx = curr.idx % gw, cy = Math.floor(curr.idx / gw);
+        const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+        for (let n of neighbors) {
+          if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+            let nIdx = n.y * gw + n.x;
+            if (isWater[nIdx] && waterBodyId[nIdx] === wbId && waterZoneState[nIdx] === -1) {
+              waterZoneState[nIdx] = curr.zId;
+              waterPQ.push({ idx: nIdx, zId: curr.zId, isGulf: false, cost: curr.cost + 1 }, curr.cost + 1);
+            }
+          }
+        }
+      }
+
+      // Extract each zone and calculate its exact water center
+      let allSeeds = gulfSeeds.concat(oceanSeeds);
+      for (let sp of allSeeds) {
+        let sectorCells = bodyIndices.filter(i => waterZoneState[i] === sp.id);
+        let sCount = sectorCells.length;
+        if (sCount < 180 && sp.isGulf) continue; // Drop tiny fragments
+        if (sCount === 0) continue;
+
+        let bestCell = sectorCells[0], bestScore = -1;
+        for (let idx of sectorCells) {
+          let score = distToLand[idx];
+          if (score > bestScore) {
+            bestScore = score;
+            bestCell = idx;
+          }
+        }
+
+        let bx = bestCell % gw, by = Math.floor(bestCell / gw);
+        let sampleGId = grandState[Math.min(totalCells - 1, by * gw + bx)];
+        let cult = (sampleGId >= 0 && grandZones[sampleGId]) ? grandZones[sampleGId].culture : "celtic";
+        let zName = generateWaterZoneName(sp.subType, cult, rng);
+
+        waterZones.push({
+          id: sp.id,
+          name: zName,
+          type: sp.category,
+          subType: sp.subType.toUpperCase(),
+          x: bx, y: by,
+          px: bx * STEP + STEP / 2,
+          py: by * STEP + STEP / 2,
+          cellCount: sCount,
+          color: { fillR: 20, fillG: 90, fillB: 150, alpha: 0.12 }
+        });
+      }
+      globalWaterZoneId += allSeeds.length;
+    }
+  }
+
+  // Water Zone Maritime Border Extraction
+  for (let y = 1; y < gh - 1; y++) {
+    let yOffset = y * gw;
+    for (let x = 1; x < gw - 1; x++) {
+      let idx = yOffset + x;
+      if (!isWater[idx]) continue;
+      if (waterZoneState[idx + 1] !== -1 && waterZoneState[idx + 1] !== waterZoneState[idx]) isWaterBorder[idx] = 1;
+      else if (waterZoneState[idx + gw] !== -1 && waterZoneState[idx + gw] !== waterZoneState[idx]) isWaterBorder[idx] = 1;
+    }
+  }
   // Unified Urban Registry
   let globalUrbanNodes = [];
   function isUrbanSpaceClear(cx, cy, reqDist) {
@@ -2717,7 +3088,7 @@ function generateWorldMap() {
       } else {
         let direct = [
           { x: m.x, y: m.y, px: m.px || (m.x * STEP + STEP/2), py: m.py || (m.y * STEP + STEP/2) },
-          { x: bestTarget.x, y: bestTarget.y, px: bestTarget.px || (bestTarget.x * STEP + STEP/2), py: target.py || (bestTarget.y * STEP + STEP/2) }
+          { x: bestTarget.x, y: bestTarget.y, px: bestTarget.px || (bestTarget.x * STEP + STEP/2), py: bestTarget.py || (bestTarget.y * STEP + STEP/2) }
         ];
         minorRoadPaths.push(direct);
         addRoadEdgeToGraph(m, bestTarget, direct, 'road');
@@ -2726,17 +3097,66 @@ function generateWorldMap() {
     }
   });
 
-  // Maritime Routes
-  if (placedPorts.length >= 2) {
-    let seaEdges = [];
-    for (let i = 0; i < placedPorts.length; i++) {
-      let p1 = placedPorts[i];
-      let sorted = [...placedPorts]
-        .filter((_, idx) => idx !== i)
-        .sort((a, b) => Math.hypot(a.x - p1.x, a.y - p1.y) - Math.hypot(b.x - p1.x, b.y - p1.y));
+ // Helper to find which body of water a settlement or port touches
+  function getNodeWaterBody(node) {
+    let nx = Math.floor(node.x), ny = Math.floor(node.y);
+    for (let r = 1; r <= 3; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          let cx = nx + dx, cy = ny + dy;
+          if (cx >= 0 && cx < gw && cy >= 0 && cy < gh) {
+            let idx = cy * gw + cx;
+            if (isWater[idx] && waterBodyId[idx] !== -1) {
+              return waterBodyId[idx];
+            }
+          }
+        }
+      }
+    }
+    return -1;
+  }
 
-      for (let k = 0; k < Math.min(2, sorted.length); k++) {
-        let p2 = sorted[k];
+  // Maritime Routes & Lake Ferry Routes
+  if (placedPorts.length > 0) {
+    let seaEdges = [];
+
+    // Tag every node with its adjacent water body ID (-1 if fully inland/dry)
+    for (let node of allNodes) {
+      node.waterBodyId = getNodeWaterBody(node);
+    }
+
+    for (let p1 of placedPorts) {
+      let wb = p1.waterBodyId;
+      if (wb === -1) continue;
+
+      // Find other ports and waterfront settlements on the EXACT same water body
+      let otherPortsOnBody = placedPorts.filter(p => p !== p1 && p.waterBodyId === wb);
+      let waterfrontSettlementsOnBody = allNodes.filter(n => n !== p1 && n.type !== 'port' && n.waterBodyId === wb);
+
+      let targetCandidates = [];
+
+      if (otherPortsOnBody.length > 0) {
+        // Prefer connecting to other ports on this body of water
+        let otherComp = otherPortsOnBody.filter(p => p.compId !== p1.compId)
+          .sort((a, b) => Math.hypot(a.x - p1.x, a.y - p1.y) - Math.hypot(b.x - p1.x, b.y - p1.y));
+        let sameComp = otherPortsOnBody.filter(p => p.compId === p1.compId && Math.hypot(p.x - p1.x, p.y - p1.y) > 100)
+          .sort((a, b) => Math.hypot(a.x - p1.x, a.y - p1.y) - Math.hypot(b.x - p1.x, b.y - p1.y));
+
+        if (otherComp.length > 0) targetCandidates.push(otherComp[0]);
+        if (otherComp.length > 1) targetCandidates.push(otherComp[1]);
+        if (sameComp.length > 0) targetCandidates.push(sameComp[0]);
+      } else if (waterfrontSettlementsOnBody.length > 0) {
+        // INLAND LAKES: No other ports exist on this lake, so connect to any reachable waterfront settlements
+        let reachableSettlements = [...waterfrontSettlementsOnBody]
+          .sort((a, b) => Math.hypot(a.x - p1.x, a.y - p1.y) - Math.hypot(b.x - p1.x, b.y - p1.y));
+        targetCandidates.push(reachableSettlements[0]);
+        if (reachableSettlements.length > 1 && Math.hypot(reachableSettlements[1].x - p1.x, reachableSettlements[1].y - p1.y) < 300) {
+          targetCandidates.push(reachableSettlements[1]);
+        }
+      }
+
+      for (let p2 of targetCandidates) {
+        if (!p2) continue;
         let exists = seaEdges.some(e => (e.start === p1 && e.end === p2) || (e.start === p2 && e.end === p1));
         if (!exists) {
           let rawWaterPath = findNauticalSeaRoute(p1, p2, isWater, gw, gh);
@@ -2775,9 +3195,11 @@ function generateWorldMap() {
   }
   mountainPeaks.sort((a, b) => a.y - b.y);
 
-  worldData = {
+worldData = {
     gw, gh, STEP, width, height,
     elevation, isWater, flow, hillshade,
+    componentId, waterBodyId,
+    waterZoneState, waterZones, isWaterBorder,
     grandState, medState, smallState,
     isGrandBorder, isMedBorder, isSmallBorder, hasRoad,
     grandZones, medZones, smallZones,
@@ -2786,7 +3208,6 @@ function generateWorldMap() {
     majorRoadPaths, minorRoadPaths, waterRoutePaths,
     roadGraph
   };
-
   // Re-distribute populated characters if already fetched
   if (populatedCharacters.length > 0) {
     distributeCharactersOnMap(populatedCharacters);
@@ -2869,7 +3290,7 @@ function distributeCharactersOnMap(characters) {
     let stationedNode = null;
     let currentPath = null;
     let simState = "resting";
-    let restTimer = 1.0 + rng.next() * 3.0;
+    let restTimer = 15.0 + rng.next() * 35.0; // 15-50s initial rest
 
     if (placementCategory === "location") {
       let rankStr = (char.potential || "").toUpperCase();
@@ -2942,6 +3363,7 @@ function distributeCharactersOnMap(characters) {
       x = candidate.cx;
       y = candidate.cy;
       assignedLocationName = "Wilderness / Frontier Outskirts";
+      restTimer = 1.0 + rng.next() * 3.0; // Promptly seeks nearest road/settlement
     }
 
     if (char.pixelArtImage && !characterImageCache.has(char.key)) {
@@ -2953,10 +3375,18 @@ function distributeCharactersOnMap(characters) {
       characterImageCache.set(char.key, img);
     }
 
-    // Base speed in map units / sec
     let baseSpeed = 90 + rng.next() * 50;
     if (['Scout', 'Trickshot', 'Deadeye', 'ArcaneArcher', 'GodEye'].includes(char.combatClass)) baseSpeed *= 1.25;
     else if (['Juggernaut', 'Templar', 'Guardian'].includes(char.combatClass)) baseSpeed *= 0.88;
+
+let charCompId = 0;
+    if (stationedNode && stationedNode.compId !== undefined) {
+      charCompId = stationedNode.compId;
+    } else if (worldData && worldData.componentId) {
+      let cIdx = Math.min(worldData.gh - 1, Math.max(0, Math.floor(y))) * worldData.gw + Math.min(worldData.gw - 1, Math.max(0, Math.floor(x)));
+      let comp = worldData.componentId[cIdx];
+      charCompId = (comp !== undefined && comp !== -1) ? comp : 0;
+    }
 
     let resolvedChar = {
       ...char,
@@ -2967,6 +3397,7 @@ function distributeCharactersOnMap(characters) {
       isVisibleOnMap: isVisibleOnMap,
       stationedNode: stationedNode,
       assignedLocationName: assignedLocationName,
+      compId: charCompId,
       x: x,
       y: y,
       px: px,
@@ -2978,9 +3409,8 @@ function distributeCharactersOnMap(characters) {
       segmentProgress: 0,
       moveSpeed: baseSpeed,
       targetNode: null,
-      duelCooldown: 0 // Cooldown in seconds before next duel
+      duelCooldown: 0
     };
-
     if (stationedNode && stationedNode.charactersInLocation) {
       let idxInLoc = stationedNode.charactersInLocation.indexOf(char);
       if (idxInLoc !== -1) stationedNode.charactersInLocation[idxInLoc] = resolvedChar;
@@ -2992,7 +3422,6 @@ function distributeCharactersOnMap(characters) {
   worldData.allNodes = validSettlementNodes.concat(populatedCharacters);
   renderActors();
 
-  // Populate Battle Arena Dropdowns with characters
   syncBattleSimulatorDropdowns();
 }
 
@@ -3018,6 +3447,27 @@ function handlePopulateCharacters(onComplete) {
 }
 
 // --- Battle Arena & Encounter System Integration ---
+function openBattleArenaModal() {
+  if (isSimulationRunning) {
+    wasSimRunningBeforeBattle = true;
+    pauseSimulation();
+  } else {
+    wasSimRunningBeforeBattle = false;
+  }
+  document.getElementById('battleArenaModal').classList.add('active');
+}
+
+function closeBattleArenaModal() {
+  document.getElementById('battleArenaModal').classList.remove('active');
+  if (typeof stopBattle === 'function') stopBattle();
+  else if (window.BattleSimulator && typeof window.BattleSimulator.stopBattle === 'function') window.BattleSimulator.stopBattle();
+
+  if (wasSimRunningBeforeBattle) {
+    startSimulation();
+    wasSimRunningBeforeBattle = false;
+  }
+}
+
 function syncBattleSimulatorDropdowns() {
   const drop1 = document.getElementById('characterOneDropdown');
   const drop2 = document.getElementById('characterTwoDropdown');
@@ -3048,7 +3498,6 @@ function syncBattleSimulatorDropdowns() {
 
 function launchDuelInArena(char1, char2, locationLabel = "Wilderness") {
   if (!char1 || !char2) return;
-  const arenaModal = document.getElementById('battleArenaModal');
   const drop1 = document.getElementById('characterOneDropdown');
   const drop2 = document.getElementById('characterTwoDropdown');
 
@@ -3057,9 +3506,8 @@ function launchDuelInArena(char1, char2, locationLabel = "Wilderness") {
   if (drop1) drop1.value = char1.key;
   if (drop2) drop2.value = char2.key;
 
-  arenaModal.classList.add('active');
+  openBattleArenaModal();
 
-  // Trigger battle_sim's starter
   if (typeof startBattle === 'function') {
     startBattle();
   } else if (window.BattleSimulator && typeof window.BattleSimulator.startBattle === 'function') {
@@ -3071,7 +3519,7 @@ function triggerEncounterAlert(char1, char2, locationLabel) {
   const autoDuels = document.getElementById('autoDuels')?.checked ?? true;
   if (!autoDuels) return;
 
-  char1.duelCooldown = 45; // 45 seconds cooldown
+  char1.duelCooldown = 45;
   char2.duelCooldown = 45;
 
   activeEncounterPair = { char1, char2, locationLabel };
@@ -3091,12 +3539,191 @@ function triggerEncounterAlert(char1, char2, locationLabel) {
   }, 7000);
 }
 
-// --- Dynamic Road Routing & Character Movement Simulation ---
+// --- Multi-Leg Graph Routing & Wilderness-Shortcut Navigation ---
+function findGraphRoute(startNode, endNode, roadGraph) {
+  if (!startNode || !endNode || !roadGraph) return null;
+  if (startNode === endNode) return [];
+
+  let openSet = new PriorityQueue();
+  let gScore = new Map();
+  let cameFrom = new Map();
+
+  gScore.set(startNode, 0);
+  openSet.push(startNode, Math.hypot(startNode.px - endNode.px, startNode.py - endNode.py));
+
+  let visited = new Set();
+
+  while (!openSet.isEmpty()) {
+    let current = openSet.pop();
+    if (current === endNode) {
+      let fullEdgeList = [];
+      let curr = endNode;
+      while (cameFrom.has(curr)) {
+        let { from, edge } = cameFrom.get(curr);
+        fullEdgeList.unshift({ from, to: curr, edge });
+        curr = from;
+      }
+      return fullEdgeList;
+    }
+
+    visited.add(current);
+
+    const neighbors = roadGraph.get(current) || [];
+    for (let edge of neighbors) {
+      let neighbor = edge.target;
+      if (visited.has(neighbor)) continue;
+
+      let edgeDist = 0;
+      if (edge.path && edge.path.length > 0) {
+        edgeDist = Math.hypot(edge.path[0].px - edge.path[edge.path.length - 1].px, edge.path[0].py - edge.path[edge.path.length - 1].py);
+      } else {
+        edgeDist = Math.hypot(current.px - neighbor.px, current.py - neighbor.py);
+      }
+
+      // Maritime water routes are prioritized for overseas travel
+      let costMultiplier = edge.type === 'water' ? 0.85 : 1.0;
+      let tentativeG = (gScore.get(current) || 0) + edgeDist * costMultiplier;
+
+      if (tentativeG < (gScore.get(neighbor) || Infinity)) {
+        cameFrom.set(neighbor, { from: current, edge: edge });
+        gScore.set(neighbor, tentativeG);
+        let h = Math.hypot(neighbor.px - endNode.px, neighbor.py - endNode.py);
+        openSet.push(neighbor, tentativeG + h);
+      }
+    }
+  }
+  return null;
+}
+
+function assembleCharacterJourneyPath(char, startNode, destNode, worldData, rng) {
+  const { roadGraph, elevation, isWater, hasRoad, gw, gh } = worldData;
+  let fullPointPath = [];
+
+  // If character is wandering off-road in wilderness, first path them to the nearest road/settlement
+  if (char.simState === "wilderness" || !char.stationedNode || Math.hypot(char.px - startNode.px, char.py - startNode.py) > 15) {
+    let startPoint = { x: char.x, y: char.y, px: char.px, py: char.py };
+    let wildToRoad = findSmartRoad(startPoint, startNode, elevation, isWater, hasRoad, gw, gh);
+    if (wildToRoad && wildToRoad.length > 1) {
+      fullPointPath.push(...smoothPathChaikin(wildToRoad, 1));
+    } else {
+      fullPointPath.push({ px: char.px, py: char.py });
+      fullPointPath.push({ px: startNode.px, py: startNode.py });
+    }
+  }
+
+  if (startNode === destNode) {
+    return fullPointPath.length > 1 ? fullPointPath : null;
+  }
+
+  const routeEdges = findGraphRoute(startNode, destNode, roadGraph);
+
+  if (routeEdges && routeEdges.length > 0) {
+    let i = 0;
+    while (i < routeEdges.length) {
+      let currentStep = routeEdges[i];
+
+      // Wilderness Shortcut Check: If traveling 2+ land edges on the same continent,
+      // evaluate if a direct wilderness cut across land is significantly shorter & more efficient
+      let shortcutTaken = false;
+      if (i + 1 < routeEdges.length) {
+        let nextStep = routeEdges[i + 1];
+        if (currentStep.edge.type !== 'water' && nextStep.edge.type !== 'water') {
+          let nodeA = currentStep.from;
+          let nodeC = nextStep.to;
+
+          let roadLen = (currentStep.edge.path ? currentStep.edge.path.length : 10) + (nextStep.edge.path ? nextStep.edge.path.length : 10);
+          let directDist = Math.hypot(nodeA.px - nodeC.px, nodeA.py - nodeC.py);
+
+          // If cutting corner saves > 25% distance, give 35% chance to take the wilderness shortcut
+          if (directDist < roadLen * 1.5 && rng.next() < 0.35) {
+            let wildShortcut = findSmartRoad(nodeA, nodeC, elevation, isWater, hasRoad, gw, gh);
+            if (wildShortcut && wildShortcut.length > 1) {
+              let smoothShortcut = smoothPathChaikin(wildShortcut, 2);
+              if (fullPointPath.length > 0) smoothShortcut = smoothShortcut.slice(1);
+              fullPointPath.push(...smoothShortcut);
+              shortcutTaken = true;
+              i += 2; // Skipped intermediate node via shortcut and rejoined road at nodeC
+            }
+          }
+        }
+      }
+
+      if (!shortcutTaken) {
+        let edgePath = currentStep.edge.path;
+        if (edgePath && edgePath.length > 0) {
+          let copy = [...edgePath];
+          if (fullPointPath.length > 0) copy = copy.slice(1);
+          fullPointPath.push(...copy);
+        } else {
+          fullPointPath.push({ px: currentStep.to.px, py: currentStep.to.py });
+        }
+        i++;
+      }
+    }
+  } else {
+    // If no graph route exists:
+    // Only attempt land fallback if both nodes are confirmed on the SAME landmass/continent
+    if (startNode.compId === destNode.compId) {
+      let fallbackPath = findSmartRoad(startNode, destNode, elevation, isWater, hasRoad, gw, gh);
+      if (fallbackPath && fallbackPath.length > 1) {
+        let smooth = smoothPathChaikin(fallbackPath, 2);
+        if (fullPointPath.length > 0) smooth = smooth.slice(1);
+        fullPointPath.push(...smooth);
+      } else {
+        return null;
+      }
+    } else {
+      // Cross-continent with NO graph route: return null so caller falls back to local/regional
+      return null;
+    }
+  }
+
+  return fullPointPath.length > 1 ? fullPointPath : null;
+}
+
 function pickNextDestinationForCharacter(char) {
   if (!worldData) return;
   const rng = new SeededRandom(`${char.key || char.name}_${Date.now()}`);
-  const roadGraph = worldData.roadGraph;
   const allSettlements = worldData.capitals.concat(worldData.pois);
+  const roadGraph = worldData.roadGraph;
+  const { elevation, isWater, hasRoad, gw, gh } = worldData;
+
+  // 1. WILDERNESS INITIAL SPAWN HANDLING (Paths directly across land to nearest town)
+  if (char.simState === "wilderness" || !char.stationedNode) {
+    // Look for settlements on the same continent first
+    let sameCompSettlements = allSettlements.filter(s => s.compId === char.compId);
+    let searchPool = sameCompSettlements.length > 0 ? sameCompSettlements : allSettlements;
+
+    let nearest = searchPool[0], nearestDist = Infinity;
+    for (let s of searchPool) {
+      let d = Math.hypot(s.px - char.px, s.py - char.py);
+      if (d < nearestDist) { nearestDist = d; nearest = s; }
+    }
+
+    if (nearest) {
+      let startPoint = { x: char.x, y: char.y, px: char.px, py: char.py };
+      let wildPath = findSmartRoad(startPoint, nearest, elevation, isWater, hasRoad, gw, gh);
+      let finalPath = null;
+
+      if (wildPath && wildPath.length > 1) {
+        finalPath = smoothPathChaikin(wildPath, 2);
+      } else {
+        finalPath = [
+          { x: char.x, y: char.y, px: char.px, py: char.py },
+          { x: nearest.x, y: nearest.y, px: nearest.px, py: nearest.py }
+        ];
+      }
+
+      char.currentPath = finalPath;
+      char.pathIndex = 0;
+      char.segmentProgress = 0;
+      char.targetNode = nearest;
+      char.simState = "traveling";
+      char.isVisibleOnMap = true;
+      char.assignedLocationName = `Heading to ${nearest.name} (from Wilderness)`;
+      return;
+    }
+  }
 
   let startNode = char.stationedNode;
   if (!startNode) {
@@ -3106,48 +3733,108 @@ function pickNextDestinationForCharacter(char) {
       if (d < bestDist) { bestDist = d; best = s; }
     }
     startNode = best;
+    char.stationedNode = startNode;
   }
 
-  const edges = roadGraph && roadGraph.get(startNode);
-  if (edges && edges.length > 0) {
-    let chosenEdge = safeSample(edges, rng, edges[0]);
-    char.currentPath = chosenEdge.path;
+  // 2. WANDERLUST & GARRISON PATROL CHECK
+  if (rng.next() < 0.45) {
+    char.simState = "resting";
+    char.restTimer = 25 + rng.next() * 45;
+    char.assignedLocationName = `${startNode.name} (Patrol / Garrison)`;
+    return;
+  }
+
+  // 3. DESTINATION SELECTION WITH REACHABILITY CHECK & FALLBACK
+  let rankStr = (char.potential || "").toUpperCase();
+  let isElite = rankStr.includes('S') || rankStr.includes('EX');
+  let crossContinentChance = isElite ? 0.12 : 0.04;
+  let tryCrossContinent = (rng.next() < crossContinentChance) && (worldData.grandZones.length > 1);
+
+  let destNode = null;
+  let journeyPath = null;
+
+  // Attempt Cross-Continent Expedition ONLY if a verified reachable route exists
+  if (tryCrossContinent) {
+    let overseasCandidates = allSettlements.filter(s => s.compId !== startNode.compId && ["capital", "city", "port", "spire"].includes(s.type || s.tier));
+    if (overseasCandidates.length > 0) {
+      for (let attempt = 0; attempt < Math.min(4, overseasCandidates.length); attempt++) {
+        let candidate = safeSample(overseasCandidates, rng, null);
+        if (candidate) {
+          let testRoute = findGraphRoute(startNode, candidate, roadGraph);
+          if (testRoute && testRoute.length > 0) {
+            let path = assembleCharacterJourneyPath(char, startNode, candidate, worldData, rng);
+            if (path && path.length > 1) {
+              destNode = candidate;
+              journeyPath = path;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback to Local or Regional travel on the SAME landmass if cross-continent was unreachable or not rolled
+  if (!destNode || !journeyPath) {
+    let targetCandidates = [];
+    let journeyTypeRoll = rng.next();
+
+    if (journeyTypeRoll < 0.75) {
+      // Local Commute: Immediate road neighbors or settlements within 450px on same component
+      const edges = roadGraph ? roadGraph.get(startNode) : null;
+      if (edges && edges.length > 0) {
+        targetCandidates = edges.map(e => e.target);
+      }
+      if (!targetCandidates || targetCandidates.length === 0) {
+        targetCandidates = allSettlements.filter(s => s !== startNode && s.compId === startNode.compId && Math.hypot(s.px - startNode.px, s.py - startNode.py) <= 450);
+      }
+    } else {
+      // Regional Trip: Same landmass within 1400px
+      targetCandidates = allSettlements.filter(s => s !== startNode && s.compId === startNode.compId && Math.hypot(s.px - startNode.px, s.py - startNode.py) <= 1400);
+    }
+
+    if (!targetCandidates || targetCandidates.length === 0) {
+      targetCandidates = allSettlements.filter(s => s !== startNode && s.compId === startNode.compId);
+    }
+
+    if (targetCandidates.length > 0) {
+      for (let attempt = 0; attempt < Math.min(4, targetCandidates.length); attempt++) {
+        let candidate = safeSample(targetCandidates, rng, null);
+        if (candidate) {
+          let path = assembleCharacterJourneyPath(char, startNode, candidate, worldData, rng);
+          if (path && path.length > 1) {
+            destNode = candidate;
+            journeyPath = path;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Apply journey if a verified route was assembled
+  if (destNode && journeyPath && journeyPath.length > 1) {
+    char.currentPath = journeyPath;
     char.pathIndex = 0;
     char.segmentProgress = 0;
-    char.targetNode = chosenEdge.target;
+    char.targetNode = destNode;
     char.simState = "traveling";
     char.isVisibleOnMap = true;
-    char.assignedLocationName = `En route to ${chosenEdge.target.name}`;
+    char.assignedLocationName = (destNode.compId !== startNode.compId)
+      ? `Expedition to ${destNode.name} (Overseas)`
+      : `En route to ${destNode.name}`;
 
     if (char.stationedNode && char.stationedNode.charactersInLocation) {
       let idx = char.stationedNode.charactersInLocation.indexOf(char);
       if (idx !== -1) char.stationedNode.charactersInLocation.splice(idx, 1);
     }
     char.stationedNode = null;
-  } else {
-    let target = safeSample(allSettlements, rng, allSettlements[0]);
-    if (target && target !== startNode) {
-      char.currentPath = [
-        { px: char.px, py: char.py },
-        { px: target.px, py: target.py }
-      ];
-      char.pathIndex = 0;
-      char.segmentProgress = 0;
-      char.targetNode = target;
-      char.simState = "traveling";
-      char.isVisibleOnMap = true;
-      char.assignedLocationName = `Traveling to ${target.name}`;
-
-      if (char.stationedNode && char.stationedNode.charactersInLocation) {
-        let idx = char.stationedNode.charactersInLocation.indexOf(char);
-        if (idx !== -1) char.stationedNode.charactersInLocation.splice(idx, 1);
-      }
-      char.stationedNode = null;
-    } else {
-      char.simState = "resting";
-      char.restTimer = 3.0;
-    }
+    return;
   }
+
+  // If no valid path could be found at all, stay resting safely
+  char.simState = "resting";
+  char.restTimer = 20.0;
 }
 
 function updateCharacterMovement(dt) {
@@ -3169,7 +3856,7 @@ function updateCharacterMovement(dt) {
     } else if (char.simState === "traveling") {
       if (!char.currentPath || char.currentPath.length < 2) {
         char.simState = "resting";
-        char.restTimer = 2.0;
+        char.restTimer = 15.0;
         continue;
       }
 
@@ -3194,7 +3881,7 @@ function updateCharacterMovement(dt) {
             char.y = char.py / worldData.STEP;
 
             char.simState = "resting";
-            char.restTimer = 10 + Math.random() * 50;
+            char.restTimer = 15 + Math.random() * 45; // 15 to 60 seconds of resting upon arrival
             char.stationedNode = dest;
             char.assignedLocationName = dest.name || "Settlement Garrison";
             char.isVisibleOnMap = false;
@@ -3223,9 +3910,14 @@ function updateCharacterMovement(dt) {
     }
   }
 
-  // 2. Encounter Proximity & Sparring Check
-  if (autoDuels && Math.random() < 0.001) {
-    // Roadway encounters
+  // 2. Encounter Proximity & Sparring Check (Checked every ~5 seconds)
+  encounterCheckTimer += dt;
+  if (autoDuels && encounterCheckTimer >= 5.0) {
+    encounterCheckTimer = 0;
+
+    let roadEncounterTriggered = false;
+
+    // Roadway encounters: Trigger ONLY if the two character dots literally touch on the road
     for (let i = 0; i < populatedCharacters.length; i++) {
       let c1 = populatedCharacters[i];
       if (!c1.isVisibleOnMap || c1.duelCooldown > 0) continue;
@@ -3235,23 +3927,31 @@ function updateCharacterMovement(dt) {
         if (!c2.isVisibleOnMap || c2.duelCooldown > 0) continue;
 
         let dist = Math.hypot(c1.px - c2.px, c1.py - c2.py);
-        if (dist < 1) {
+        let r1 = (c1 === followedCharacter) ? 4.5 : 3.0;
+        let r2 = (c2 === followedCharacter) ? 4.5 : 3.0;
+        let touchDist = (r1 + r2) + 2.0;
+
+        if (dist <= touchDist) {
           triggerEncounterAlert(c1, c2, c1.assignedLocationName || "Trade Highway");
-          return;
+          roadEncounterTriggered = true;
+          break;
         }
       }
+      if (roadEncounterTriggered) break;
     }
 
-    // Settlement tavern / sparring brawl encounters
-    const allSettlements = worldData.capitals.concat(worldData.pois);
-    for (let loc of allSettlements) {
-      if (loc.charactersInLocation && loc.charactersInLocation.length >= 2) {
-        let readyHeroes = loc.charactersInLocation.filter(h => (h.duelCooldown || 0) <= 0);
-        if (readyHeroes.length >= 2 && Math.random() < 0.0007) {
-          let h1 = readyHeroes[0];
-          let h2 = readyHeroes[1];
-          triggerEncounterAlert(h1, h2, `${loc.name} Garrison Arena`);
-          return;
+    // Settlement tavern / sparring brawl encounters (Occasional chance every 5s)
+    if (!roadEncounterTriggered && Math.random() < 0.25) {
+      const allSettlements = worldData.capitals.concat(worldData.pois);
+      for (let loc of allSettlements) {
+        if (loc.charactersInLocation && loc.charactersInLocation.length >= 2) {
+          let readyHeroes = loc.charactersInLocation.filter(h => (h.duelCooldown || 0) <= 0);
+          if (readyHeroes.length >= 2) {
+            let h1 = readyHeroes[0];
+            let h2 = readyHeroes[1];
+            triggerEncounterAlert(h1, h2, `${loc.name} Garrison Arena`);
+            break;
+          }
         }
       }
     }
@@ -3372,7 +4072,8 @@ function buildSvgOverlayContent() {
   const showGrandLbl = document.getElementById('lbl_grand')?.checked ?? true;
   const showMedLbl = document.getElementById('lbl_med')?.checked ?? true;
   const showSmallLbl = document.getElementById('lbl_small')?.checked ?? true;
-
+const showWaterLbl = document.getElementById('lbl_water')?.checked ?? true;
+  const showRiverLbl = document.getElementById('lbl_river')?.checked ?? true;
   const showCapitalLbl = document.getElementById('lbl_capital')?.checked ?? true;
   const showCityLbl = document.getElementById('lbl_city')?.checked ?? true;
   const showTownLbl = document.getElementById('lbl_town')?.checked ?? true;
@@ -3423,7 +4124,35 @@ function buildSvgOverlayContent() {
     }
     out += `</g>`;
   }
+// Water Body, Gulf & Ocean Labels
+  if (showWaterLbl && worldData.waterZones) {
+    out += `<g id="svg-water-titles">`;
+    for (let wz of worldData.waterZones) {
+      if (wz.cellCount < 350) continue;
 
+      let isOcean = wz.subType === "OCEAN";
+      let isGulfOrBay = ["GULF", "BAY", "SOUND", "STRAIT", "FJORD", "CHANNEL"].includes(wz.subType);
+
+      let fontSize = isOcean ? 50 : (isGulfOrBay ? 24 : 18);
+      let letterSpacing = isOcean ? "8px" : (isGulfOrBay ? "3.5px" : "2px");
+      let fillCol = isOcean ? "rgba(140, 210, 255, 0.72)" : (isGulfOrBay ? "rgba(180, 235, 255, 0.88)" : "rgba(210, 245, 255, 0.75)");
+      let strokeW = isOcean ? 6.5 : 3.6;
+
+      out += `<text class="map-text" x="${wz.px}" y="${wz.py}" font-size="${fontSize}" font-style="italic" font-weight="700" letter-spacing="${letterSpacing}" fill="${fillCol}" stroke="#030910" stroke-width="${strokeW}">${escapeXml(wz.name)}</text>`;
+    }
+    out += `</g>`;
+  }
+
+  // Major River Names (Rotated along river flow direction)
+  if (showRiverLbl && worldData.riverPaths) {
+    out += `<g id="svg-river-titles">`;
+    for (let river of worldData.riverPaths) {
+      if (river.name && river.px !== undefined) {
+        out += `<text class="map-text" x="${river.px}" y="${river.py}" transform="rotate(${river.angle || 0} ${river.px} ${river.py})" font-size="13.5" font-style="italic" font-weight="600" letter-spacing="1px" fill="#74b9ff" stroke="#060c14" stroke-width="3.2">${escapeXml(river.name)}</text>`;
+      }
+    }
+    out += `</g>`;
+  }
   // 2. Settlement & POI Labels
   out += `<g id="svg-poi-labels">`;
   if (showCapitalLbl) {
@@ -3596,7 +4325,7 @@ function renderMap() {
   const showMountains = document.getElementById('showMountains').checked;
   const showHillshade = document.getElementById('showHillshade').checked;
   const showPois = document.getElementById('showPois').checked;
-
+const showWaterZones = document.getElementById('showWaterZones')?.checked ?? true;
   let activeShadingTier = "none";
   if (showGrand) activeShadingTier = "grand";
   else if (showMed) activeShadingTier = "med";
@@ -3691,7 +4420,23 @@ function renderMap() {
 
   // Vector Zone Outlines
   drawSmoothVectorBorders(ctx, gw, gh, STEP, grandState, medState, smallState, isWater, grandZones, medZones, smallZones, showGrand, showMed, showSmall);
-
+// Water Zone Maritime Borders
+  if (showWaterZones && worldData.waterZones) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(116, 185, 255, 0.45)";
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([6, 6]);
+    for (let y = 1; y < gh - 1; y++) {
+      let yOffset = y * gw;
+      for (let x = 1; x < gw - 1; x++) {
+        let idx = yOffset + x;
+        if (worldData.isWaterBorder[idx]) {
+          ctx.strokeRect(x * STEP, y * STEP, STEP, STEP);
+        }
+      }
+    }
+    ctx.restore();
+  }
   // Rivers
   ctx.strokeStyle = palette.river;
   ctx.lineCap = "round";
@@ -3979,7 +4724,7 @@ function findSmartRoad(startNode, endNode, elevation, isWater, hasRoad, gw, gh) 
 
     const neighbors = [
       {x: curr.x+1, y: curr.y, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
-      {x: curr.x, y: curr.y+1, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
+      {x: curr.x, y: curr.y+1, d: 1.0}, {x: curr.x, y: curr.y-1, d: 1.0},
       {x: curr.x+1, y: curr.y+1, d: 1.414}, {x: curr.x-1, y: curr.y-1, d: 1.414},
       {x: curr.x+1, y: curr.y-1, d: 1.414}, {x: curr.x-1, y: curr.y+1, d: 1.414}
     ];
@@ -4007,11 +4752,11 @@ function findSmartRoad(startNode, endNode, elevation, isWater, hasRoad, gw, gh) 
       if (isBlockWater) {
         cost = 10000.0 * n.d;
       } else if (elevation[gIdx] > 0.68) {
-        cost = 8.0 * n.d;
+        cost = 10.0 * n.d;
       } else if (elevation[gIdx] > 0.58) {
-        cost = 2.2 * n.d;
+        cost = 5.0 * n.d;
       }
-      if (hasRoad[gIdx]) cost *= 0.3;
+      if (hasRoad[gIdx]) cost *= 0.1;
 
       let idx = n.y * pw + n.x;
       let currIdx = curr.y * pw + curr.x;
@@ -4057,7 +4802,7 @@ function findNauticalSeaRoute(portA, portB, isWater, gw, gh) {
   function findWaterNeighbor(gx, gy) {
     let origIdx = Math.min(gh - 1, gy * pScale + 2) * gw + Math.min(gw - 1, gx * pScale + 2);
     if (isWater[origIdx]) return { x: gx, y: gy };
-    for (let r = 1; r <= 3; r++) {
+    for (let r = 1; r <= 4; r++) {
       for (let dy = -r; dy <= r; dy++) {
         for (let dx = -r; dx <= r; dx++) {
           let nx = gx + dx, ny = gy + dy;
@@ -4068,11 +4813,13 @@ function findNauticalSeaRoute(portA, portB, isWater, gw, gh) {
         }
       }
     }
-    return { x: gx, y: gy };
+    return null;
   }
 
   let sPoint = findWaterNeighbor(Math.floor(portA.x / pScale), Math.floor(portA.y / pScale));
   let ePoint = findWaterNeighbor(Math.floor(portB.x / pScale), Math.floor(portB.y / pScale));
+
+  if (!sPoint || !ePoint) return null;
 
   let sx = sPoint.x, sy = sPoint.y;
   let ex = ePoint.x, ey = ePoint.y;
@@ -4085,7 +4832,7 @@ function findNauticalSeaRoute(portA, portB, isWater, gw, gh) {
 
   let openSet = new PriorityQueue();
   gScore[sy * pw + sx] = 0;
-  openSet.push({x: sx, y: sy}, Math.hypot(sx - ex, sy - ey) * 1.08);
+  openSet.push({x: sx, y: sy}, Math.hypot(sx - ex, sy - ey));
 
   let found = false, iterations = 0;
 
@@ -4099,7 +4846,7 @@ function findNauticalSeaRoute(portA, portB, isWater, gw, gh) {
 
     const neighbors = [
       {x: curr.x+1, y: curr.y, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
-      {x: curr.x, y: curr.y+1, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
+      {x: curr.x, y: curr.y+1, d: 1.0}, {x: curr.x, y: curr.y-1, d: 1.0},
       {x: curr.x+1, y: curr.y+1, d: 1.414}, {x: curr.x-1, y: curr.y-1, d: 1.414},
       {x: curr.x+1, y: curr.y-1, d: 1.414}, {x: curr.x-1, y: curr.y+1, d: 1.414}
     ];
@@ -4111,7 +4858,10 @@ function findNauticalSeaRoute(portA, portB, isWater, gw, gh) {
       let gy = Math.min(gh - 1, n.y * pScale + 2);
       let gIdx = gy * gw + gx;
 
-      let cost = isWater[gIdx] ? (1.0 * n.d) : (4000.0 * n.d);
+      // Water routes must NEVER traverse land cells
+      if (!isWater[gIdx]) continue;
+
+      let cost = 1.0 * n.d;
       let idx = n.y * pw + n.x;
       let currIdx = curr.y * pw + curr.x;
       let tentG = gScore[currIdx] + cost;
@@ -4120,7 +4870,7 @@ function findNauticalSeaRoute(portA, portB, isWater, gw, gh) {
         cameFromX[idx] = curr.x;
         cameFromY[idx] = curr.y;
         gScore[idx] = tentG;
-        openSet.push(n, tentG + Math.hypot(n.x - ex, n.y - ey) * 1.08);
+        openSet.push(n, tentG + Math.hypot(n.x - ex, n.y - ey));
       }
     }
   }
@@ -4541,7 +5291,7 @@ function setupMainMapZoom() {
       };
       
       if (best.type === "character") {
-        document.getElementById('ttType').innerText = `Hero: ${best.race || 'Human'} ${best.combatClass || 'Warrior'}`;
+        document.getElementById('ttType').innerText = `Hero: ${best.race || 'Human'} ${best.combatClass ||'Warrior'}`;
         document.getElementById('ttRealm').innerText = `${best.assignedLocationName || 'Traveling'} • Click to view Status`;
         ttMeta.style.display = 'block';
         ttMeta.innerText = `Potential: ${best.potential || 'Unknown'}`;
@@ -4568,6 +5318,27 @@ function setupMainMapZoom() {
       }
       tooltip.style.display = 'block';
     } else {
+      // Water Zone Hover Check
+      let gx = Math.min(worldData.gw - 1, Math.max(0, Math.floor(canvasX / worldData.STEP)));
+      let gy = Math.min(worldData.gh - 1, Math.max(0, Math.floor(canvasY / worldData.STEP)));
+      let cIdx = gy * worldData.gw + gx;
+
+      if (worldData.isWater[cIdx] && worldData.waterZoneState && worldData.waterZones) {
+        let wzId = worldData.waterZoneState[cIdx];
+        let wz = worldData.waterZones.find(z => z.id === wzId);
+        if (wz) {
+          tooltip.style.left = `${e.clientX - vRect.left}px`;
+          tooltip.style.top = `${e.clientY - vRect.top}px`;
+          document.getElementById('ttTitle').innerText = wz.name;
+          document.getElementById('ttType').innerText = `🌊 Body of Water (${wz.subType})`;
+          document.getElementById('ttRealm').innerText = `Area: ~${Math.round(wz.cellCount * 0.8)} sq. leagues`;
+          ttMeta.style.display = 'none';
+          ttEmblem.style.display = 'none';
+          ttRosterHint.style.display = 'none';
+          tooltip.style.display = 'block';
+          return;
+        }
+      }
       tooltip.style.display = 'none';
     }
   }
@@ -4696,7 +5467,6 @@ function setupMainMapZoom() {
 
   resetBtn.addEventListener('click', resetMainZoom);
 }
-
 // --- Silky Smooth Modal Pan & Zoom Controller ---
 let zoomScale = 1;
 let panX = 0, panY = 0;
@@ -4769,7 +5539,7 @@ function createRandomSeed() {
   return res;
 }
 
-// --- Async Execution Wrapper ---
+// --- Async Execution Wrapper with Safe Error Handling ---
 function startAsyncGeneration() {
   const overlay = document.getElementById('loadingOverlay');
   const loadingText = document.getElementById('loadingText');
@@ -4779,8 +5549,13 @@ function startAsyncGeneration() {
 
   requestAnimationFrame(() => {
     setTimeout(() => {
-      generateWorldMap();
-      overlay.classList.remove('active');
+      try {
+        generateWorldMap();
+      } catch (err) {
+        console.error("Map generation error:", err);
+      } finally {
+        overlay.classList.remove('active');
+      }
     }, 16);
   });
 }
@@ -4893,7 +5668,7 @@ function openCharacterStatusSidebar(char) {
   }
 
   let locCategoryText = char.assignedLocationName || "Unknown Location";
-  if (char.simState === "traveling") locCategoryText = "Traveling on Trade Highway (" + char.assignedLocationName + ")";
+  if (char.simState === "traveling") locCategoryText = "Traveling (" + char.assignedLocationName + ")";
   else if (char.simState === "resting") locCategoryText = "Resting at " + (char.stationedNode ? char.stationedNode.name : "Settlement");
 
   document.getElementById('csLocationDesc').innerText = locCategoryText;
@@ -5003,26 +5778,38 @@ function populateSidebarList() {
   const typeFilter = document.getElementById('sidebarTypeFilter').value;
   const sortType = document.getElementById('sidebarSort').value;
 
-  const allSettlements = worldData.capitals.concat(worldData.pois);
-  const allEntries = allSettlements.concat(populatedCharacters);
-
+const allSettlements = worldData.capitals.concat(worldData.pois);
+  const waterEntries = (worldData.waterZones || []).map(wz => ({
+    ...wz,
+    tier: "water",
+    type: "water"
+  }));
+  const riverEntries = (worldData.riverPaths || []).map(r => ({
+    ...r,
+    tier: "river",
+    type: "river"
+  }));
+  const allEntries = allSettlements.concat(populatedCharacters).concat(waterEntries).concat(riverEntries);
   const tierRanks = { character: -1, capital: 0, city: 1, town: 2, port: 3, fort: 4, spire: 5, mine: 6, ruins: 7, village: 8, hamlet: 9 };
-  const badgeColors = {
-    character: "#e17055", capital: "#f1c40f", city: "#9b59b6", town: "#3498db", port: "#00cec9",
+const badgeColors = {
+    water: "#74b9ff", river: "#2980b9", character: "#e17055", capital: "#f1c40f", city: "#9b59b6", town: "#3498db", port: "#00cec9",
     fort: "#e74c3c", spire: "#9b59b6", mine: "#f39c12", ruins: "#95a5a6",
     village: "#e67e22", hamlet: "#bdc3c7"
   };
-
-  let items = allEntries.map(node => {
+ let items = allEntries.map(node => {
     let type = node.type || node.tier || "village";
     let realmStr = "";
     if (node.type === "character") {
       realmStr = node.placementCategory === "location" 
         ? `Stationed at ${node.assignedLocationName}` 
         : (node.placementCategory === "road" ? "On Trade Highway" : "In Frontier Wilds");
+    } else if (node.type === "water") {
+      realmStr = `${node.subType} (${Math.round(node.cellCount * 0.8)} sq leagues)`;
+    } else if (node.type === "river") {
+      realmStr = `Flows ${node.lengthLeagues || 50} leagues`;
     } else {
       realmStr = getResolvedRealmString(node);
-    }
+    }s
 
     return {
       node,
@@ -5033,7 +5820,6 @@ function populateSidebarList() {
       image: node.pixelArtImage || null
     };
   });
-
   items = items.filter(item => {
     if (typeFilter !== 'all' && item.type !== typeFilter) return false;
     if (searchTxt) {
@@ -5151,6 +5937,7 @@ document.getElementById('showRoads').addEventListener('change', renderMap);
 document.getElementById('showMountains').addEventListener('change', renderMap);
 document.getElementById('showHillshade').addEventListener('change', renderMap);
 document.getElementById('showPois').addEventListener('change', renderMap);
+document.getElementById('showWaterZones').addEventListener('change', renderMap);
 document.getElementById('showCharacters').addEventListener('change', () => {
   renderActors();
 });
@@ -5225,14 +6012,10 @@ document.getElementById('sidebarSort').addEventListener('change', populateSideba
 // Battle Arena Modal Event Listeners
 document.getElementById('openArenaBtn').addEventListener('click', () => {
   syncBattleSimulatorDropdowns();
-  document.getElementById('battleArenaModal').classList.add('active');
+  openBattleArenaModal();
 });
 
-document.getElementById('closeArenaBtn').addEventListener('click', () => {
-  document.getElementById('battleArenaModal').classList.remove('active');
-  if (typeof stopBattle === 'function') stopBattle();
-  else if (window.BattleSimulator && typeof window.BattleSimulator.stopBattle === 'function') window.BattleSimulator.stopBattle();
-});
+document.getElementById('closeArenaBtn').addEventListener('click', closeBattleArenaModal);
 
 document.getElementById('encWatchBtn').addEventListener('click', () => {
   if (activeEncounterPair) {
@@ -5301,6 +6084,7 @@ if (labelMenuBtn && labelMenuDropdown) {
     refreshLabels();
   });
 }
+
 </script>
 </body>
 </html>
