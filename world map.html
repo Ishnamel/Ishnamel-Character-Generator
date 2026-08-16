@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy World Map - Character Tracker</title>
+    <link rel="icon" href="emblem_placeholder.png" type="image/png">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1c1612;
+            color: #e0d5c1;
+            font-family: 'Trajan Pro', serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Top Header Bar */
+        .header-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: #3b2f28;
+            border-bottom: 2px solid #6d5c4b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-sizing: border-box;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+
+        .header-title {
+            font-size: 17px;
+            color: #ffd166;
+            text-shadow: 2px 2px 4px #000;
+            margin: 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Search Container in Header */
+        .search-container {
+            position: relative;
+            width: 200px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 6px 10px;
+            background-color: #2b211a;
+            color: #e0d5c1;
+            border: 1px solid #6d5c4b;
+            border-radius: 4px;
+            font-family: 'Bookman Old Style', serif;
+            font-size: 12px;
+            box-sizing: border-box;
+        }
+
+        .search-results-dropdown {
+            position: absolute;
+            top: 34px;
+            left: 0;
+            width: 300px;
+            max-height: 280px;
+            background-color: #3b2f28;
+            border: 2px solid #6d5c4b;
+            border-radius: 6px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+        }
+
+        .search-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-bottom: 1px solid #4a3d34;
+            cursor: pointer;
+            font-family: 'Bookman Old Style', serif;
+            font-size: 11.5px;
+            transition: background 0.15s;
+        }
+
+        .search-item:hover { background-color: #5a4c42; }
+
+        .btn {
+            background-color: #5a4c42;
+            color: #e0d5c1;
+            border: 2px solid #6d5c4b;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-family: 'Bookman Old Style', serif;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover { background-color: #7a665b; border-color: #9d8872; }
+        .btn-gold { background-color: #d97706; color: #fff; }
+        .btn-gold:hover { background-color: #f59e0b; }
+        .btn-primary { background-color: #15803d; color: #fff; }
+        .btn-primary:hover { background-color: #16a34a; }
+        .btn-blue { background-color: #2563eb; color: #fff; }
+
+        /* Map Container & Hardware Acceleration */
+        #map-wrapper {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 92px);
+            background-color: #12100d;
+            cursor: grab;
+        }
+
+        #map-wrapper:active { cursor: grabbing; }
+
+        #map-zoom-group {
+            will-change: transform;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* SVG Nodes */
+        .char-node {
+            cursor: pointer;
+        }
+
+        .char-hitbox:hover + .char-dot {
+            stroke: #ffffff !important;
+            stroke-width: 1.5px !important;
+            r: 2.5px !important;
+        }
+
+        .town-hitbox:hover + .town-shape {
+            stroke: #ffffff !important;
+            stroke-width: 2px !important;
+        }
+
+        /* Bottom Ticker Feed */
+        .ticker-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 32px;
+            background-color: rgba(35, 26, 20, 0.95);
+            border-top: 1px solid #6d5c4b;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #d8c7a7;
+            z-index: 10;
+        }
+
+        /* Drop Overlay Prompt */
+        .upload-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(59, 47, 40, 0.95);
+            border: 3px dashed #ffd166;
+            border-radius: 12px;
+            padding: 30px 40px;
+            text-align: center;
+            z-index: 5;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            max-width: 500px;
+        }
+
+        /* Sliding Left Locations Sidebar Drawer */
+        .locations-sidebar {
+            position: fixed;
+            top: 60px;
+            left: -380px;
+            width: 360px;
+            max-width: 88vw;
+            height: calc(100vh - 92px);
+            background-color: #3b2f28;
+            border-right: 3px solid #6d5c4b;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.8);
+            z-index: 90;
+            transition: left 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            font-family: 'Bookman Old Style', serif;
+        }
+
+        .locations-sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #6d5c4b;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .location-item {
+            background-color: #2b211a;
+            border: 1px solid #6d5c4b;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11.5px;
+        }
+
+        .location-item:hover {
+            border-color: #ffd166;
+            background-color: #31261f;
+        }
+
+        /* Modals & Drawers */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: rgba(0,0,0,0.65);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-card {
+            background-color: #4a3d34;
+            border: 3px solid #6d5c4b;
+            border-radius: 10px;
+            padding: 20px;
+            width: 550px;
+            max-width: 92vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            color: #e0d5c1;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            font-family: 'Bookman Old Style', serif;
+        }
+
+        .side-card {
+            position: fixed;
+            top: 0; right: 0;
+            background-color: #4a3d34;
+            border-left: 3px solid #6d5c4b;
+            width: 380px;
+            max-width: 90vw;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            color: #e0d5c1;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+            font-family: 'Bookman Old Style', serif;
+            z-index: 105;
+            display: none;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px; right: 18px;
+            font-size: 24px; font-weight: bold;
+            color: #d8c7a7; cursor: pointer;
+        }
+
+        .modal-close:hover { color: #fff; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .badge-town { background-color: #15803d; color: white; }
+        .badge-near { background-color: #2563eb; color: white; }
+        .badge-wild { background-color: #d97706; color: white; }
+
+        /* Resident Table */
+        .resident-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .resident-table th, .resident-table td {
+            padding: 6px 8px;
+            border: 1px solid #6d5c4b;
+            text-align: center;
+        }
+
+        .resident-table th { background-color: #3b2f28; color: #ffd166; }
+        .resident-table tr:nth-child(even) { background-color: #3f332a; }
+
+        /* Map Legend Panel */
+        .legend-panel {
+            position: absolute;
+            bottom: 40px;
+            right: 15px;
+            background: rgba(35, 26, 20, 0.9);
+            border: 1px solid #6d5c4b;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 10.5px;
+            font-family: 'Bookman Old Style', serif;
+            z-index: 10;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 3px 0;
+        }
+
+        .legend-circle {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Tooltip */
+        .map-tooltip {
+            position: absolute;
+            background: rgba(35, 26, 20, 0.95);
+            border: 1px solid #ffd166;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 11px;
+            color: #ffd166;
+            pointer-events: none;
+            display: none;
+            z-index: 50;
+            font-family: 'Bookman Old Style', serif;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation Bar -->
+    <div class="header-bar">
+        <div class="header-title">🗺️ Azgaar Map Tracker</div>
+        
+        <div class="controls">
+            <!-- Header Character Search Input -->
+            <div class="search-container">
+                <input type="text" id="headerSearchInput" class="search-input" placeholder="🔍 Locate character..." oninput="searchCharactersInHeader()" onfocus="searchCharactersInHeader()">
+                <div id="headerSearchResults" class="search-results-dropdown"></div>
+            </div>
+
+            <button class="btn btn-gold" onclick="toggleLocationsSidebar()">🏰 Locations Roster</button>
+            <button class="btn btn-gold" onclick="triggerJsonUpload()">📜 Load .map / .json</button>
+            <button class="btn btn-blue" onclick="triggerImageUpload()">🖼️ Add Background</button>
+            <button class="btn btn-primary" onclick="reshuffleLocations()">🎲 Reshuffle</button>
+            <button class="btn" onclick="window.location.href='index.html'">Generator</button>
+            <button class="btn" onclick="window.location.href='battle_simulator.html'">Battle Sim</button>
+            <button class="btn" onclick="window.location.href='moving_characters.html'">Arena Royale</button>
+            <button class="btn" onclick="window.location.href='ascension_mode.html'">Ascension Mode</button>
+        </div>
+    </div>
+
+    <!-- Hidden File Inputs -->
+    <input type="file" id="jsonFileInput" accept=".json,.map,.txt" style="display:none;" onchange="handleJsonSelect(event)">
+    <input type="file" id="imageFileInput" accept="image/*,.svg" style="display:none;" onchange="handleImageSelect(event)">
+
+    <!-- Sliding Locations Sidebar Drawer -->
+    <div class="locations-sidebar" id="locationsSidebar">
+        <div class="sidebar-header">
+            <h3 style="margin:0; color:#ffd166;">🏰 Locations Roster</h3>
+            <span class="modal-close" style="position:static;" onclick="toggleLocationsSidebar()">&times;</span>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
+            <input type="text" id="locSearchInput" placeholder="🔍 Search location or kingdom..." oninput="renderLocationsSidebar()">
+            <select id="locSortSelect" onchange="renderLocationsSidebar()">
+                <option value="pop">Sort by Population (High to Low)</option>
+                <option value="residents">Sort by Fighters Inside (Most First)</option>
+                <option value="capital">Capital Cities First</option>
+                <option value="name">Sort by Name (A-Z)</option>
+            </select>
+        </div>
+
+        <div id="locSidebarList" style="flex:1; overflow-y:auto; padding-right:4px;"></div>
+    </div>
+
+    <!-- Map Viewport Container -->
+    <div id="map-wrapper" onclick="closeHeaderSearchResults()">
+        <div class="upload-overlay" id="uploadPrompt">
+            <h2 style="color:#ffd166; margin-top:0;">Load Azgaar Map Data</h2>
+            <p style="font-size:13px; font-family:'Bookman Old Style', serif; color:#d8c7a7;">
+                Select your exported Azgaar <strong>.map</strong> or <strong>.json</strong> file to parse all towns and kingdoms.
+            </p>
+            <button class="btn btn-gold" style="padding:10px 20px; font-size:14px; margin-top:10px;" onclick="triggerJsonUpload()">📜 Select .map / .json File</button>
+        </div>
+    </div>
+
+    <!-- Map Legend -->
+    <div class="legend-panel">
+        <div class="legend-item"><span class="legend-circle" style="background:#ec4899;"></span> Character (1/4 Size)</div>
+        <div class="legend-item"><span style="color:#ef4444; font-size:10px;">★</span> Capital City (Star)</div>
+        <div class="legend-item"><span style="color:#10b981; font-size:10px;">■</span> Major City (Square)</div>
+        <div class="legend-item"><span style="color:#0284c7; font-size:10px;">▲</span> Port / Naval Hub (Triangle)</div>
+        <div class="legend-item"><span class="legend-circle" style="background:#f59e0b;"></span> Settlement / Town</div>
+    </div>
+
+    <!-- Ticker Bar -->
+    <div class="ticker-bar" id="tickerBar">Load your Azgaar .map or .json file to auto-populate characters onto locations...</div>
+
+    <!-- Tooltip -->
+    <div class="map-tooltip" id="tooltip"></div>
+
+    <!-- Location Details Modal -->
+    <div class="modal-overlay" id="locationModal">
+        <div class="modal-card">
+            <span class="modal-close" onclick="closeLocationModal()">&times;</span>
+            <div id="locationModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Character Side Inspection Drawer -->
+    <div class="side-card" id="charModal">
+        <span class="modal-close" onclick="closeCharModal()">&times;</span>
+        <div id="charCardContent"></div>
+    </div>
+
+    <!-- External D3.js for Zoom & Pan -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+// Global Variables
+let allDbCharacters = [];
+let parsedBurgs = [];
+let parsedMapMeta = { width: 1000, height: 600 };
+let placedCharacters = [];
+let backgroundImageHref = null;
+let currentZoomScale = 1;
+let d3ZoomBehavior = null;
+let d3ContainerSvg = null;
+let zoomFrameScheduled = false;
+
+// UNIFORM CHARACTER COLOR (Bright Pink/Magenta)
+const UNIFORM_CHARACTER_COLOR = "#ec4899";
+
+// Open Database & Load Saved Characters
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("characterDatabase", 3);
+        request.onsuccess = function(e) { resolve(e.target.result); };
+        request.onerror = function(e) { reject(e); };
+    });
+}
+
+window.onload = async function() {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(["characters"], "readonly");
+        const store = tx.objectStore("characters");
+        const req = store.openCursor();
+        allDbCharacters = [];
+
+        req.onsuccess = function(e) {
+            const cursor = e.target.result;
+            if (cursor) {
+                allDbCharacters.push(cursor.value);
+                cursor.continue();
+            } else {
+                updateTicker(`Loaded ${allDbCharacters.length} characters from Database. Please select your Azgaar .map or .json file.`);
+            }
+        };
+    } catch(e) {
+        console.error("Database error:", e);
+    }
+
+    // Drag & Drop Handling
+    const wrapper = document.getElementById('map-wrapper');
+    wrapper.addEventListener('dragover', (e) => { e.preventDefault(); });
+    wrapper.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            if (file.name.endsWith('.json') || file.name.endsWith('.map') || file.name.endsWith('.txt')) {
+                processJsonFile(file);
+            } else if (file.type.startsWith('image/')) {
+                processImageFile(file);
+            }
+        }
+    });
+};
+
+function triggerJsonUpload() { document.getElementById('jsonFileInput').click(); }
+function triggerImageUpload() { document.getElementById('imageFileInput').click(); }
+
+function handleJsonSelect(e) { if (e.target.files && e.target.files[0]) processJsonFile(e.target.files[0]); }
+function handleImageSelect(e) { if (e.target.files && e.target.files[0]) processImageFile(e.target.files[0]); }
+
+function processJsonFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const parsed = parseAzgaarMapJSON(e.target.result);
+            if (parsed) {
+                parsedBurgs = parsed.burgs;
+                parsedMapMeta = { 
+                    width: parsed.width, 
+                    height: parsed.height,
+                    exactRoadPoints: parsed.exactRoadPoints
+                };
+                document.getElementById('uploadPrompt').style.display = 'none';
+                renderInteractiveMap();
+            }
+        } catch(err) {
+            alert("Error parsing Azgaar JSON file. Please ensure it is a valid .map or .json file from Azgaar.");
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function processImageFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        backgroundImageHref = e.target.result;
+        renderInteractiveMap();
+    };
+    reader.readAsDataURL(file);
+}
+
+// Parse Azgaar Structured JSON / .map File with Catmull-Rom Curve Path Sampling
+function parseAzgaarMapJSON(jsonText) {
+    let mapData;
+    try {
+        mapData = JSON.parse(jsonText);
+    } catch(e) {
+        const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) mapData = JSON.parse(jsonMatch[0]);
+        else throw e;
+    }
+
+    const pack = mapData.pack || mapData;
+    const rawBurgs = pack.burgs || mapData.burgs || [];
+    const rawRoutes = pack.routes || mapData.routes || [];
+    const states = pack.states || mapData.states || [];
+
+    const burgs = [];
+
+    // Parse Burgs / Towns
+    rawBurgs.forEach((b) => {
+        if (!b || !b.i || b.removed) return;
+
+        const stateObj = states[b.state];
+        const stateName = (stateObj && stateObj.name) ? stateObj.name : "Independent Realm";
+
+        burgs.push({
+            id: b.i,
+            name: b.name,
+            x: b.x,
+            y: b.y,
+            population: b.population || 10,
+            isCapital: Boolean(b.capital),
+            isPort: Boolean(b.port),
+            stateName: stateName,
+            residents: []
+        });
+    });
+
+    // Extract Exact Curved Land Road Points using Catmull-Rom Spline Interpolation
+    const exactRoadPoints = extractExactRoadCurvePoints(rawRoutes);
+
+    let width = mapData.info?.width || mapData.options?.svgWidth || 1000;
+    let height = mapData.info?.height || mapData.options?.svgHeight || 600;
+
+    if (burgs.length > 0) {
+        const maxX = Math.max(...burgs.map(b => b.x));
+        const maxY = Math.max(...burgs.map(b => b.y));
+        if (maxX > width) width = Math.ceil(maxX + 60);
+        if (maxY > height) height = Math.ceil(maxY + 60);
+    }
+
+    return { burgs, exactRoadPoints, width, height };
+}
+
+// Helper: Samples points directly along the exact curved road path
+function extractExactRoadCurvePoints(rawRoutes) {
+    const roadPoints = [];
+
+    const lineGenerator = d3.line()
+        .x(d => d[0])
+        .y(d => d[1])
+        .curve(d3.curveCatmullRom.alpha(0.5));
+
+    rawRoutes.forEach(route => {
+        const group = (route.group || "").toLowerCase();
+        if (group.includes("sea") || group.includes("ocean")) return;
+
+        const pts = route.points || [];
+        if (pts.length >= 2) {
+            const pathData = lineGenerator(pts);
+            if (pathData) {
+                const tempPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                tempPath.setAttribute("d", pathData);
+                document.body.appendChild(tempPath);
+
+                try {
+                    const totalLen = tempPath.getTotalLength();
+                    for (let len = 6; len < totalLen - 6; len += 8) {
+                        const pt = tempPath.getPointAtLength(len);
+                        roadPoints.push({ x: pt.x, y: pt.y });
+                    }
+                } catch(e) {}
+
+                document.body.removeChild(tempPath);
+            }
+        }
+    });
+
+    return roadPoints;
+}
+
+// LOCATION TYPE SHAPES & COLOR GENERATOR
+function getTownShapeInfo(b) {
+    let typeName = "Settlement";
+    let color = "#f59e0b"; // Gold
+    let symbolType = d3.symbolCircle;
+    let size = 25; // Area
+
+    if (b.isCapital) {
+        typeName = "Capital City";
+        color = "#ef4444"; // Red
+        symbolType = d3.symbolStar;
+        size = 110;
+    } else if (b.isPort) {
+        typeName = "Port / Naval Hub";
+        color = "#0284c7"; // Blue
+        symbolType = d3.symbolTriangle;
+        size = 50;
+    } else if (b.population > 35) {
+        typeName = "Major City";
+        color = "#10b981"; // Green
+        symbolType = d3.symbolSquare;
+        size = 65;
+    }
+
+    const pathString = d3.symbol().type(symbolType).size(size)();
+
+    return { typeName, color, pathString, size };
+}
+
+// Weighted Town Selection
+function getWeightedTown(burgs) {
+    if (!burgs || burgs.length === 0) return null;
+    let totalWeight = 0;
+    const weights = burgs.map(b => {
+        let w = b.population || 10;
+        if (b.isCapital) w *= 3.0;
+        else if (b.population > 35) w *= 2.0;
+        totalWeight += w;
+        return w;
+    });
+
+    let rnd = Math.random() * totalWeight;
+    for (let i = 0; i < burgs.length; i++) {
+        if (rnd < weights[i]) return burgs[i];
+        rnd -= weights[i];
+    }
+    return burgs[0];
+}
+
+// Main Render Function
+function renderInteractiveMap() {
+    const wrapper = document.getElementById('map-wrapper');
+    wrapper.innerHTML = '';
+
+    const width = parsedMapMeta.width;
+    const height = parsedMapMeta.height;
+
+    parsedBurgs.forEach(b => b.residents = []);
+
+    containerSvg = d3.select("#map-wrapper")
+        .append("svg")
+        .attr("id", "main-map-svg")
+        .attr("viewBox", `0 0 ${width} ${height}`);
+
+    const mapGroup = containerSvg.append("g").attr("id", "map-zoom-group");
+
+    // 1. Background Image or Canvas Grid
+    if (backgroundImageHref) {
+        mapGroup.append("image")
+            .attr("href", backgroundImageHref)
+            .attr("width", width)
+            .attr("height", height);
+    } else {
+        mapGroup.append("rect")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("fill", "#241c16")
+            .attr("rx", 8);
+
+        const gridGroup = mapGroup.append("g").attr("opacity", 0.15);
+        for (let x = 0; x < width; x += 50) {
+            gridGroup.append("line").attr("x1", x).attr("y1", 0).attr("x2", x).attr("y2", height).attr("stroke", "#d8c7a7");
+        }
+        for (let y = 0; y < height; y += 50) {
+            gridGroup.append("line").attr("x1", 0).attr("y1", y).attr("x2", width).attr("y2", y).attr("stroke", "#d8c7a7");
+        }
+    }
+
+    // 2. Assign Characters (70% Inside Locations, 25% On Road Curves, 5% Wilds/Sea)
+    populateCharactersDistribution(width, height);
+
+    // 3. Render Distinctly Shaped & Color-Coded Town Nodes with Large Hitboxes
+    const townsGroup = mapGroup.append("g").attr("id", "town-nodes-group");
+    parsedBurgs.forEach(b => {
+        const info = getTownShapeInfo(b);
+        const townG = townsGroup.append("g")
+            .attr("class", "town-node-g")
+            .attr("id", `burg-node-${b.id}`)
+            .attr("transform", `translate(${b.x}, ${b.y})`);
+
+        // Large invisible click target/hitbox
+        townG.append("circle")
+            .attr("class", "town-hitbox")
+            .attr("r", 12)
+            .attr("fill", "transparent")
+            .attr("cursor", "pointer")
+            .on("mouseover", (event) => showTownTooltip(event, b, info))
+            .on("mouseout", hideTooltip)
+            .on("click", (event) => {
+                event.stopPropagation();
+                showLocationModal(b, info);
+            });
+
+        // Visible SVG Symbol Shape
+        townG.append("path")
+            .attr("class", "town-shape")
+            .attr("d", info.pathString)
+            .attr("fill", info.color)
+            .attr("stroke", "#1c1612")
+            .attr("stroke-width", "0.6px")
+            .attr("pointer-events", "none");
+    });
+
+    // 4. Render Outside Characters with Tiny Dots + Large Invisible Click Hitboxes
+    const outsideChars = placedCharacters.filter(c => c.locationType !== 'inside_town');
+
+    const charNodesGroup = mapGroup.append("g").attr("id", "character-dots-group");
+    
+    outsideChars.forEach(d => {
+        const charG = charNodesGroup.append("g")
+            .attr("class", "char-node")
+            .attr("id", `char-node-${d.data.key}`)
+            .attr("transform", `translate(${d.x}, ${d.y})`);
+
+        // Large invisible click target/hitbox (20px touch target!)
+        charG.append("circle")
+            .attr("class", "char-hitbox")
+            .attr("r", 10)
+            .attr("fill", "transparent")
+            .attr("cursor", "pointer")
+            .on("mouseover", (event) => showCharTooltip(event, d))
+            .on("mouseout", hideTooltip)
+            .on("click", (event) => {
+                event.stopPropagation();
+                showCharacterCard(d);
+            });
+
+        // Tiny visible dot
+        charG.append("circle")
+            .attr("class", "char-dot")
+            .attr("r", 1.4)
+            .attr("fill", UNIFORM_CHARACTER_COLOR)
+            .attr("stroke", "#000000")
+            .attr("stroke-width", "0.4px")
+            .attr("pointer-events", "none");
+    });
+
+    // 5. D3 Zoom & Pan Handler (Throttled via requestAnimationFrame for older devices)
+    d3ZoomBehavior = d3.zoom()
+        .scaleExtent([0.3, 25])
+        .on("zoom", (event) => {
+            currentZoomScale = event.transform.k;
+            mapGroup.attr("transform", event.transform);
+
+            if (!zoomFrameScheduled) {
+                zoomFrameScheduled = true;
+                requestAnimationFrame(() => {
+                    // Smoothly scale hitboxes and visual elements
+                    d3.selectAll(".char-dot")
+                        .attr("r", 1.4 / Math.pow(currentZoomScale, 0.5));
+
+                    d3.selectAll(".char-hitbox")
+                        .attr("r", 10 / currentZoomScale);
+
+                    d3.selectAll(".town-hitbox")
+                        .attr("r", 12 / currentZoomScale);
+
+                    d3.selectAll(".town-shape")
+                        .attr("transform", `scale(${1 / Math.pow(currentZoomScale, 0.4)})`);
+
+                    zoomFrameScheduled = false;
+                });
+            }
+        });
+
+    containerSvg.call(d3ZoomBehavior);
+
+    const insideCount = placedCharacters.filter(c => c.locationType === 'inside_town').length;
+    const roadCount = placedCharacters.filter(c => c.locationType === 'road').length;
+    const wildCount = placedCharacters.filter(c => c.locationType === 'wilderness').length;
+
+    updateTicker(`Map Parsed! ${insideCount} inside major locations (70%), ${roadCount} on curved roads (25%), ${wildCount} in uncharted wilds/sea (5%).`);
+    
+    renderLocationsSidebar();
+}
+
+// Distribution Logic: 70% Inside (Weighted), 25% On Road Curves, 5% Wilds/Sea
+function populateCharactersDistribution(width, height) {
+    if (allDbCharacters.length === 0) return;
+
+    placedCharacters = [];
+
+    const exactRoadPoints = parsedMapMeta.exactRoadPoints || [];
+
+    allDbCharacters.forEach((charData) => {
+        const roll = Math.random();
+        let locationType, x, y, locationName, stateName, townRef = null;
+
+        if (roll < 0.70 && parsedBurgs.length > 0) {
+            // 70% INSIDE LOCATIONS
+            locationType = 'inside_town';
+            townRef = getWeightedTown(parsedBurgs);
+            x = townRef.x;
+            y = townRef.y;
+            locationName = townRef.name;
+            stateName = townRef.stateName;
+
+            townRef.residents.push(charData);
+        } else if (roll < 0.95 && exactRoadPoints.length > 0) {
+            // 25% STRICTLY ON CURVED LAND ROAD LINES
+            locationType = 'road';
+            const roadPt = exactRoadPoints[Math.floor(Math.random() * exactRoadPoints.length)];
+            x = roadPt.x;
+            y = roadPt.y;
+
+            let nearestTown = parsedBurgs[0];
+            let minDist = Infinity;
+            parsedBurgs.forEach(b => {
+                const d = Math.hypot(b.x - x, b.y - y);
+                if (d < minDist) { minDist = d; nearestTown = b; }
+            });
+
+            locationName = `Trade Road near ${nearestTown ? nearestTown.name : 'Settlement'}`;
+            stateName = nearestTown ? nearestTown.stateName : "Realm";
+        } else {
+            // 5% UNCHARTED WILDS OR SEA
+            locationType = 'wilderness';
+            x = Math.random() * (width - 80) + 40;
+            y = Math.random() * (height - 80) + 40;
+
+            const isSea = Math.random() < 0.5;
+            locationName = isSea ? "Uncharted Sea" : "Uncharted Wilds";
+            stateName = isSea ? "Open Waters" : "Wilderness";
+        }
+
+        placedCharacters.push({
+            data: charData,
+            x, y,
+            locationType,
+            townRef,
+            locationName,
+            stateName
+        });
+    });
+}
+
+function reshuffleLocations() {
+    if (placedCharacters.length === 0) return;
+    renderInteractiveMap();
+}
+
+// LOCATIONS SLIDING SIDEBAR DRAWER & SORTING
+function toggleLocationsSidebar() {
+    const sidebar = document.getElementById('locationsSidebar');
+    sidebar.classList.toggle('active');
+    if (sidebar.classList.contains('active')) {
+        renderLocationsSidebar();
+    }
+}
+
+function renderLocationsSidebar() {
+    const search = (document.getElementById('locSearchInput')?.value || "").toLowerCase().trim();
+    const sortVal = document.getElementById('locSortSelect')?.value || "pop";
+    const container = document.getElementById('locSidebarList');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    let list = [...parsedBurgs];
+
+    if (search) {
+        list = list.filter(b => `${b.name} ${b.stateName}`.toLowerCase().includes(search));
+    }
+
+    list.sort((a, b) => {
+        if (sortVal === 'pop') return b.population - a.population;
+        if (sortVal === 'residents') return b.residents.length - a.residents.length;
+        if (sortVal === 'capital') return (b.isCapital ? -1 : 1) - (a.isCapital ? -1 : 1);
+        if (sortVal === 'name') return a.name.localeCompare(b.name);
+        return 0;
+    });
+
+    if (list.length === 0) {
+        container.innerHTML = `<p style="font-size:12px; font-style:italic; text-align:center;">No locations found.</p>`;
+        return;
+    }
+
+    list.forEach(b => {
+        const info = getTownShapeInfo(b);
+        const div = document.createElement('div');
+        div.className = 'location-item';
+        div.innerHTML = `
+            <div>
+                <strong style="color:${info.color};">${b.name}</strong> ${b.isCapital ? '👑' : ''}<br>
+                <span style="color:#d8c7a7; font-size:10.5px;">${info.typeName} | ${b.stateName}</span><br>
+                <span style="color:#1dd1a1; font-size:10.5px;">Fighters Inside: <strong>${b.residents.length}</strong></span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="zoomToTown(${b.id})">🔍 Locate</button>
+                <button class="btn btn-gold" style="padding:2px 6px; font-size:10px;" onclick="inspectTownFromSidebar(${b.id})">📋 Inspect</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function zoomToTown(burgId) {
+    const town = parsedBurgs.find(b => b.id === burgId);
+    if (!town || !containerSvg || !d3ZoomBehavior) return;
+
+    const wrapper = document.getElementById('map-wrapper');
+    const width = wrapper.clientWidth;
+    const height = wrapper.clientHeight;
+
+    const targetScale = 6;
+    const x = town.x;
+    const y = town.y;
+
+    const transform = d3.zoomIdentity
+        .translate(width / 2 - x * targetScale, height / 2 - y * targetScale)
+        .scale(targetScale);
+
+    containerSvg.transition()
+        .duration(1200)
+        .call(d3ZoomBehavior.transform, transform);
+
+    updateTicker(`Zoomed camera to ${town.name} (${town.stateName})!`);
+}
+
+function inspectTownFromSidebar(burgId) {
+    const town = parsedBurgs.find(b => b.id === burgId);
+    if (town) showLocationModal(town);
+}
+
+// Tooltips
+function showTownTooltip(event, burg, info) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.innerHTML = `<strong>📍 ${burg.name}</strong> (${info.typeName})<br>Realm: ${burg.stateName}<br>👥 ${burg.residents.length} Characters Inside`;
+    tooltip.style.left = `${event.pageX + 12}px`;
+    tooltip.style.top = `${event.pageY + 12}px`;
+    tooltip.style.display = 'block';
+}
+
+function showCharTooltip(event, d) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.innerHTML = `<strong>${d.data.firstName} ${d.data.lastName}</strong> (${d.data.combatClass || 'Fighter'})<br>📍 ${d.locationName}`;
+    tooltip.style.left = `${event.pageX + 12}px`;
+    tooltip.style.top = `${event.pageY + 12}px`;
+    tooltip.style.display = 'block';
+}
+
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+
+// LOCATION INFO MODAL
+function showLocationModal(town, info) {
+    hideTooltip();
+    closeCharModal();
+
+    if (!info) info = getTownShapeInfo(town);
+    const content = document.getElementById('locationModalContent');
+
+    content.innerHTML = `
+        <div style="text-align:center; border-bottom:2px solid #6d5c4b; padding-bottom:10px; margin-bottom:12px;">
+            <h2 style="margin:0; color:#ffd166;">🏛️ ${town.name}</h2>
+            <p style="margin:4px 0; color:#d8c7a7; font-size:12px;">
+                Type: <strong>${info.typeName}</strong> | Realm: <strong>${town.stateName}</strong>
+            </p>
+            <p style="margin:2px 0; font-size:12px; color:#1dd1a1;">
+                Current Characters Inside: <strong>${town.residents.length} Fighters</strong>
+            </p>
+        </div>
+
+        <h4 style="margin:5px 0; color:#ffd166; font-size:13px;">Characters Inside ${town.name}:</h4>
+        <div style="max-height: 260px; overflow-y: auto;">
+            ${town.residents.length === 0 ? '<p style="font-size:12px; font-style:italic;">No characters currently inside this location.</p>' : `
+                <table class="resident-table">
+                    <thead>
+                        <tr>
+                            <th>Fighter</th>
+                            <th>Class & Race</th>
+                            <th>Potential</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${town.residents.map(c => `
+                            <tr>
+                                <td style="text-align:left; display:flex; align-items:center; gap:6px;">
+                                    <img src="${c.pixelArtImage}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">
+                                    <strong>${c.firstName} ${c.lastName}</strong>
+                                </td>
+                                <td>${c.combatClass || 'Fighter'} (${c.race || 'Human'})</td>
+                                <td><strong style="color:#1dd1a1;">${c.potential || '40 (F)'}</strong></td>
+                                <td>
+                                    <button class="btn" style="padding:2px 6px; font-size:10px;" onclick="inspectResidentByKey('${c.key}')">Inspect</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `}
+        </div>
+    `;
+
+    document.getElementById('locationModal').style.display = 'flex';
+}
+
+function inspectResidentByKey(key) {
+    const charData = allDbCharacters.find(c => c.key === key);
+    if (!charData) return;
+
+    const placedChar = placedCharacters.find(p => p.data.key === key);
+    showCharacterCard(placedChar || { data: charData, locationName: "Inside Location", stateName: "", locationType: 'inside_town' });
+}
+
+// Side Drawer Character Inspection Card
+function showCharacterCard(placedChar) {
+    hideTooltip();
+    const c = placedChar.data;
+    const content = document.getElementById('charCardContent');
+
+    let badgeClass = 'badge-town';
+    if (placedChar.locationType === 'near_town' || placedChar.locationType === 'road') badgeClass = 'badge-near';
+    if (placedChar.locationType === 'wilderness') badgeClass = 'badge-wild';
+
+    content.innerHTML = `
+        <div style="text-align:center;">
+            <img src="${c.pixelArtImage}" style="width:85px; height:85px; border-radius:50%; border:3px solid #ffd166; object-fit:cover; margin-bottom:8px;">
+            <h2 style="margin:2px 0; color:#ffd166;">${c.firstName} ${c.lastName}</h2>
+            <p style="color:#d8c7a7; margin:0; font-size:12px;">${c.race} ${c.combatClass || 'No Class'}</p>
+            <span class="badge ${badgeClass}">
+                📍 ${placedChar.locationName}
+            </span>
+            <p style="color:#1dd1a1; font-weight:bold; font-size:13px; margin:4px 0;">Potential: ${c.potential || '40 (F)'}</p>
+        </div>
+        <hr style="border-color:#6d5c4b; margin:12px 0;">
+        <pre style="white-space:pre-wrap; font-size:11px; line-height:1.4; background:#2b211a; padding:10px; border-radius:5px; max-height:45vh; overflow-y:auto;">${(c.statusText || '').replace(/Condition\s+[\s\S]*?Combat\s+/g, "Combat\n")}</pre>
+    `;
+
+    document.getElementById('charModal').style.display = 'block';
+}
+
+function closeLocationModal() { document.getElementById('locationModal').style.display = 'none'; }
+function closeCharModal() { document.getElementById('charModal').style.display = 'none'; }
+function closeModal() { closeLocationModal(); closeCharModal(); }
+
+// HEADER SEARCH & CAMERA SMOOTH ZOOM
+function searchCharactersInHeader() {
+    const input = document.getElementById('headerSearchInput').value.toLowerCase().trim();
+    const dropdown = document.getElementById('headerSearchResults');
+
+    if (!input) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    const matches = placedCharacters.filter(p => 
+        `${p.data.firstName} ${p.data.lastName} ${p.data.combatClass} ${p.locationName}`.toLowerCase().includes(input)
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+        dropdown.innerHTML = `<div class="search-item" style="color:#a4b0be;">No characters found</div>`;
+    } else {
+        dropdown.innerHTML = matches.map(p => `
+            <div class="search-item" onclick="zoomToCharacter('${p.data.key}')">
+                <img src="${p.data.pixelArtImage}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">
+                <div>
+                    <strong>${p.data.firstName} ${p.data.lastName}</strong> (${p.data.combatClass || 'Fighter'})<br>
+                    <span style="color:#ffd166; font-size:10px;">📍 ${p.locationName}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    dropdown.style.display = 'block';
+}
+
+function closeHeaderSearchResults() {
+    document.getElementById('headerSearchResults').style.display = 'none';
+}
+
+// Camera Smooth Pan & Zoom Handler
+function zoomToCharacter(key) {
+    closeHeaderSearchResults();
+
+    const placedChar = placedCharacters.find(p => p.data.key === key);
+    if (!placedChar || !containerSvg || !d3ZoomBehavior) return;
+
+    const wrapper = document.getElementById('map-wrapper');
+    const width = wrapper.clientWidth;
+    const height = wrapper.clientHeight;
+
+    const targetScale = 6;
+    const x = placedChar.x;
+    const y = placedChar.y;
+
+    const transform = d3.zoomIdentity
+        .translate(width / 2 - x * targetScale, height / 2 - y * targetScale)
+        .scale(targetScale);
+
+    containerSvg.transition()
+        .duration(1200)
+        .call(d3ZoomBehavior.transform, transform)
+        .on("end", () => {
+            if (placedChar.locationType === 'inside_town' && placedChar.townRef) {
+                showLocationModal(placedChar.townRef);
+            } else {
+                showCharacterCard(placedChar);
+            }
+        });
+
+    updateTicker(`Zoomed camera to ${placedChar.data.firstName} ${placedChar.data.lastName} at ${placedChar.locationName}!`);
+}
+
+function updateTicker(msg) {
+    document.getElementById('tickerBar').innerText = msg;
+}
+</script>
+</body>
+</html>

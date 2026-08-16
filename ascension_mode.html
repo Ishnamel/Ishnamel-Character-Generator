@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ascension Mode - Gauntlet Challenge</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2b211a;
+            color: #e0d5c1;
+            font-family: 'Trajan Pro', serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Top Header */
+        .header-bar {
+            background-color: #3b2f28;
+            border-bottom: 2px solid #6d5c4b;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .header-title {
+            font-size: 20px;
+            color: #ffd166;
+            text-shadow: 2px 2px 4px #000;
+            margin: 0;
+        }
+
+        .btn {
+            background-color: #5a4c42;
+            color: #e0d5c1;
+            border: 2px solid #6d5c4b;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-family: 'Bookman Old Style', serif;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover { background-color: #7a665b; border-color: #9d8872; }
+        .btn-gold { background-color: #d97706; color: #fff; }
+        .btn-gold:hover { background-color: #f59e0b; }
+        .btn-primary { background-color: #15803d; color: #fff; }
+        .btn-primary:hover { background-color: #16a34a; }
+        .btn-danger { background-color: #dc2626; color: #fff; }
+        .btn-danger:hover { background-color: #ef4444; }
+
+        /* Main Container Layout */
+        .ascension-container {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .left-col { flex: 1.2; display: flex; flex-direction: column; gap: 15px; }
+        .right-col { flex: 1.8; display: flex; flex-direction: column; gap: 15px; }
+
+        .card {
+            background-color: #4a3d34;
+            border: 2px solid #6d5c4b;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #d8c7a7;
+            border-bottom: 1px dashed #6d5c4b;
+            padding-bottom: 6px;
+            font-size: 18px;
+        }
+
+        /* Config Grid */
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-family: 'Bookman Old Style', serif;
+            font-size: 13px;
+        }
+
+        .config-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            background-color: #2b211a;
+            color: #e0d5c1;
+            border: 1px solid #6d5c4b;
+            padding: 6px;
+            font-size: 12px;
+            border-radius: 4px;
+            font-family: 'Bookman Old Style', serif;
+        }
+
+        /* Active Match Floor Display */
+        .match-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #3b2f28;
+            border: 2px solid #6d5c4b;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .fighter-card {
+            text-align: center;
+            width: 45%;
+        }
+
+        .fighter-img {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: 3px solid #6d5c4b;
+            object-fit: cover;
+        }
+
+        /* Stat Bars */
+        .bar-bg {
+            width: 100%;
+            background-color: #2b211a;
+            border-radius: 4px;
+            height: 12px;
+            overflow: hidden;
+            border: 1px solid #6d5c4b;
+            margin: 3px 0;
+        }
+
+        .bar-hp { height: 100%; background-color: #e84a5f; transition: width 0.3s; }
+        .bar-mp { height: 100%; background-color: #56cfe1; transition: width 0.3s; }
+        .bar-exp { height: 100%; background-color: #feca57; transition: width 0.3s; }
+
+        /* Combat Log */
+        .combat-log {
+            background-color: #2b211a;
+            border: 2px solid #6d5c4b;
+            border-radius: 6px;
+            padding: 10px;
+            height: 280px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            text-align: left;
+        }
+
+        /* Leaderboard Table */
+        .lb-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            font-family: 'Bookman Old Style', serif;
+        }
+
+        .lb-table th, .lb-table td {
+            padding: 8px;
+            border: 1px solid #6d5c4b;
+            text-align: center;
+        }
+
+        .lb-table th { 
+            background-color: #3b2f28; 
+            color: #ffd166; 
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .lb-table th:hover { background-color: #5a4c42; }
+
+        .lb-table tr:nth-child(even) { background-color: #3f332a; }
+        .lb-table tr:hover { background-color: #5a4c42; }
+
+        /* Log Colors */
+        .log-phys { color: #ff9f43; }
+        .log-magic { color: #54a0ff; }
+        .log-hybrid { color: #c8d6e5; }
+        .log-crit { color: #feca57; font-weight: bold; }
+        .log-tech { color: #ff6b6b; font-weight: bold; }
+        .log-block { color: #1dd1a1; }
+        .log-dodge { color: #10ac84; }
+        .log-turn { color: #d8c7a7; font-weight: bold; border-bottom: 1px dashed #6d5c4b; margin-top: 5px; }
+        .log-system { color: #f368e0; italic; }
+        .log-slow { color: #a4b0be; italic; }
+        .log-ishnamel { color: #c084fc; font-weight: bold; }
+
+        .stat-plus {
+            color: #1dd1a1;
+            font-weight: bold;
+            font-size: 11px;
+            margin-left: 2px;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-card {
+            background-color: #4a3d34;
+            border: 3px solid #6d5c4b;
+            border-radius: 10px;
+            padding: 20px;
+            width: 680px;
+            max-width: 92vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            color: #e0d5c1;
+            position: relative;
+        }
+
+        /* Full Screen Inspection Modal */
+        .modal-card-fullscreen {
+            width: 92vw;
+            max-width: 1250px;
+            height: 90vh;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            border: 3px solid #ffd166;
+            box-shadow: 0 0 35px rgba(0,0,0,0.9);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px; right: 18px;
+            font-size: 24px; font-weight: bold;
+            color: #d8c7a7; cursor: pointer;
+            z-index: 10;
+        }
+
+        .modal-close:hover { color: #fff; }
+
+        /* Submenu Tabs */
+        .tab-bar {
+            display: flex;
+            gap: 6px;
+            border-bottom: 2px solid #6d5c4b;
+            margin-bottom: 12px;
+        }
+
+        .tab-btn {
+            background-color: #3b2f28;
+            color: #e0d5c1;
+            border: 1px solid #6d5c4b;
+            border-bottom: none;
+            padding: 6px 14px;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .tab-btn.active {
+            background-color: #6d5c4b;
+            color: #ffd166;
+            font-weight: bold;
+        }
+
+        .dual-sheet-container {
+            display: flex;
+            gap: 15px;
+            flex: 1;
+            overflow-y: auto;
+            box-sizing: border-box;
+            margin-top: 8px;
+        }
+
+        .sheet-box {
+            flex: 1;
+            background-color: #2b211a;
+            border: 2px solid #6d5c4b;
+            border-radius: 6px;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'Bookman Old Style', serif;
+            font-size: 11.5px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <div class="header-bar">
+        <h2 class="header-title">🏔️ Ascension Mode: Gauntlet Challenge</h2>
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn-gold" onclick="showLeaderboardModal()">🏆 Hall of Fame</button>
+            <button class="btn" onclick="window.location.href='index.html'">Generator</button>
+            <button class="btn" onclick="window.location.href='battle_simulator.html'">Battle Sim</button>
+            <button class="btn" onclick="window.location.href='moving_characters.html'">Arena Royale</button>
+        </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="ascension-container">
+        
+        <!-- Left Column: Setup & Ascender Status -->
+        <div class="left-col">
+            
+            <!-- Setup & Parameter Config Card -->
+            <div class="card">
+                <h3>1. Select Ascender & Configure Run</h3>
+                <div class="config-group" style="margin-bottom:10px;">
+                    <label><strong>Select Character to Ascend:</strong></label>
+                    <input type="text" id="ascenderSearchInput" placeholder="🔍 Filter by name, class, or race..." oninput="filterAscenderDropdown()" style="margin-bottom:6px;">
+                    <select id="ascenderSelect" onchange="previewAscender()"></select>
+                </div>
+
+                <div class="config-grid">
+                    <div class="config-group">
+                        <label>Level Up System:</label>
+                        <select id="levelUpToggle">
+                            <option value="true">Enabled (EXP & Level Up)</option>
+                            <option value="false">Disabled (No Leveling)</option>
+                        </select>
+                    </div>
+
+                    <div class="config-group">
+                        <label>Post-Battle HP Heal %:</label>
+                        <select id="healPctSelect">
+                            <option value="0.50">50% Recovery</option>
+                            <option value="0.25">25% Recovery</option>
+                            <option value="0.75">75% Recovery</option>
+                            <option value="1.00">100% Full Heal</option>
+                            <option value="0.00">0% Survival Mode</option>
+                        </select>
+                    </div>
+
+                    <div class="config-group">
+                        <label>Post-Battle MP Heal %:</label>
+                        <select id="healMpPctSelect">
+                            <option value="1.00">100% Full MP</option>
+                            <option value="0.75">75% Recovery</option>
+                            <option value="0.50">50% Recovery</option>
+                            <option value="0.25">25% Recovery</option>
+                            <option value="0.00">0% Survival Mode</option>
+                        </select>
+                    </div>
+
+                    <div class="config-group">
+                        <label>EXP Growth Rate:</label>
+                        <select id="expGrowthSelect">
+                            <option value="1.0">Normal (1.0x)</option>
+                            <option value="0.6">Fast Growth (0.6x)</option>
+                            <option value="1.5">Slow Growth (1.5x)</option>
+                            <option value="2.0">Hardcore Growth (2.0x)</option>
+                        </select>
+                    </div>
+
+                    <div class="config-group" style="grid-column: span 2;">
+                        <label>Run Sim Speed:</label>
+                        <select id="simSpeedSelect">
+                            <option value="500">Fast (0.5s)</option>
+                            <option value="1200">Normal (1.2s)</option>
+                            <option value="100">Very Fast (0.1s)</option>
+                            <option value="0">⚡ Instant</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <button id="startRunBtn" class="btn btn-primary" style="flex:2; padding:10px; font-size:14px;" onclick="startAscensionRun()">🚀 START ASCENSION RUN</button>
+                    <button id="abandonBtn" class="btn btn-danger" style="flex:1; display:none; padding:10px; font-size:13px;" onclick="abandonRun()">⛔ Abandon Run</button>
+                </div>
+            </div>
+
+            <!-- Live Ascender Status Card -->
+            <div class="card" id="ascenderStatusCard">
+                <h3>Ascender Live Sheet</h3>
+                <div id="ascenderSheetContent" style="font-size:12px; font-family:'Bookman Old Style', serif;">Select a character above to preview status...</div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Combat Gauntlet Viewer -->
+        <div class="right-col">
+            
+            <!-- Floor Banner -->
+            <div class="card" style="text-align:center; padding:10px;">
+                <h2 style="margin:0; color:#ffd166;" id="floorTitle">FLOOR 0 / 0</h2>
+                <p style="margin:3px 0; font-size:12px; color:#d8c7a7;" id="floorSubTitle">Gauntlet Not Started</p>
+            </div>
+
+            <!-- Active Match Display -->
+            <div class="match-display" id="matchDisplay">
+                <!-- Ascender Card -->
+                <div class="fighter-card" id="ascenderMatchCard">
+                    <img id="ascenderImg" class="fighter-img" src="emblem_placeholder.png">
+                    <h4 id="ascenderNameText" style="margin:3px 0;">Ascender</h4>
+                    <div class="bar-bg"><div id="ascenderHpBar" class="bar-hp" style="width:100%;"></div></div>
+                    <p style="font-size:10px; margin:2px 0;" id="ascenderHpText">HP: 0/0</p>
+                    
+                    <div id="ascenderMpContainer">
+                        <div class="bar-bg"><div id="ascenderMpBar" class="bar-mp" style="width:100%;"></div></div>
+                        <p style="font-size:10px; margin:2px 0;" id="ascenderMpText">MP: 0/0</p>
+                    </div>
+
+                    <div class="bar-bg"><div id="ascenderExpBar" class="bar-exp" style="width:0%;"></div></div>
+                    <p style="font-size:10px; margin:2px 0;" id="ascenderExpText">EXP: 0/100 (Lvl 1)</p>
+                </div>
+
+                <div style="font-size:22px; font-weight:bold; color:#ffd166;">VS</div>
+
+                <!-- Opponent Card -->
+                <div class="fighter-card" id="opponentMatchCard">
+                    <img id="opponentImg" class="fighter-img" src="emblem_placeholder.png">
+                    <h4 id="opponentNameText" style="margin:3px 0;">Opponent</h4>
+                    <div class="bar-bg"><div id="opponentHpBar" class="bar-hp" style="width:100%;"></div></div>
+                    <p style="font-size:10px; margin:2px 0;" id="opponentHpText">HP: 0/0</p>
+                    
+                    <div id="opponentMpContainer">
+                        <div class="bar-bg"><div id="opponentMpBar" class="bar-mp" style="width:100%;"></div></div>
+                        <p style="font-size:10px; margin:2px 0;" id="opponentMpText">MP: 0/0</p>
+                    </div>
+
+                    <p style="font-size:10px; margin:4px 0; color:#ffd166;" id="opponentTierText">Tier: F</p>
+                </div>
+            </div>
+
+            <!-- Combat Log -->
+            <div class="combat-log" id="combatLog">
+                <p class="log-system">Select an Ascender and click 'START ASCENSION RUN' to begin the gauntlet...</p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div class="modal-overlay" id="leaderboardModal">
+        <div class="modal-card">
+            <span class="modal-close" onclick="closeModal('leaderboardModal')">&times;</span>
+            <h2 style="margin-top:0; text-align:center; color:#ffd166;">🏆 Ascension Hall of Fame (Highest PRs)</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; margin-bottom:6px;">
+                <input type="text" id="lbSearchInput" placeholder="🔍 Search Hall of Fame..." oninput="renderLeaderboardTable()" style="width:240px;">
+                <span style="font-size:11px; color:#d8c7a7;">Click headers to sort ▲▼</span>
+            </div>
+            <div style="max-height:50vh; overflow-y:auto;">
+                <table class="lb-table">
+                    <thead>
+                        <tr>
+                            <th onclick="sortLeaderboard('rank')">Rank ▲▼</th>
+                            <th onclick="sortLeaderboard('name')">Ascender ▲▼</th>
+                            <th onclick="sortLeaderboard('class')">Class & Race ▲▼</th>
+                            <th onclick="sortLeaderboard('floors')">Max Floor ▲▼</th>
+                            <th onclick="sortLeaderboard('victories')">Victories ▲▼</th>
+                            <th onclick="sortLeaderboard('damage')">Total Damage ▲▼</th>
+                            <th onclick="sortLeaderboard('score')">Overall Score ▲▼</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lbTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Personal Record & Submenu Fullscreen Inspection Modal -->
+    <div class="modal-overlay" id="inspectModal">
+        <div class="modal-card modal-card-fullscreen">
+            <span class="modal-close" onclick="closeModal('inspectModal')">&times;</span>
+            <div id="inspectModalContent" style="display:flex; flex-direction:column; height:100%;"></div>
+        </div>
+    </div>
+
+<script>
+// =========================================================
+// ISHNAMEL FLAVOR TEXTS (40 CUSTOM DECREES)
+// =========================================================
+const ISHNAMEL_FLAVOR_TEXTS = [
+    "Ishnamel has ended the Ascension.",
+    "Ishnamel has terminated the run.",
+    "The Ascension has been ended by Ishnamel.",
+    "Ishnamel has decided that this run is over.",
+    "At Ishnamel’s command, the Ascension comes to an end.",
+    "Ishnamel has grown bored. The Ascension ends here.",
+    "A silent decree from Ishnamel. Your ascent ends now.",
+    "Ishnamel closes the path ahead. There will be no further ascent.",
+    "The path vanishes. Ishnamel has ended your journey.",
+    "Ishnamel has withdrawn the trial. Your Ascension is concluded.",
+    "The rules no longer matter. Ishnamel has spoken.",
+    "Beyond the battlefield, something has decided that enough is enough. Ishnamel.",
+    "Ishnamel has decided you have gone far enough.",
+    "You were not defeated. Ishnamel simply decided you were finished.",
+    "No opponent could stop you. Ishnamel could.",
+    "Your run ends not by defeat, but by Ishnamel’s will.",
+    "The next floor remains untouched. Ishnamel has other plans.",
+    "You may have conquered the floor. You did not conquer Ishnamel.",
+    "Ishnamel has reached into the simulation and ended the run.",
+    "The Creator has intervened. Ascension terminated by Ishnamel.",
+    "Ishnamel has closed the book on this attempt.",
+    "Ishnamel has erased the road ahead. Run terminated.",
+    "The Generator has received a command from its creator: stop.",
+    "Ishnamel has pressed the button. That's enough Ascension for today.",
+    "The simulation continues to exist. Your Ascension does not. — Ishnamel",
+    "And so, before the next battle could begin, Ishnamel closed his hand. The Ascension was over.",
+    "The battlefield falls silent. The enemies remain. The path remains. But Ishnamel has ended the journey.",
+    "There was no final blow. No last stand. Only Ishnamel’s decision—and the end of the run.",
+    "The Ascender stood ready for the next floor. Then Ishnamel intervened.",
+    "The climb could have continued indefinitely. Ishnamel simply chose otherwise.",
+    "The battle was not over. Ishnamel was.",
+    "Ishnamel has deemed this attempt sufficient.",
+    "Your ascent ends here. Not by decree, but by decree.",
+    "Ishnamel has looked upon your progress and said, “Enough.”",
+    "The next floor awaits, but Ishnamel will not allow you to reach it.",
+    "The trial ends at the will of its creator. Ishnamel has spoken.",
+    "Your strength was never the deciding factor. Ishnamel was.",
+    "The Ascension has been severed from the path ahead. Ishnamel is responsible.",
+    "The run has been forcibly returned to its creator. Ishnamel has ended it.",
+    "The climb stops here. Ask Ishnamel why."
+];
+
+// =========================================================
+// STALEMATE BREAKER & BALANCE CONFIGURATION
+// =========================================================
+const BALANCING_CONFIG = {
+    FATIGUE_START_TURN: 12,
+    HEAL_DECAY_PER_TURN: 0.08,
+    MIN_HEAL_EFFICIENCY: 0.0,
+    ARMOR_DECAY_START_TURN: 10,
+    ARMOR_DECAY_PER_TURN: 0.02,
+    MIN_ARMOR_EFFICIENCY: 0.20,
+    BASE_DAMAGE_PENETRATION_PCT: 0.15
+};
+
+function getHealEfficiency(turn) {
+    if (turn < BALANCING_CONFIG.FATIGUE_START_TURN) return 1.0;
+    let turnsPassed = turn - BALANCING_CONFIG.FATIGUE_START_TURN;
+    return Math.max(BALANCING_CONFIG.MIN_HEAL_EFFICIENCY, 1.0 - (turnsPassed * BALANCING_CONFIG.HEAL_DECAY_PER_TURN));
+}
+
+function getArmorEfficiency(turn) {
+    if (turn < BALANCING_CONFIG.ARMOR_DECAY_START_TURN) return 1.0;
+    let turnsPassed = turn - BALANCING_CONFIG.ARMOR_DECAY_START_TURN;
+    return Math.max(BALANCING_CONFIG.MIN_ARMOR_EFFICIENCY, 1.0 - (turnsPassed * BALANCING_CONFIG.ARMOR_DECAY_PER_TURN));
+}
+
+// Class Mapping
+const combatClassMapping = {
+    Juggernaut: { coreStat: "strength", subStat: "constitution", damageType: "pure physical" },
+    BladeDancer: { coreStat: "strength", subStat: "dexterity", damageType: "hybrid A" },
+    Chieftain: { coreStat: "strength", subStat: "intelligence", damageType: "hybrid A" },
+    IronWill: { coreStat: "strength", subStat: "resolve", damageType: "pure physical" },
+    Berserker: { coreStat: "strength", subStat: "perception", damageType: "pure physical" },
+    Titan: { coreStat: "constitution", subStat: "strength", damageType: "pure physical" },
+    StalwartDefender: { coreStat: "constitution", subStat: "resolve", damageType: "pure physical" },
+    Mercenery: { coreStat: "constitution", subStat: "dexterity", damageType: "pure physical" },
+    Bladecaster: { coreStat: "dexterity", subStat: "intelligence", damageType: "hybrid A" },
+    MartialArtist: { coreStat: "dexterity", subStat: "resolve", damageType: "hybrid A" },
+    Sentinel: { coreStat: "constitution", subStat: "perception", damageType: "pure physical" },
+    SavageSwifter: { coreStat: "dexterity", subStat: "strength", damageType: "pure physical" },
+    Swiftblade: { coreStat: "dexterity", subStat: "constitution", damageType: "pure physical" },
+    AuraWarrior: { coreStat: "resolve", subStat: "strength", damageType: "hybrid A" },
+    Assassin: { coreStat: "dexterity", subStat: "perception", damageType: "hybrid A" },
+    Tactician: { coreStat: "intelligence", subStat: "strength", damageType: "hybrid A" },
+    Colossus: { coreStat: "strength", subStat: "strength", damageType: "pure physical" },
+    FleshFortress: { coreStat: "constitution", subStat: "constitution", damageType: "pure physical" },
+    Tempest: { coreStat: "dexterity", subStat: "dexterity", damageType: "pure physical" },
+    IronAura: { coreStat: "resolve", subStat: "constitution", damageType: "hybrid A" },
+    PhantomBlade: { coreStat: "resolve", subStat: "dexterity", damageType: "hybrid B" },
+    Deadeye: { coreStat: "perception", subStat: "dexterity", damageType: "pure physical" },
+    Scout: { coreStat: "perception", subStat: "resolve", damageType: "pure physical" },
+    Trickshot: { coreStat: "perception", subStat: "intelligence", damageType: "hybrid A" },
+    Powershot: { coreStat: "perception", subStat: "strength", damageType: "pure physical" },
+    Vanguard: { coreStat: "perception", subStat: "constitution", damageType: "pure physical" },
+    ArcaneArcher: { coreStat: "intelligence", subStat: "dexterity", damageType: "hybrid B" },
+    GodEye: { coreStat: "perception", subStat: "perception", damageType: "pure physical" },
+    Sorcerer: { coreStat: "resolve", subStat: "intelligence", damageType: "pure magic" },
+    Spiritist: { coreStat: "resolve", subStat: "perception", damageType: "pure magic" },
+    Mage: { coreStat: "intelligence", subStat: "resolve", damageType: "pure magic" },
+    Diviner: { coreStat: "intelligence", subStat: "perception", damageType: "pure magic" },
+    ManaWeaver: { coreStat: "intelligence", subStat: "intelligence", damageType: "pure magic" },
+    MentalFortress: { coreStat: "resolve", subStat: "resolve", damageType: "hybrid B" },
+    BattlePriest: { coreStat: "constitution", subStat: "intelligence", damageType: "hybrid B" },
+    Sage: { coreStat: "intelligence", subStat: "constitution", damageType: "hybrid B" },
+};
+
+const classTechniqueSpecs = {
+    Juggernaut: { name: "Earthshaker Slam", cooldown: 4, type: "tank_strike", dmgMult: 1.5, armorPen: 0.5, physResBuff: 1.3, buffTurns: 2 },
+    Titan: { name: "Colossal Impact", cooldown: 4, type: "tank_strike", dmgMult: 1.6, armorPen: 0.5, physResBuff: 1.3, buffTurns: 2 },
+    Colossus: { name: "Titanic Might", cooldown: 4, type: "tank_strike", dmgMult: 1.6, armorPen: 0.4, physResBuff: 1.4, buffTurns: 2 },
+    IronWill: { name: "Unbreakable Resolve", cooldown: 4, type: "tank_strike", dmgMult: 1.4, armorPen: 0.3, physResBuff: 1.5, buffTurns: 2 },
+    Berserker: { name: "Frenzied Onslaught", cooldown: 4, type: "berserk_strike", dmgMult: 1.8, critMultBonus: 0.35 },
+    BladeDancer: { name: "Silver Mirage Flurry", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.2 },
+    Swiftblade: { name: "Flashstep Slash", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.15 },
+    Tempest: { name: "Cyclone Fury", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.25 },
+    SavageSwifter: { name: "Predatory Pounce", cooldown: 3, type: "extra_hits", bonusHits: 1, dmgMult: 1.25 },
+    Assassin: { name: "Fatal Shadowstrike", cooldown: 6, type: "assassin_strike", dmgMult: 2.0, ignoreDefenses: true, critChanceBonus: 30 },
+    PhantomBlade: { name: "Ethereal Execution", cooldown: 5, type: "assassin_strike", dmgMult: 1.9, ignoreDefenses: true, critChanceBonus: 25 },
+    StalwartDefender: { name: "Unyielding Bastion", cooldown: 5, type: "ultimate_def", resBoost: 2.0, healPct: 0.15 },
+    FleshFortress: { name: "Ironclad Citadel", cooldown: 5, type: "ultimate_def", resBoost: 2.2, healPct: 0.25 },
+    Sentinel: { name: "Watchful Guardian", cooldown: 5, type: "ultimate_def", resBoost: 1.8, healPct: 0.20 },
+    Sorcerer: { name: "Arcane Cataclysm", cooldown: 4, type: "magic_burst", dmgMult: 1.7, magPen: 0.5, mpRegen: 20 },
+    ManaWeaver: { name: "Singularity Burst", cooldown: 4, type: "magic_burst", dmgMult: 1.8, magPen: 0.5, mpRegen: 25 },
+    Mage: { name: "Eldritch Overload", cooldown: 4, type: "magic_burst", dmgMult: 1.6, magPen: 0.4, mpRegen: 15 },
+    Spiritist: { name: "Soul Siphon", cooldown: 4, type: "utility_magic", dmgMult: 1.4, mpDrain: 20, healPct: 0.10 },
+    Diviner: { name: "Prophetic Foresight", cooldown: 4, type: "utility_magic", dmgMult: 1.3, evadeBuff: 25, buffTurns: 2 },
+    Sage: { name: "Runic Reflection", cooldown: 4, type: "utility_magic", dmgMult: 1.4, healPct: 0.15 },
+    MentalFortress: { name: "Psychic Barrier", cooldown: 4, type: "ultimate_def", resBoost: 1.8, healPct: 0.10 },
+    Deadeye: { name: "Heartseeker Shot", cooldown: 4, type: "ranged_precision", dmgMult: 1.7, guaranteeCrit: true, ignoreEvasion: true },
+    ArcaneArcher: { name: "Enchanted Volley", cooldown: 4, type: "ranged_precision", dmgMult: 1.6, guaranteeCrit: true, ignoreEvasion: true },
+    Powershot: { name: "Titanpiercer Shot", cooldown: 4, type: "ranged_precision", dmgMult: 1.8, guaranteeCrit: true, armorPen: 0.5 },
+    Scout: { name: "Sniper Vigilance", cooldown: 3, type: "ranged_precision", dmgMult: 1.5, guaranteeCrit: true, ignoreEvasion: true },
+    Trickshot: { name: "Ricochet Ambush", cooldown: 4, type: "ranged_precision", dmgMult: 1.6, guaranteeCrit: true, ignoreEvasion: true },
+    Vanguard: { name: "Aegis Barrage", cooldown: 4, type: "tank_strike", dmgMult: 1.4, physResBuff: 1.3, buffTurns: 2 },
+    GodEye: { name: "Clairvoyant Strike", cooldown: 4, type: "ranged_precision", dmgMult: 1.8, guaranteeCrit: true, ignoreEvasion: true },
+    BattlePriest: { name: "Divine Retribution", cooldown: 4, type: "hybrid_drain", dmgMult: 1.6, lifestealPct: 0.5 },
+    AuraWarrior: { name: "Aura Cleave", cooldown: 4, type: "hybrid_drain", dmgMult: 1.5, lifestealPct: 0.4 },
+    IronAura: { name: "Aegis Smite", cooldown: 4, type: "hybrid_drain", dmgMult: 1.4, lifestealPct: 0.4, physResBuff: 1.3, buffTurns: 2 },
+    Tactician: { name: "Strategic Gambit", cooldown: 3, type: "tactical", dmgMult: 1.4, evadeBuff: 15, critBuff: 15, buffTurns: 2 },
+    Chieftain: { name: "Runehammer Wrath", cooldown: 4, type: "tactical", dmgMult: 1.5, physResBuff: 1.2, buffTurns: 2 },
+    MartialArtist: { name: "Dragon Palm", cooldown: 3, type: "tactical", dmgMult: 1.4, evadeBuff: 20, buffTurns: 2 },
+    Bladecaster: { name: "Mindshard Surge", cooldown: 4, type: "tactical", dmgMult: 1.5, mpRegen: 15 },
+    Mercenery: { name: "Dirty Fighting", cooldown: 3, type: "tactical", dmgMult: 1.4, armorPen: 0.3 }
+};
+
+const tierRankMap = { "EX": 9, "SSS": 8, "SS": 7, "S": 6, "A": 5, "B": 4, "C": 3, "D": 2, "E": 1, "F": 0 };
+
+function getTierInfo(potentialStr) {
+    const match = String(potentialStr).match(/\((EX|SSS|SS|S|A|B|C|D|E|F)\)/i);
+    const letter = match ? match[1].toUpperCase() : "F";
+    return { letter, rank: tierRankMap[letter] !== undefined ? tierRankMap[letter] : 0 };
+}
+
+function getPotentialRating(total) {
+    if (total >= 200) return "EX";
+    if (total >= 180) return "SSS";
+    if (total >= 150) return "SS";
+    if (total >= 120) return "S";
+    if (total >= 100) return "A";
+    if (total >= 80) return "B";
+    if (total >= 75) return "C";
+    if (total >= 70) return "D";
+    if (total >= 65) return "E";
+    return "F";
+}
+
+function extractRegex(text, regex, defaultValue = "") {
+    const match = text.match(regex);
+    return match ? match[1].trim() : defaultValue;
+}
+
+function parseStatsFromStatusText(statusText) {
+    const stats = { strength: 10, constitution: 10, dexterity: 10, intelligence: 10, resolve: 10, perception: 10 };
+    if (!statusText || typeof statusText !== 'string') return stats;
+    const regex = /(Strength|Constitution|Dexterity|Intelligence|Resolve|Perception):\s*(\d+)/gi;
+    let match;
+    while ((match = regex.exec(statusText)) !== null) {
+        const val = parseInt(match[2], 10);
+        if (!isNaN(val)) stats[match[1].toLowerCase()] = val;
+    }
+    return stats;
+}
+
+// Unified Derived Combat Calculation Helper
+function calculateDerivedCombat(stats, combatClass, mainHand = "Fists", offHand = "Fists") {
+    const classInfo = combatClassMapping[combatClass] || { damageType: "pure physical" };
+
+    let con = Math.max(1, stats.constitution || 10);
+    let res = Math.max(1, stats.resolve || 10);
+    let str = Math.max(1, stats.strength || 10);
+    let dex = Math.max(1, stats.dexterity || 10);
+    let intel = Math.max(1, stats.intelligence || 10);
+    let per = Math.max(1, stats.perception || 10);
+
+    let maxHp = con <= 25 ? con * 10 : 250 + (con - 25) * 5;
+    let maxMp = (intel + res) * 5;
+    let physRes = con * 0.4;
+    let magRes = res * 0.8;
+    let physDmg = str * 1.5 + dex * 0.5;
+    let magDmg = intel * 1.5 + res * 0.5;
+    let attackSpeed = dex * 0.8;
+
+    // Constitution Heavy Armor Penalty
+    if (con >= 15) {
+        attackSpeed -= 1 + (Math.min(con, 24) - 15) * 0.25;
+
+        if (con >= 25) {
+            attackSpeed -= (Math.min(con, 34) - 24) * 0.35;
+        }
+
+        if (con >= 35) {
+            attackSpeed -= (con - 34) * 0.5;
+        }
+    }
+
+    // Helper: Calculate Tiered Attack Speed Bonus
+    function getTieredSpeedBonus(statVal, multiplier = 1.0) {
+        if (statVal <= 15) return 0;
+        let bonus = 0;
+        if (statVal >= 16) bonus += (Math.min(statVal, 20) - 15) * 0.75;
+        if (statVal >= 21) bonus += (Math.min(statVal, 25) - 20) * 0.50;
+        if (statVal >= 26) bonus += (Math.min(statVal, 30) - 25) * 0.25;
+        if (statVal >= 31) bonus += (Math.min(statVal, 35) - 30) * 0.20;
+        if (statVal >= 36) bonus += (Math.min(statVal, 40) - 35) * 0.15;
+        if (statVal >= 41) bonus += (statVal - 40) * 0.10;
+        return bonus * multiplier;
+    }
+
+    // Class-Specific Stat Scaling for Attack Speed
+    const dmgType = classInfo.damageType;
+    if (dmgType === "pure magic") {
+        attackSpeed += getTieredSpeedBonus(intel, 1.0);
+    } else if (dmgType === "pure physical") {
+        attackSpeed += getTieredSpeedBonus(str, 1.0);
+    } else if (dmgType === "hybrid A") {
+        // Physical-leaning Hybrid (65% STR / 35% INT)
+        attackSpeed += getTieredSpeedBonus(str, 0.65) + getTieredSpeedBonus(intel, 0.35);
+    } else if (dmgType === "hybrid B") {
+        // Magic-leaning Hybrid (65% INT / 35% STR)
+        attackSpeed += getTieredSpeedBonus(intel, 0.65) + getTieredSpeedBonus(str, 0.35);
+    }
+
+    let evasion = dex * 0.8 + per * 0.4;
+    let critChance = per * 1.2;
+    let blockChance = 0, parryChance = 0;
+    let critMult = 1.5 + (per / 100);
+
+    const main = (mainHand || "").toLowerCase();
+    const off = (offHand || "").toLowerCase();
+
+    if (off.includes("shield")) { blockChance = 25; physRes += 6; if (off.includes("tower")) { blockChance = 35; physRes += 10; evasion -= 5; } }
+    if (main.includes("katana") || main.includes("rapier") || main.includes("dagger") || main.includes("saber")) parryChance = 5;
+    if (main.includes("greatsword") || main.includes("battleaxe") || main.includes("scythe") || main.includes("longsword")) { physDmg *= 1.2; critMult += 0.25; attackSpeed *= 0.9; }
+    if (main.includes("staff") || main.includes("wand") || main.includes("orb") || main.includes("grimoire")) magDmg *= 1.2;
+
+    let hybridADamage = (physDmg * 0.8) + (magDmg * 0.2);
+    let hybridBDamage = (magDmg * 0.8) + (physDmg * 0.2);
+
+    if (classInfo.damageType === "pure physical") { magDmg = 0; maxMp = 0; }
+    else if (classInfo.damageType === "pure magic") { physDmg = 0; magDmg = (intel * 2) + (res * 0.8); }
+
+    return {
+        maxHp: Math.round(maxHp) || 100,
+        maxMp: Math.round(maxMp) || 50,
+        physRes: Math.round(physRes) || 4,
+        magRes: Math.round(magRes) || 8,
+        physDmg: Math.round(physDmg) || 15,
+        magDmg: Math.round(magDmg) || 15,
+        hybridADamage: Math.round(hybridADamage) || 15,
+        hybridBDamage: Math.round(hybridBDamage) || 15,
+        attackSpeed: Math.round(Math.max(4, attackSpeed) * 10) / 10 || 4,
+        evasion: Math.round(evasion * 10) / 10 || 12,
+        critChance: Math.round(critChance * 10) / 10 || 12,
+        critMult: Math.round(critMult * 100) / 100 || 1.6,
+        blockChance,
+        parryChance,
+        damageType: classInfo.damageType || "pure physical"
+    };
+}
+
+function calculateAttackChain(attackSpeed) {
+    let hits = 0;
+    if (attackSpeed < 8) {
+        if (Math.random() < Math.max(0, attackSpeed / 8)) hits++; else return 0;
+    } else hits++;
+
+    if (attackSpeed >= 8) { if (Math.random() < (attackSpeed >= 16 ? 0.75 : ((attackSpeed - 8) / 8) * 0.75)) hits++; else return hits; }
+    if (attackSpeed >= 16) { if (Math.random() < (attackSpeed >= 26 ? 0.80 : ((attackSpeed - 16) / 10) * 0.80)) hits++; else return hits; }
+    if (attackSpeed >= 26) { if (Math.random() < (attackSpeed >= 40 ? 0.82 : ((attackSpeed - 26) / 14) * 0.82)) hits++; else return hits; }
+    if (attackSpeed >= 40) { if (Math.random() < (attackSpeed >= 60 ? 0.88 : ((attackSpeed - 40) / 20) * 0.88)) hits++; else return hits; }
+    if (attackSpeed >= 60) { if (Math.random() < (attackSpeed >= 92 ? 1.00 : ((attackSpeed - 60) / 32) * 1.00)) hits++; else return hits; }
+
+    return hits;
+}
+
+function applyDefenseBoost(char, multiplier = 1.5, duration = 2) {
+    if (char.boostApplied && char.appliedResBoost > 0) {
+        char.physRes /= char.appliedResBoost;
+        char.magRes /= char.appliedResBoost;
+    }
+    char.appliedResBoost = multiplier;
+    char.physRes *= multiplier;
+    char.magRes *= multiplier;
+    char.defenseBoostDuration = duration;
+    char.boostApplied = true;
+}
+
+// Global Variables
+let allDbCharacters = [];
+let activeAscensionRun = null;
+let isRunActive = false;
+let lbSortColumn = 'score';
+let lbSortAscending = false;
+
+// Initialize Database Version 3
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("characterDatabase", 3);
+        request.onupgradeneeded = function(e) {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains("characters")) {
+                db.createObjectStore("characters", { keyPath: "key" });
+            }
+            if (!db.objectStoreNames.contains("ascension_leaderboard")) {
+                const store = db.createObjectStore("ascension_leaderboard", { keyPath: "runId" });
+                store.createIndex("characterKey", "characterKey", { unique: false });
+                store.createIndex("overallScore", "overallScore", { unique: false });
+            }
+        };
+        request.onsuccess = function(e) { resolve(e.target.result); };
+        request.onerror = function(e) { reject(e); };
+    });
+}
+
+// Load Characters on Page Startup
+window.onload = async function() {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(["characters"], "readonly");
+        const store = tx.objectStore("characters");
+        const req = store.openCursor();
+        allDbCharacters = [];
+
+        req.onsuccess = function(e) {
+            const cursor = e.target.result;
+            if (cursor) {
+                const char = cursor.value;
+                char.rawStats = parseStatsFromStatusText(char.statusText || "");
+                char.totalStats = Object.values(char.rawStats).reduce((a,b) => a+b, 0);
+                allDbCharacters.push(char);
+                cursor.continue();
+            } else {
+                populateAscenderSelect();
+                loadLeaderboard();
+            }
+        };
+    } catch(e) {
+        console.error("DB Load Error:", e);
+    }
+};
+
+function populateAscenderSelect() {
+    filterAscenderDropdown();
+}
+
+function filterAscenderDropdown() {
+    const filterText = (document.getElementById('ascenderSearchInput')?.value || "").toLowerCase();
+    const select = document.getElementById('ascenderSelect');
+    const currentVal = select.value;
+    select.innerHTML = '';
+    
+    let filtered = allDbCharacters.filter(c => {
+        const searchStr = `${c.firstName} ${c.lastName} ${c.combatClass} ${c.race} ${c.potential}`.toLowerCase();
+        return searchStr.includes(filterText);
+    });
+
+    filtered.sort((a,b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
+
+    filtered.forEach(c => {
+        select.innerHTML += `<option value="${c.key}">${c.firstName} ${c.lastName} (${c.combatClass || 'No Class'} - Total: ${c.totalStats})</option>`;
+    });
+
+    if (currentVal && filtered.some(c => c.key === currentVal)) {
+        select.value = currentVal;
+    }
+
+    previewAscender();
+}
+
+function previewAscender() {
+    const key = document.getElementById('ascenderSelect').value;
+    const char = allDbCharacters.find(c => c.key === key);
+    if (!char) return;
+
+    renderAscenderLiveSheet(new AscensionFighter(char));
+}
+
+// Ascension Fighter Class Wrapper
+class AscensionFighter {
+    constructor(dbData) {
+        if (!dbData) dbData = {};
+        this.key = dbData.key || `char_${Date.now()}_${Math.random()}`;
+        this.firstName = dbData.firstName || "Hero";
+        this.lastName = dbData.lastName || "";
+        this.name = `${this.firstName} ${this.lastName}`.trim();
+        this.combatClass = dbData.combatClass || "Juggernaut";
+        this.race = dbData.race || "Human";
+        this.pixelArtImage = dbData.pixelArtImage || "emblem_placeholder.png";
+        this.statusText = dbData.statusText || "";
+        this.potential = dbData.potential || "40 (F)";
+        this.tierInfo = getTierInfo(this.potential);
+
+        this.rawStats = parseStatsFromStatusText(this.statusText);
+        this.baseStats = { ...this.rawStats };
+        this.statAllocations = { strength: 0, constitution: 0, dexterity: 0, intelligence: 0, resolve: 0, perception: 0 };
+        
+        this.mainHand = extractRegex(this.statusText, /Main Hand:\s*([^\n\r\t]+)/i, "Fists");
+        this.offHand = extractRegex(this.statusText, /Offhand:\s*([^\n\r\t]+)/i, "Fists");
+        this.technique = extractRegex(this.statusText, /Combat Technique:\s*([^\n\r\t]+)/i, "Basic Stance");
+
+        this.level = 1;
+        this.exp = 0;
+        this.bonusStatsGained = 0;
+        this.techniqueSpec = classTechniqueSpecs[this.combatClass] || { name: this.technique, cooldown: 4, type: "tactical", dmgMult: 1.4 };
+
+        this.recalculateStats();
+
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+
+        this.resetCombatState();
+    }
+
+    recalculateStats() {
+        const derived = calculateDerivedCombat(this.rawStats, this.combatClass, this.mainHand, this.offHand);
+
+        this.maxHp = derived.maxHp;
+        this.maxMp = derived.maxMp;
+        this.physRes = derived.physRes;
+        this.magRes = derived.magRes;
+        this.physDmg = derived.physDmg;
+        this.magDmg = derived.magDmg;
+        this.hybridADamage = derived.hybridADamage;
+        this.hybridBDamage = derived.hybridBDamage;
+        this.attackSpeed = derived.attackSpeed;
+        this.evasion = derived.evasion;
+        this.critChance = derived.critChance;
+        this.critMult = derived.critMult;
+        this.blockChance = derived.blockChance;
+        this.parryChance = derived.parryChance;
+        this.damageType = derived.damageType;
+
+        if (this.hp === undefined || isNaN(this.hp)) this.hp = this.maxHp;
+        if (this.mp === undefined || isNaN(this.mp)) this.mp = this.maxMp;
+    }
+
+    resetCombatState() {
+        this.techniqueCooldown = 0;
+        this.activeBuffs = { physResMult: 1.0, evasionBonus: 0, critBonus: 0, duration: 0 };
+        this.defenseBoostDuration = 0;
+        this.boostApplied = false;
+        this.appliedResBoost = 1.0;
+        this.berserkActive = false;
+
+        if (this.hp === undefined || isNaN(this.hp)) this.hp = this.maxHp;
+        if (this.mp === undefined || isNaN(this.mp)) this.mp = this.maxMp;
+    }
+
+    allocateStatPoints(points) {
+        const classInfo = combatClassMapping[this.combatClass] || { coreStat: "strength", subStat: "constitution" };
+        const core = classInfo.coreStat;
+        const sub = classInfo.subStat;
+
+        for (let i = 0; i < points; i++) {
+            const statEntries = Object.entries(this.rawStats);
+            statEntries.sort((a, b) => a[1] - b[1]);
+            const lowestStat = statEntries[0][0];
+            const avg = statEntries.reduce((sum, s) => sum + s[1], 0) / 6;
+
+            let chosenStat = lowestStat;
+            if (statEntries[0][1] < (avg - 3)) chosenStat = lowestStat;
+            else {
+                const roll = Math.random();
+                if (roll < 0.65) chosenStat = core;
+                else if (roll < 0.90) chosenStat = sub;
+                else chosenStat = lowestStat;
+            }
+
+            this.rawStats[chosenStat]++;
+            this.statAllocations[chosenStat]++;
+            this.bonusStatsGained++;
+        }
+        this.recalculateStats();
+    }
+}
+
+// Render Ascender Live Sheet (REAL-TIME DERIVED COMBAT ATTRIBUTES & DYNAMIC POTENTIAL RATING)
+function renderAscenderLiveSheet(ascender) {
+    const isPurePhys = ascender.damageType === "pure physical" || ascender.maxMp === 0;
+
+    let activeDmgVal = ascender.physDmg;
+    if (ascender.damageType === "pure magic") activeDmgVal = ascender.magDmg;
+    else if (ascender.damageType === "hybrid A") activeDmgVal = ascender.hybridADamage;
+    else if (ascender.damageType === "hybrid B") activeDmgVal = ascender.hybridBDamage;
+
+    const currentTotalStats = Object.values(ascender.rawStats).reduce((a, b) => a + b, 0);
+    const currentRating = getPotentialRating(currentTotalStats);
+
+    const renderStatRow = (name, val, alloc) => `
+        <p style="margin:2px 0;"><strong>${name}:</strong> ${val} ${alloc > 0 ? `<span class="stat-plus">(+${alloc})</span>` : ''}</p>
+    `;
+
+    document.getElementById('ascenderSheetContent').innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+            <img src="${ascender.pixelArtImage}" style="width:50px; height:50px; border-radius:50%; border:2px solid #ffd166; object-fit:cover;">
+            <div>
+                <strong>${ascender.name}</strong> (Lvl ${ascender.level})<br>
+                <span style="color:#d8c7a7;">${ascender.race} ${ascender.combatClass}</span><br>
+                <span style="color:#ffd166; font-weight:bold;">Potential: ${currentTotalStats} (${currentRating})</span>
+            </div>
+        </div>
+        
+        <!-- Primary Vitals -->
+        <div style="background:#2b211a; padding:6px; border-radius:5px; margin-bottom:6px;">
+            <p style="margin:2px 0; color:#e84a5f;"><strong>HP:</strong> ${Math.round(ascender.hp)} / ${ascender.maxHp}</p>
+            ${!isPurePhys ? `<p style="margin:2px 0; color:#56cfe1;"><strong>MP:</strong> ${Math.round(ascender.mp)} / ${ascender.maxMp}</p>` : ''}
+            <p style="margin:2px 0; color:#ffd166;"><strong>Damage Type:</strong> ${ascender.damageType}</p>
+        </div>
+
+        <!-- Raw Attributes -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:3px; font-size:11px;">
+            ${renderStatRow('Strength', ascender.rawStats.strength, ascender.statAllocations.strength)}
+            ${renderStatRow('Constitution', ascender.rawStats.constitution, ascender.statAllocations.constitution)}
+            ${renderStatRow('Dexterity', ascender.rawStats.dexterity, ascender.statAllocations.dexterity)}
+            ${renderStatRow('Intelligence', ascender.rawStats.intelligence, ascender.statAllocations.intelligence)}
+            ${renderStatRow('Resolve', ascender.rawStats.resolve, ascender.statAllocations.resolve)}
+            ${renderStatRow('Perception', ascender.rawStats.perception, ascender.statAllocations.perception)}
+        </div>
+
+        <!-- Real-Time Derived Combat Attributes -->
+        <hr style="border-color:#6d5c4b; margin:6px 0;">
+        <h4 style="margin:0 0 4px 0; color:#ffd166; font-size:11.5px;">Derived Combat Attributes:</h4>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:3px; font-size:10.5px; background:#2b211a; padding:6px; border-radius:4px;">
+            <p style="margin:1px 0;"><strong>Active Damage:</strong> ${activeDmgVal}</p>
+            <p style="margin:1px 0;"><strong>Attack Speed:</strong> ${ascender.attackSpeed}</p>
+            <p style="margin:1px 0;"><strong>Phys Armor:</strong> ${ascender.physRes.toFixed(1)}</p>
+            <p style="margin:1px 0;"><strong>Magic Armor:</strong> ${ascender.magRes.toFixed(1)}</p>
+            <p style="margin:1px 0;"><strong>Evasion:</strong> ${ascender.evasion.toFixed(1)}</p>
+            <p style="margin:1px 0;"><strong>Crit Rate:</strong> ${ascender.critChance}% (${ascender.critMult}x)</p>
+            <p style="margin:1px 0;"><strong>Block:</strong> ${ascender.blockChance}%</p>
+            <p style="margin:1px 0;"><strong>Parry:</strong> ${ascender.parryChance}%</p>
+        </div>
+
+        <p style="margin:4px 0 2px 0; font-size:11px;"><strong>Main Hand:</strong> ${ascender.mainHand}</p>
+        <p style="margin:2px 0;"><strong>Offhand:</strong> ${ascender.offHand}</p>
+        <p style="margin:2px 0;"><strong>Technique:</strong> ${ascender.technique}</p>
+    `;
+}
+
+// =========================================================
+// RUN GAUNTLET LOGIC
+// =========================================================
+async function startAscensionRun() {
+    if (isRunActive) return;
+
+    const ascenderKey = document.getElementById('ascenderSelect').value;
+    const baseChar = allDbCharacters.find(c => c.key === ascenderKey);
+    if (!baseChar) return;
+
+    let opponents = allDbCharacters.filter(c => c.key !== ascenderKey);
+    if (opponents.length === 0) {
+        alert("You need at least 2 characters saved in the database to run Ascension Mode!");
+        return;
+    }
+
+    opponents.sort((a, b) => a.totalStats - b.totalStats);
+
+    const config = {
+        allowLevelUp: document.getElementById('levelUpToggle').value === "true",
+        postBattleHealPct: parseFloat(document.getElementById('healPctSelect').value),
+        postBattleMpHealPct: parseFloat(document.getElementById('healMpPctSelect').value),
+        expGrowthRate: parseFloat(document.getElementById('expGrowthSelect').value),
+        simSpeed: parseInt(document.getElementById('simSpeedSelect').value, 10)
+    };
+
+    activeAscensionRun = {
+        runId: `run_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        characterKey: baseChar.key,
+        characterName: `${baseChar.firstName} ${baseChar.lastName}`,
+        combatClass: baseChar.combatClass || "Juggernaut",
+        race: baseChar.race || "Human",
+        pixelArtImage: baseChar.pixelArtImage,
+        ascender: new AscensionFighter(baseChar),
+        opponents: opponents,
+        currentFloor: 1,
+        victories: 0,
+        totalDamage: 0,
+        timestamp: Date.now(),
+        config: config,
+        matchHistory: []
+    };
+
+    activeAscensionRun.ascender.hp = activeAscensionRun.ascender.maxHp;
+    activeAscensionRun.ascender.mp = activeAscensionRun.ascender.maxMp;
+
+    isRunActive = true;
+    document.getElementById('startRunBtn').disabled = true;
+    document.getElementById('startRunBtn').innerText = "Run in Progress...";
+    document.getElementById('abandonBtn').style.display = 'inline-block';
+    document.getElementById('combatLog').innerHTML = '';
+
+    logRunMessage(`<span class="log-system">🚀 ASCENSION RUN COMMENCED! ${activeAscensionRun.characterName} enters the gauntlet against ${opponents.length} opponents!</span>`);
+
+    renderAscenderLiveSheet(activeAscensionRun.ascender);
+    runNextFloor();
+}
+
+function abandonRun() {
+    if (!isRunActive || !activeAscensionRun) return;
+
+    if (!confirm("Are you sure you want to abandon this Ascension Run?")) return;
+
+    const randomText = ISHNAMEL_FLAVOR_TEXTS[Math.floor(Math.random() * ISHNAMEL_FLAVOR_TEXTS.length)];
+    
+    logRunMessage(`<br><h3 class="log-ishnamel">🟣 ${randomText}</h3>`);
+    
+    activeAscensionRun.eliminatedBy = "Ishnamel";
+    finishAscensionRun(false, "Ishnamel");
+}
+
+function logRunMessage(msg) {
+    const logBox = document.getElementById('combatLog');
+    const isNearBottom = (logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight) < 45;
+    const p = document.createElement('p');
+    p.innerHTML = msg;
+    p.style.margin = "3px 0";
+    logBox.appendChild(p);
+    if (isNearBottom) logBox.scrollTop = logBox.scrollHeight;
+}
+
+function runNextFloor() {
+    const run = activeAscensionRun;
+    if (!isRunActive || !run) return;
+
+    if (run.currentFloor > run.opponents.length) {
+        logRunMessage(`<br><h2 class="log-crit">👑 GRAND ASCENSION VICTORY! ${run.characterName} cleared ALL ${run.opponents.length} floors!</h2>`);
+        finishAscensionRun(true);
+        return;
+    }
+
+    const opponentData = run.opponents[run.currentFloor - 1];
+    const opponent = new AscensionFighter(opponentData);
+    opponent.hp = opponent.maxHp;
+    opponent.mp = opponent.maxMp;
+
+    document.getElementById('floorTitle').innerText = `FLOOR ${run.currentFloor} / ${run.opponents.length}`;
+    document.getElementById('floorSubTitle').innerText = `Opponent: ${opponent.name} (${opponent.combatClass} - Tier ${opponent.tierInfo.letter})`;
+
+    updateMatchDisplay(run.ascender, opponent);
+
+    runFloorMatch(run.ascender, opponent, run.config.simSpeed, (matchResult) => {
+        if (matchResult.winner === run.ascender) {
+            run.victories++;
+            run.totalDamage += matchResult.ascenderDmgDealt;
+
+            if (run.config.allowLevelUp) {
+                const expGained = calculateExpGained(run.ascender, opponent);
+                applyExpAndLevelUp(run.ascender, expGained, run.config.expGrowthRate);
+            }
+
+            const healHpPct = run.config.postBattleHealPct;
+            const healMpPct = run.config.postBattleMpHealPct;
+
+            run.ascender.hp = Math.min(run.ascender.maxHp, run.ascender.hp + run.ascender.maxHp * healHpPct);
+            run.ascender.mp = Math.min(run.ascender.maxMp, run.ascender.mp + run.ascender.maxMp * healMpPct);
+
+            let healLog = `Recovered +${Math.round(healHpPct*100)}% HP`;
+            if (run.ascender.damageType !== "pure physical" && run.ascender.maxMp > 0) {
+                healLog += ` / +${Math.round(healMpPct*100)}% MP`;
+            }
+
+            logRunMessage(`<span class="log-block">🟢 Floor ${run.currentFloor} Cleared! ${healLog}. (Current HP: ${Math.round(run.ascender.hp)}/${run.ascender.maxHp})</span>`);
+
+            renderAscenderLiveSheet(run.ascender);
+
+            run.currentFloor++;
+            const currentSpeedMs = parseInt(document.getElementById('simSpeedSelect').value, 10);
+setTimeout(runNextFloor, currentSpeedMs === 0 ? 0 : Math.min(600, currentSpeedMs));
+        } else {
+            run.totalDamage += matchResult.ascenderDmgDealt;
+            logRunMessage(`<br><h3 class="log-tech">💀 GAUNTLET ENDED: ${run.characterName} was defeated on Floor ${run.currentFloor} by ${opponent.name}.</h3>`);
+            finishAscensionRun(false, opponent.name);
+        }
+    });
+}
+
+function updateMatchDisplay(ascender, opponent) {
+    const ascHp = Math.max(0, Math.round(ascender.hp || 0));
+    const ascMaxHp = ascender.maxHp || 100;
+    const ascMp = Math.max(0, Math.round(ascender.mp || 0));
+    const ascMaxMp = ascender.maxMp || 50;
+
+    document.getElementById('ascenderImg').src = ascender.pixelArtImage;
+    document.getElementById('ascenderNameText').innerText = `${ascender.name} (Lvl ${ascender.level})`;
+    document.getElementById('ascenderHpText').innerText = `HP: ${ascHp}/${ascMaxHp}`;
+    document.getElementById('ascenderHpBar').style.width = `${Math.max(0, (ascHp/ascMaxHp)*100)}%`;
+
+    const isAscPurePhys = ascender.damageType === "pure physical" || ascMaxMp === 0;
+    document.getElementById('ascenderMpContainer').style.display = isAscPurePhys ? 'none' : 'block';
+    if (!isAscPurePhys) {
+        document.getElementById('ascenderMpText').innerText = `MP: ${ascMp}/${ascMaxMp}`;
+        document.getElementById('ascenderMpBar').style.width = `${Math.max(0, (ascMp/ascMaxMp)*100)}%`;
+    }
+
+    const reqExp = getExpRequired(ascender.level, activeAscensionRun.config.expGrowthRate);
+    document.getElementById('ascenderExpText').innerText = `EXP: ${ascender.exp}/${reqExp}`;
+    document.getElementById('ascenderExpBar').style.width = `${Math.min(100, (ascender.exp/reqExp)*100)}%`;
+
+    const oppHp = Math.max(0, Math.round(opponent.hp || 0));
+    const oppMaxHp = opponent.maxHp || 100;
+    const oppMp = Math.max(0, Math.round(opponent.mp || 0));
+    const oppMaxMp = opponent.maxMp || 50;
+
+    document.getElementById('opponentImg').src = opponent.pixelArtImage;
+    document.getElementById('opponentNameText').innerText = opponent.name;
+    document.getElementById('opponentHpText').innerText = `HP: ${oppHp}/${oppMaxHp}`;
+    document.getElementById('opponentHpBar').style.width = `${Math.max(0, (oppHp/oppMaxHp)*100)}%`;
+
+    const isOppPurePhys = opponent.damageType === "pure physical" || oppMaxMp === 0;
+    document.getElementById('opponentMpContainer').style.display = isOppPurePhys ? 'none' : 'block';
+    if (!isOppPurePhys) {
+        document.getElementById('opponentMpText').innerText = `MP: ${oppMp}/${oppMaxMp}`;
+        document.getElementById('opponentMpBar').style.width = `${Math.max(0, (oppMp/oppMaxMp)*100)}%`;
+    }
+
+    document.getElementById('opponentTierText').innerText = `Tier: ${opponent.tierInfo.letter} (${opponent.combatClass})`;
+}
+
+function calculateExpGained(ascender, opponent) {
+    const ascenderSum = Object.values(ascender.rawStats).reduce((a, b) => a + b, 0);
+    const opponentSum = Object.values(opponent.rawStats).reduce((a, b) => a + b, 0);
+    const statDiff = opponentSum - ascenderSum;
+
+    let baseExp = opponentSum * 3;
+    let diffBonus = Math.max(0, statDiff) * 8;
+    return Math.round(baseExp + diffBonus);
+}
+
+function getExpRequired(level, growthRate) {
+    return Math.floor(100 * Math.pow(level, 1.3) * growthRate);
+}
+
+function applyExpAndLevelUp(ascender, expGained, growthRate) {
+    ascender.exp += expGained;
+    let reqExp = getExpRequired(ascender.level, growthRate);
+    let leveledUp = false;
+
+    while (ascender.exp >= reqExp) {
+        ascender.exp -= reqExp;
+        ascender.level++;
+        ascender.allocateStatPoints(2);
+        reqExp = getExpRequired(ascender.level, growthRate);
+        leveledUp = true;
+    }
+
+    if (leveledUp) {
+        logRunMessage(`<span class="log-crit">⭐ LEVEL UP! ${ascender.name} reached Level ${ascender.level}! (+2 Stat Points Allocated)</span>`);
+    } else {
+        logRunMessage(`<span class="log-system">✨ Gained +${expGained} EXP!</span>`);
+    }
+}
+
+// Execute Full Match Engine
+function runFloorMatch(f1, f2, simSpeedVal, callback) {
+    f1.resetCombatState();
+    f2.resetCombatState();
+
+    f2.hp = f2.maxHp;
+    f2.mp = f2.maxMp;
+
+    if (isNaN(f1.hp) || f1.hp <= 0) f1.hp = f1.maxHp;
+    if (isNaN(f1.mp)) f1.mp = f1.maxMp;
+
+    let matchTurn = 1;
+    let ascenderDamageDealt = 0;
+
+    function stepMatchTurn() {
+        if (f1.hp <= 0 || f2.hp <= 0) {
+            let winner = f1.hp > 0 ? f1 : f2;
+            callback({ winner, ascenderDmgDealt: ascenderDamageDealt });
+            return;
+        }
+
+        let attacker = matchTurn % 2 === 1 ? f1 : f2;
+        let defender = matchTurn % 2 === 1 ? f2 : f1;
+
+        let turnDmg = executeAscensionTurn(attacker, defender, matchTurn);
+        if (attacker === f1) ascenderDamageDealt += turnDmg;
+
+        updateMatchDisplay(f1, f2);
+        matchTurn++;
+
+        // FIXED: Directly reads current speed selection (1200ms = 1.2s, 500ms = 0.5s, 0 = Instant)
+        const currentSpeedMs = parseInt(document.getElementById('simSpeedSelect').value, 10);
+
+        if (currentSpeedMs === 0) {
+            stepMatchTurn(); // Instant mode
+        } else {
+            setTimeout(stepMatchTurn, currentSpeedMs);
+        }
+    }
+
+    stepMatchTurn();
+}
+
+// Single Turn Engine Execution
+function executeAscensionTurn(attacker, defender, turn) {
+    let damageThisTurn = 0;
+
+    if (attacker.techniqueCooldown > 0) attacker.techniqueCooldown--;
+    if (attacker.activeBuffs.duration > 0) {
+        attacker.activeBuffs.duration--;
+        if (attacker.activeBuffs.duration === 0) {
+            attacker.activeBuffs.physResMult = 1.0;
+            attacker.activeBuffs.evasionBonus = 0;
+            attacker.activeBuffs.critBonus = 0;
+        }
+    }
+
+    if (attacker.damageType === 'pure magic' || attacker.damageType.startsWith('hybrid')) {
+        attacker.mp = Math.min(attacker.maxMp, attacker.mp + attacker.rawStats.resolve * 0.1);
+    }
+
+    if (defender.boostApplied) {
+        defender.defenseBoostDuration--;
+        if (defender.defenseBoostDuration <= 0) {
+            defender.physRes /= defender.appliedResBoost;
+            defender.magRes /= defender.appliedResBoost;
+            defender.boostApplied = false;
+            defender.appliedResBoost = 1.0;
+        }
+    }
+
+    logRunMessage(`<div class="log-turn">--- Turn ${turn}: ${attacker.name}'s Action ---</div>`);
+
+    let hitsThisTurn = calculateAttackChain(attacker.attackSpeed);
+    if (hitsThisTurn === 0) {
+        logRunMessage(`<span class="log-slow">⏳ ${attacker.name} was too slow to react this turn!</span>`);
+        return 0;
+    }
+
+    let primaryMpCost = attacker.damageType === 'pure magic' ? 25 : (attacker.damageType === 'hybrid A' ? 15 : (attacker.damageType === 'hybrid B' ? 20 : 0));
+
+    if (attacker.damageType !== 'pure physical' && attacker.mp < primaryMpCost) {
+        let mpRecovered = attacker.rawStats.resolve * 6;
+        attacker.mp = Math.min(attacker.maxMp, attacker.mp + mpRecovered);
+        applyDefenseBoost(attacker, 1.5, 2);
+        logRunMessage(`<span class="log-system">🔮 ${attacker.name} is out of mana! Takes defensive stance & recovers +${mpRecovered.toFixed(1)} MP.</span>`);
+        return 0;
+    }
+
+    let isTechniqueTurn = false;
+    let techSpec = attacker.techniqueSpec;
+
+    if (attacker.techniqueCooldown === 0) {
+        isTechniqueTurn = true;
+        attacker.techniqueCooldown = techSpec.cooldown;
+        logRunMessage(`<span class="log-tech">✨ ${attacker.name} executes Technique: [${techSpec.name}]!</span>`);
+
+        if (techSpec.type === "extra_hits") hitsThisTurn += techSpec.bonusHits || 1;
+        else if (techSpec.type === "ultimate_def") {
+            const resBoost = techSpec.resBoost || 1.5;
+            applyDefenseBoost(attacker, resBoost, 2);
+            let healAmt = attacker.maxHp * (techSpec.healPct || 0.12) * getHealEfficiency(turn);
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+            logRunMessage(`<span class="log-block">🛡️ [${techSpec.name}]: Armor boosted & healed +${healAmt.toFixed(1)} HP!</span>`);
+        } else if (techSpec.type === "utility_magic" && techSpec.healPct) {
+            let healAmt = attacker.maxHp * techSpec.healPct * getHealEfficiency(turn);
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+        }
+    }
+
+    for (let i = 0; i < hitsThisTurn; i++) {
+        if (defender.hp <= 0) break;
+
+        let attackType = 'physical';
+        let baseDamage = attacker.physDmg;
+        let mpCost = 0;
+        let isFallbackPhysical = false;
+
+        if (attacker.damageType === 'pure magic') { attackType = 'magic'; baseDamage = attacker.magDmg; mpCost = 25; }
+        else if (attacker.damageType === 'hybrid A') { attackType = 'hybridA'; baseDamage = attacker.hybridADamage; mpCost = 15; }
+        else if (attacker.damageType === 'hybrid B') { attackType = 'hybridB'; baseDamage = attacker.hybridBDamage; mpCost = 20; }
+
+        if (attacker.damageType !== 'pure physical' && attacker.mp < mpCost) {
+            isFallbackPhysical = true;
+            mpCost = 0;
+            attackType = 'physical';
+            baseDamage = attacker.damageType === 'pure magic' ? attacker.physDmg * 0.8 : attacker.physDmg;
+        } else {
+            attacker.mp -= mpCost;
+        }
+
+        let effectiveEvasion = defender.evasion + defender.activeBuffs.evasionBonus;
+        let isDodge = Math.random() < (effectiveEvasion - attacker.rawStats.perception * 0.2) / 100;
+        let isParry = !isDodge && Math.random() < (defender.parryChance / 100);
+        let isBlock = !isDodge && !isParry && Math.random() < (defender.blockChance / 100);
+
+        if (isTechniqueTurn && (techSpec.ignoreDefenses || techSpec.ignoreEvasion)) { isDodge = false; isParry = false; if (techSpec.ignoreDefenses) isBlock = false; }
+
+        let ordinalPrefix = i === 0 ? "First" : "Then";
+
+        if (isDodge) { logRunMessage(`<span class="log-dodge">💨 ${ordinalPrefix}, ${defender.name} dodged!</span>`); continue; }
+        if (isParry) { logRunMessage(`<span class="log-block">⚔️ ${ordinalPrefix}, ${defender.name} parried!</span>`); continue; }
+
+        let isCrit = Math.random() < ((attacker.critChance + attacker.activeBuffs.critBonus) / 100);
+        let finalDmg = baseDamage * Math.max(0.6, (1 - (i * 0.10)));
+
+        if (isCrit) finalDmg *= attacker.critMult;
+        if (isTechniqueTurn && techSpec.dmgMult) finalDmg *= techSpec.dmgMult;
+
+        let currentArmorEff = getArmorEfficiency(turn);
+        let effPhysRes = (defender.physRes * defender.activeBuffs.physResMult) * currentArmorEff;
+        let effMagRes = defender.magRes * currentArmorEff;
+
+        let mitigation = attackType === 'magic' ? effMagRes : effPhysRes;
+        if (attackType.startsWith('hybrid')) mitigation = (effPhysRes + effMagRes) * 0.5;
+
+        let minPenetrationFloor = baseDamage * BALANCING_CONFIG.BASE_DAMAGE_PENETRATION_PCT;
+        finalDmg = Math.max(minPenetrationFloor, finalDmg - mitigation);
+
+        if (isBlock) {
+            finalDmg *= 0.3;
+            logRunMessage(`<span class="log-block">🛡️ ${ordinalPrefix}, ${defender.name} blocked! Took ${finalDmg.toFixed(1)} ${attackType} dmg.</span>`);
+        } else {
+            let dmgClass = attackType === 'magic' ? 'log-magic' : 'log-phys';
+            logRunMessage(`• ${ordinalPrefix} dealt <span class="${dmgClass}">${finalDmg.toFixed(1)} ${attackType} dmg</span>! ${isCrit ? '<span class="log-crit">(CRIT!)</span>' : ''}`);
+        }
+
+        defender.hp -= finalDmg;
+        damageThisTurn += finalDmg;
+    }
+
+    return damageThisTurn;
+}
+
+// Calculate Composite Score & Finish Run
+async function finishAscensionRun(isVictory, killerOverride = null) {
+    isRunActive = false;
+    document.getElementById('startRunBtn').disabled = false;
+    document.getElementById('startRunBtn').innerText = "🚀 START ASCENSION RUN";
+    document.getElementById('abandonBtn').style.display = 'none';
+
+    const run = activeAscensionRun;
+    if (!run) return;
+
+    const maxFloorsReached = isVictory ? run.opponents.length : (run.currentFloor - 1);
+    const floorScore = maxFloorsReached * 1000;
+    const victoryScore = run.victories * 300;
+    const damageScore = Math.round(run.totalDamage * 0.4);
+    const levelScore = (run.ascender.level - 1) * 200;
+
+    const overallScore = floorScore + victoryScore + damageScore + levelScore;
+
+    const dbRecord = {
+        runId: run.runId,
+        characterKey: run.characterKey,
+        characterName: run.characterName,
+        combatClass: run.combatClass,
+        race: run.race,
+        pixelArtImage: run.pixelArtImage,
+        floorsReached: maxFloorsReached,
+        victories: run.victories,
+        totalDamage: Math.round(run.totalDamage),
+        finalLevel: run.ascender.level,
+        bonusStatsGained: run.ascender.bonusStatsGained,
+        overallScore: overallScore,
+        timestamp: run.timestamp,
+        config: run.config,
+        eliminatedBy: killerOverride || (run.currentFloor <= run.opponents.length ? run.opponents[run.currentFloor - 1].name : "None"),
+        initialStats: { ...run.ascender.baseStats },
+        finalStats: { ...run.ascender.rawStats },
+        statAllocations: { ...run.ascender.statAllocations },
+        mainHand: run.ascender.mainHand,
+        offHand: run.ascender.offHand,
+        technique: run.ascender.technique
+    };
+
+    try {
+        const db = await openDB();
+        const tx = db.transaction(["ascension_leaderboard"], "readwrite");
+        const store = tx.objectStore("ascension_leaderboard");
+        store.put(dbRecord);
+        tx.oncomplete = function() {
+            loadLeaderboard();
+            showLeaderboardModal();
+        };
+    } catch(e) {
+        console.error("Error saving ascension run:", e);
+    }
+}
+
+// Load Leaderboard
+async function loadLeaderboard() {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(["ascension_leaderboard"], "readonly");
+        const store = tx.objectStore("ascension_leaderboard");
+        const req = store.openCursor();
+        const allRuns = [];
+
+        req.onsuccess = function(e) {
+            const cursor = e.target.result;
+            if (cursor) {
+                allRuns.push(cursor.value);
+                cursor.continue();
+            } else {
+                renderLeaderboardTable(allRuns);
+            }
+        };
+    } catch(e) {
+        console.error("Leaderboard load error:", e);
+    }
+}
+
+function sortLeaderboard(columnKey) {
+    if (lbSortColumn === columnKey) {
+        lbSortAscending = !lbSortAscending;
+    } else {
+        lbSortColumn = columnKey;
+        lbSortAscending = (columnKey === 'name' || columnKey === 'class');
+    }
+    loadLeaderboard();
+}
+
+function renderLeaderboardTable(allRuns = []) {
+    const tbody = document.getElementById('lbTableBody');
+    tbody.innerHTML = '';
+
+    const filterText = (document.getElementById('lbSearchInput')?.value || "").toLowerCase();
+
+    if (allRuns.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8">No ascension runs recorded yet! Complete a run to claim a spot.</td></tr>`;
+        return;
+    }
+
+    const characterPRMap = {};
+    allRuns.forEach(run => {
+        if (!characterPRMap[run.characterKey] || run.overallScore > characterPRMap[run.characterKey].overallScore) {
+            characterPRMap[run.characterKey] = run;
+        }
+    });
+
+    let uniquePRs = Object.values(characterPRMap);
+
+    if (filterText) {
+        uniquePRs = uniquePRs.filter(r => 
+            `${r.characterName} ${r.combatClass} ${r.race}`.toLowerCase().includes(filterText)
+        );
+    }
+
+    uniquePRs.sort((a, b) => {
+        let valA, valB;
+        if (lbSortColumn === 'name') { valA = a.characterName; valB = b.characterName; return lbSortAscending ? valA.localeCompare(valB) : valB.localeCompare(valA); }
+        if (lbSortColumn === 'class') { valA = `${a.combatClass} ${a.race}`; valB = `${b.combatClass} ${b.race}`; return lbSortAscending ? valA.localeCompare(valB) : valB.localeCompare(valA); }
+        if (lbSortColumn === 'floors') { valA = a.floorsReached; valB = b.floorsReached; }
+        else if (lbSortColumn === 'victories') { valA = a.victories; valB = b.victories; }
+        else if (lbSortColumn === 'damage') { valA = a.totalDamage; valB = b.totalDamage; }
+        else { valA = a.overallScore; valB = b.overallScore; }
+
+        return lbSortAscending ? valA - valB : valB - valA;
+    });
+
+    uniquePRs.forEach((run, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>#${idx + 1}</strong></td>
+            <td style="text-align:left; display:flex; align-items:center; gap:6px;">
+                <img src="${run.pixelArtImage}" style="width:20px; height:20px; border-radius:50%; object-fit:cover;">
+                <strong>${run.characterName}</strong>
+            </td>
+            <td>${run.combatClass} (${run.race})</td>
+            <td><strong style="color:#ffd166;">Floor ${run.floorsReached}</strong></td>
+            <td>${run.victories} Wins</td>
+            <td>${run.totalDamage}</td>
+            <td><strong style="color:#1dd1a1;">${run.overallScore} pts</strong></td>
+            <td><button class="btn" style="padding:2px 6px; font-size:11px;" onclick="inspectCharacterRuns('${run.characterKey}')">Inspect PR & History</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Inspect Character PR & Previous Run Attempts
+async function inspectCharacterRuns(characterKey) {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(["ascension_leaderboard"], "readonly");
+        const store = tx.objectStore("ascension_leaderboard");
+        const req = store.openCursor();
+        const charRuns = [];
+
+        req.onsuccess = function(e) {
+            const cursor = e.target.result;
+            if (cursor) {
+                if (cursor.value.characterKey === characterKey) charRuns.push(cursor.value);
+                cursor.continue();
+            } else {
+                showInspectModal(charRuns);
+            }
+        };
+    } catch(e) {
+        console.error("Inspect error:", e);
+    }
+}
+
+// FULLSCREEN SUBMENU WITH DUAL SIDE-BY-SIDE CHARACTER SHEETS
+function showInspectModal(runs) {
+    if (!runs || runs.length === 0) return;
+    runs.sort((a,b) => b.overallScore - a.overallScore);
+    
+    window.inspectRunsCache = runs;
+    renderInspectModalRun(0);
+    document.getElementById('inspectModal').style.display = 'flex';
+}
+
+function renderInspectModalRun(runIdx) {
+    const runs = window.inspectRunsCache;
+    const r = runs[runIdx];
+    if (!r) return;
+
+    const content = document.getElementById('inspectModalContent');
+
+    const initStats = r.initialStats || { strength: 10, constitution: 10, dexterity: 10, intelligence: 10, resolve: 10, perception: 10 };
+    const finalStats = r.finalStats || initStats;
+    const alloc = r.statAllocations || { strength: 0, constitution: 0, dexterity: 0, intelligence: 0, resolve: 0, perception: 0 };
+
+    const baseDerived = calculateDerivedCombat(initStats, r.combatClass, r.mainHand, r.offHand);
+    const peakDerived = calculateDerivedCombat(finalStats, r.combatClass, r.mainHand, r.offHand);
+
+    const isPurePhys = baseDerived.damageType === "pure physical" || baseDerived.maxMp === 0;
+
+    const getActiveDmg = (derived) => {
+        if (derived.damageType === "pure magic") return derived.magDmg;
+        if (derived.damageType === "hybrid A") return derived.hybridADamage;
+        if (derived.damageType === "hybrid B") return derived.hybridBDamage;
+        return derived.physDmg;
+    };
+
+    const baseDmg = getActiveDmg(baseDerived);
+    const peakDmg = getActiveDmg(peakDerived);
+
+    const initTotalStats = Object.values(initStats).reduce((a, b) => a + b, 0);
+    const finalTotalStats = Object.values(finalStats).reduce((a, b) => a + b, 0);
+    const baseRating = getPotentialRating(initTotalStats);
+    const peakRating = getPotentialRating(finalTotalStats);
+
+    const isIshnamel = r.eliminatedBy === "Ishnamel";
+    const endStatusHtml = isIshnamel 
+        ? `<span class="log-ishnamel">Terminated by Ishnamel</span>`
+        : (r.eliminatedBy === "None" ? `<span style="color:#1dd1a1;">👑 Grand Ascension Clear!</span>` : `<span style="color:#ef476f;">Killed by ${r.eliminatedBy}</span>`);
+
+    const renderStatRowComp = (label, baseVal, finalVal, allocVal) => {
+        if (allocVal > 0) {
+            return `<p style="margin:2px 0;">${label}: ${baseVal} ➔ <strong style="color:#ffd166;">${finalVal}</strong> <span class="stat-plus">(+${allocVal})</span></p>`;
+        }
+        return `<p style="margin:2px 0;">${label}: ${baseVal}</p>`;
+    };
+
+    const renderDerivedRowComp = (label, baseVal, peakVal, unit = "", precision = 1, colorHex = "#e0d5c1", suffixStr = "") => {
+        const diff = peakVal - baseVal;
+        const baseStr = precision === 0 ? Math.round(baseVal) : baseVal.toFixed(precision);
+        const peakStr = precision === 0 ? Math.round(peakVal) : peakVal.toFixed(precision);
+        const diffVal = precision === 0 ? Math.round(diff) : diff.toFixed(precision);
+
+        if (diff > 0) {
+            return `<p style="margin:2px 0; color:${colorHex};"><strong>${label}:</strong> ${baseStr}${unit} ➔ <strong style="color:#ffd166;">${peakStr}${unit}</strong> <span class="stat-plus">(+${diffVal}${unit})</span> ${suffixStr}</p>`;
+        }
+        return `<p style="margin:2px 0; color:${colorHex};"><strong>${label}:</strong> ${baseStr}${unit} ${suffixStr}</p>`;
+    };
+
+    content.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #6d5c4b; padding-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <img src="${r.pixelArtImage}" style="width:55px; height:55px; border-radius:50%; border:3px solid #ffd166; object-fit:cover;">
+                <div>
+                    <h2 style="margin:0; font-size:18px;">${r.characterName}</h2>
+                    <p style="color:#d8c7a7; margin:0; font-size:12px;">${r.race} ${r.combatClass}</p>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <span style="font-size:15px; color:#ffd166; font-weight:bold;">PR Score: ${r.overallScore} pts</span><br>
+                <span style="font-size:12px;">Outcome: ${endStatusHtml}</span>
+            </div>
+        </div>
+
+        <!-- Submenu Tabs -->
+        <div class="tab-bar" style="margin-top:10px; margin-bottom:6px;">
+            ${runs.map((run, i) => `
+                <button class="tab-btn ${i === runIdx ? 'active' : ''}" onclick="renderInspectModalRun(${i})">
+                    ${i === 0 ? '🏆 Best PR' : `Run #${runs.length - i}`}
+                </button>
+            `).join('')}
+        </div>
+
+        <!-- Run Metadata Summary -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; font-size:11px; background:#2b211a; padding:6px 10px; border-radius:5px; margin-bottom:8px;">
+            <span><strong>Floors Cleared:</strong> ${r.floorsReached}</span>
+            <span><strong>Victories:</strong> ${r.victories} Defeats</span>
+            <span><strong>Total Damage:</strong> ${r.totalDamage}</span>
+            <span><strong>Peak Level:</strong> Lvl ${r.finalLevel || 1}</span>
+        </div>
+
+        <!-- DUAL FULL CHARACTER SHEETS SIDE-BY-SIDE -->
+        <div class="dual-sheet-container">
+            
+            <!-- BEFORE SHEET (BASE LEVEL 1) -->
+            <div class="sheet-box">
+                <h3 style="margin-top:0; color:#a4b0be; border-bottom:1px dashed #6d5c4b; padding-bottom:4px; font-size:13.5px; text-align:center;">
+                    BEFORE (Base Level 1)
+                </h3>
+                <p style="color:#ffd166; margin:2px 0;"><strong>Potential Rating:</strong> ${initTotalStats} (${baseRating})</p>
+                <p style="color:#e84a5f; margin:2px 0;"><strong>Max HP:</strong> ${baseDerived.maxHp}</p>
+                ${!isPurePhys ? `<p style="color:#56cfe1; margin:2px 0;"><strong>Max MP:</strong> ${baseDerived.maxMp}</p>` : ''}
+                <p style="color:#ffd166; margin:2px 0;"><strong>Damage Type:</strong> ${baseDerived.damageType}</p>
+                
+                <h4 style="margin:8px 0 3px 0; color:#d8c7a7; font-size:12px;">Base Attributes:</h4>
+                <div style="font-size:11px;">
+                    <p style="margin:1px 0;">Strength: ${initStats.strength}</p>
+                    <p style="margin:1px 0;">Constitution: ${initStats.constitution}</p>
+                    <p style="margin:1px 0;">Dexterity: ${initStats.dexterity}</p>
+                    <p style="margin:1px 0;">Intelligence: ${initStats.intelligence}</p>
+                    <p style="margin:1px 0;">Resolve: ${initStats.resolve}</p>
+                    <p style="margin:1px 0;">Perception: ${initStats.perception}</p>
+                </div>
+
+                <h4 style="margin:8px 0 3px 0; color:#d8c7a7; font-size:12px;">Base Derived Combat:</h4>
+                <div style="font-size:11px; background:#3b2f28; padding:6px; border-radius:4px;">
+                    <p style="margin:1px 0; color:#FF4D4D;"><strong>Base Active Damage:</strong> ${baseDmg}</p>
+                    <p style="margin:1px 0; color:#FF8C00;"><strong>Phys Armor:</strong> ${baseDerived.physRes.toFixed(1)}</p>
+                    <p style="margin:1px 0; color:#00CED1;"><strong>Mag Armor:</strong> ${baseDerived.magRes.toFixed(1)}</p>
+                    <p style="margin:1px 0; color:#A855F7;"><strong>Attack Speed:</strong> ${baseDerived.attackSpeed}</p>
+                    <p style="margin:1px 0; color:#22C55E;"><strong>Evasion:</strong> ${baseDerived.evasion.toFixed(1)}</p>
+                    <p style="margin:1px 0; color:#FACC15;"><strong>Crit Chance:</strong> ${baseDerived.critChance}% (${baseDerived.critMult}x)</p>
+                    <p style="margin:1px 0;"><span style="color:#64748B;"><strong>Block:</strong> ${baseDerived.blockChance}%</span> | <span style="color:#F472B6;"><strong>Parry:</strong> ${baseDerived.parryChance}%</span></p>
+                </div>
+            </div>
+
+            <!-- AFTER SHEET (PEAK PERFORMANCE WITH USER COLOR CODES) -->
+            <div class="sheet-box" style="border-color:#1dd1a1;">
+                <h3 style="margin-top:0; color:#1dd1a1; border-bottom:1px dashed #6d5c4b; padding-bottom:4px; font-size:13.5px; text-align:center;">
+                    AFTER (Peak Level ${r.finalLevel || 1})
+                </h3>
+                <p style="color:#ffd166; margin:2px 0;"><strong>Potential Rating:</strong> ${initTotalStats} (${baseRating}) ➔ <strong style="color:#1dd1a1;">${finalTotalStats} (${peakRating})</strong> <span class="stat-plus">(+${finalTotalStats - initTotalStats})</span></p>
+                ${renderDerivedRowComp('Max HP', baseDerived.maxHp, peakDerived.maxHp, '', 0, '#e84a5f')}
+                ${!isPurePhys ? renderDerivedRowComp('Max MP', baseDerived.maxMp, peakDerived.maxMp, '', 0, '#56cfe1') : ''}
+                <p style="color:#ffd166; margin:2px 0;"><strong>Damage Type:</strong> ${peakDerived.damageType}</p>
+
+                <h4 style="margin:8px 0 3px 0; color:#1dd1a1; font-size:12px;">Final Peak Attributes:</h4>
+                <div style="font-size:11px;">
+                    ${renderStatRowComp('Strength', initStats.strength, finalStats.strength, alloc.strength)}
+                    ${renderStatRowComp('Constitution', initStats.constitution, finalStats.constitution, alloc.constitution)}
+                    ${renderStatRowComp('Dexterity', initStats.dexterity, finalStats.dexterity, alloc.dexterity)}
+                    ${renderStatRowComp('Intelligence', initStats.intelligence, finalStats.intelligence, alloc.intelligence)}
+                    ${renderStatRowComp('Resolve', initStats.resolve, finalStats.resolve, alloc.resolve)}
+                    ${renderStatRowComp('Perception', initStats.perception, finalStats.perception, alloc.perception)}
+                </div>
+
+                <h4 style="margin:8px 0 3px 0; color:#1dd1a1; font-size:12px;">Final Derived Combat:</h4>
+                <div style="font-size:11px; background:#3b2f28; padding:6px; border-radius:4px;">
+                    ${renderDerivedRowComp('Peak Active Damage', baseDmg, peakDmg, '', 1, '#FF4D4D')}
+                    ${renderDerivedRowComp('Phys Armor', baseDerived.physRes, peakDerived.physRes, '', 1, '#FF8C00')}
+                    ${renderDerivedRowComp('Mag Armor', baseDerived.magRes, peakDerived.magRes, '', 1, '#00CED1')}
+                    ${renderDerivedRowComp('Attack Speed', baseDerived.attackSpeed, peakDerived.attackSpeed, '', 1, '#A855F7')}
+                    ${renderDerivedRowComp('Evasion', baseDerived.evasion, peakDerived.evasion, '', 1, '#22C55E')}
+                    ${renderDerivedRowComp('Crit Chance', baseDerived.critChance, peakDerived.critChance, '%', 1, '#FACC15', `(${peakDerived.critMult}x)`)}
+                    <p style="margin:2px 0;"><span style="color:#64748B;"><strong>Block:</strong> ${peakDerived.blockChance}%</span> | <span style="color:#F472B6;"><strong>Parry:</strong> ${peakDerived.parryChance}%</span></p>
+                </div>
+            </div>
+
+        </div>
+    `;
+}
+
+function showLeaderboardModal() {
+    loadLeaderboard();
+    document.getElementById('leaderboardModal').style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+</script>
+</body>
+</html>

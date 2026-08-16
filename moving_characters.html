@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena Royale - Moving Characters</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2b211a;
+            color: #e0d5c1;
+            font-family: 'Trajan Pro', serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Top Header & Control Bar */
+        .header-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: #3b2f28;
+            border-bottom: 2px solid #6d5c4b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-sizing: border-box;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .header-title {
+            font-size: 18px;
+            color: #d8c7a7;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            background-color: #5a4c42;
+            color: #e0d5c1;
+            border: 2px solid #6d5c4b;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-family: 'Bookman Old Style', serif;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #7a665b;
+            border-color: #9d8872;
+        }
+
+        .btn-pause { background-color: #d97706; }
+        .btn-report { background-color: #2563eb; }
+
+        /* Event Ticker Feed */
+        .ticker-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 32px;
+            background-color: rgba(43, 33, 26, 0.95);
+            border-top: 1px solid #6d5c4b;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #d8c7a7;
+            z-index: 10;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        /* Arena Container */
+        #arena {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 92px);
+            background-color: #241b15;
+            background-image: radial-gradient(#3b2f28 1px, transparent 1px);
+            background-size: 25px 25px;
+            overflow: hidden;
+        }
+
+        /* Scalable Emblem Nodes */
+        .emblem-node {
+            position: absolute;
+            border-radius: 20%;
+            border: 1px solid #d8c7a7;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            transition: transform 0.15s ease, border-color 0.15s;
+            background-size: cover;
+            background-position: center;
+            z-index: 2;
+        }
+
+        .emblem-node:hover {
+            border-color: #ffd166;
+            box-shadow: 0 0 15px #ffd166;
+            transform: translate(-50%, -50%) scale(10) !important;
+            z-index: 20 !important;
+        }
+
+        .emblem-node.battling {
+            border-color: #ef476f !important;
+            box-shadow: 0 0 15px #ef476f !important;
+            animation: pulse-battle 0.5s infinite alternate;
+            z-index: 15 !important;
+        }
+
+        .emblem-node .wins-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: #e84a5f;
+            color: #fff;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 1px 3px;
+            border-radius: 4px;
+            border: 1px solid #ffffff;
+            font-family: sans-serif;
+            display: none; /* Shown if wins > 0 */
+        }
+
+        @keyframes pulse-battle {
+            0% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1.4); }
+        }
+
+        /* Modals & Drawers */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-card {
+            background-color: #4a3d34;
+            border: 3px solid #6d5c4b;
+            border-radius: 10px;
+            padding: 20px;
+            width: 600px;
+            max-width: 92vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            color: #e0d5c1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            position: relative;
+        }
+
+        .modal-card-large {
+            width: 850px;
+            max-width: 95vw;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #d8c7a7;
+            cursor: pointer;
+        }
+
+        .modal-close:hover { color: #fff; }
+
+        /* Report Table Styling */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .report-table th, .report-table td {
+            padding: 8px;
+            border: 1px solid #6d5c4b;
+            text-align: center;
+        }
+
+        .report-table th {
+            background-color: #3b2f28;
+            color: #ffd166;
+            cursor: pointer;
+        }
+
+        .report-table tr:nth-child(even) { background-color: #3f332a; }
+        .report-table tr:hover { background-color: #5a4c42; }
+
+        .stat-plus {
+            color: #1dd1a1;
+            font-weight: bold;
+            font-size: 11px;
+            margin-left: 3px;
+        }
+
+        /* Battle Spectator Log */
+        .battle-spectator-log {
+            background-color: #2b211a;
+            border: 2px solid #6d5c4b;
+            border-radius: 5px;
+            padding: 10px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        /* Victory Popup */
+        .victory-card {
+            text-align: center;
+            width: 550px;
+            background-color: #3b2f28;
+            border: 4px solid #ffd166;
+            box-shadow: 0 0 30px rgba(255, 209, 102, 0.5);
+        }
+
+        .victory-emblem {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid #ffd166;
+            margin: 15px auto;
+            box-shadow: 0 0 20px #ffd166;
+            object-fit: cover;
+        }
+
+        /* Log Colors */
+        .log-phys { color: #ff9f43; }
+        .log-magic { color: #54a0ff; }
+        .log-hybrid { color: #c8d6e5; }
+        .log-crit { color: #feca57; font-weight: bold; }
+        .log-tech { color: #ff6b6b; font-weight: bold; }
+        .log-block { color: #1dd1a1; }
+        .log-dodge { color: #10ac84; }
+        .log-turn { color: #d8c7a7; font-weight: bold; border-bottom: 1px dashed #6d5c4b; margin-top: 6px; padding-bottom: 2px; }
+        .log-system { color: #f368e0; font-style: italic; }
+        .log-slow { color: #a4b0be; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <!-- Header Controls -->
+    <div class="header-bar">
+        <div class="header-title">⚔️ Arena Royale (<span id="aliveCount">0</span> Alive)</div>
+        <div class="controls">
+            <button id="startBtn" class="btn" onclick="startSimulation()">Start Battle Royale</button>
+            <button id="pauseBtn" class="btn btn-pause" onclick="togglePause()">Pause</button>
+            <select id="simSpeedSelect" class="btn" onchange="changeSpeed()">
+                <option value="1">Speed: 1x</option>
+                <option value="2">Speed: 2x</option>
+                <option value="5">Speed: 5x</option>
+                <option value="10">Speed: 10x</option>
+                <option value="100">Speed: ⚡ MAX</option>
+            </select>
+            <button class="btn btn-report" onclick="showReportModal()">📊 Battle Report</button>
+            <button class="btn" onclick="window.location.href='index.html'">Generator</button>
+            <button class="btn" onclick="window.location.href='battle_simulator.html'">Battle Sim</button>
+        </div>
+    </div>
+
+    <!-- Arena Container -->
+    <div id="arena"></div>
+
+    <!-- Ticker Bar -->
+    <div class="ticker-bar" id="tickerBar">Press 'Start Battle Royale' to load participants...</div>
+
+    <!-- Battle Report Modal -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal-card modal-card-large">
+            <span class="modal-close" onclick="closeModal('reportModal')">&times;</span>
+            <h2 style="margin-top:0; text-align:center; color:#ffd166;">🏆 Tournament Battle Report</h2>
+            <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:10px;">
+                <input type="text" id="reportSearch" placeholder="Search participant..." oninput="renderReportTable()" style="flex:1; padding:6px; background:#2b211a; color:#e0d5c1; border:1px solid #6d5c4b; border-radius:4px;">
+                <select id="reportSort" onchange="renderReportTable()" style="padding:6px; background:#2b211a; color:#e0d5c1; border:1px solid #6d5c4b; border-radius:4px;">
+                    <option value="wins">Sort by Highest Wins</option>
+                    <option value="points">Sort by Points Obtained</option>
+                    <option value="damage">Sort by Damage Dealt</option>
+                    <option value="status">Sort by Status / Placement</option>
+                    <option value="tier">Sort by Potential Tier</option>
+                    <option value="name">Sort by Name (A-Z)</option>
+                </select>
+            </div>
+            <div style="max-height: 50vh; overflow-y: auto;">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Fighter</th>
+                            <th>Class & Race</th>
+                            <th>Status</th>
+                            <th>Wins</th>
+                            <th>Points (+N)</th>
+                            <th>Dmg Dealt</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Info Modal -->
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-card">
+            <span class="modal-close" onclick="closeModal('infoModal')">&times;</span>
+            <div id="infoModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Live Battle Spectator Modal -->
+    <div class="modal-overlay" id="battleModal">
+        <div class="modal-card">
+            <span class="modal-close" onclick="closeModal('battleModal')">&times;</span>
+            <h3 style="margin-top:0; text-align:center;" id="battleModalTitle">Live Battle</h3>
+            <div id="battleModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Grand Victory Modal -->
+    <div class="modal-overlay" id="victoryModal">
+        <div class="modal-card victory-card">
+            <h1 style="color:#ffd166; margin-top:0;">🏆 ARENA CHAMPION 🏆</h1>
+            <img id="winnerEmblem" class="victory-emblem" src="" alt="Champion">
+            <h2 id="winnerName" style="margin:5px 0; color:#d8c7a7;">Winner Name</h2>
+            <p id="winnerTitle" style="color:#e0d5c1; font-style:italic;"></p>
+            <div id="winnerStats" style="text-align:left; background:#2b211a; padding:12px; border-radius:5px; margin:15px 0;"></div>
+            <button class="btn" onclick="closeModal('victoryModal')">Close</button>
+        </div>
+    </div>
+
+<script>
+// =========================================================
+// STALEMATE BREAKER & BALANCE CONFIGURATION
+// =========================================================
+const BALANCING_CONFIG = {
+    // Combat Fatigue (Heal Decay)
+    FATIGUE_START_TURN: 12,      // Turn when healing reduction starts
+    HEAL_DECAY_PER_TURN: 0.08,   // 8% decrease in heal effectiveness per turn after start (0.08 = 8%)
+    MIN_HEAL_EFFICIENCY: 0.0,    // Lowest heal efficiency allowed (0.0 = healing eventually drops to 0%)
+
+    // Slow Armor Decay
+    ARMOR_DECAY_START_TURN: 10,  // Turn when armor decay starts
+    ARMOR_DECAY_PER_TURN: 0.02,  // Slow decay: 2% reduction in armor per turn (0.02 = 2%)
+    MIN_ARMOR_EFFICIENCY: 0.20,  // Armor floor (0.20 = armor cannot drop below 20% of base)
+
+    // Damage Floor Penetration
+    BASE_DAMAGE_PENETRATION_PCT: 0.15 // 15% of base damage always penetrates regardless of defense
+};
+
+function getHealEfficiency(turn) {
+    if (turn < BALANCING_CONFIG.FATIGUE_START_TURN) return 1.0;
+    let turnsPassed = turn - BALANCING_CONFIG.FATIGUE_START_TURN;
+    let efficiency = 1.0 - (turnsPassed * BALANCING_CONFIG.HEAL_DECAY_PER_TURN);
+    return Math.max(BALANCING_CONFIG.MIN_HEAL_EFFICIENCY, efficiency);
+}
+
+function getArmorEfficiency(turn) {
+    if (turn < BALANCING_CONFIG.ARMOR_DECAY_START_TURN) return 1.0;
+    let turnsPassed = turn - BALANCING_CONFIG.ARMOR_DECAY_START_TURN;
+    let efficiency = 1.0 - (turnsPassed * BALANCING_CONFIG.ARMOR_DECAY_PER_TURN);
+    return Math.max(BALANCING_CONFIG.MIN_ARMOR_EFFICIENCY, efficiency);
+}
+
+// Class Mapping
+const combatClassMapping = {
+    Juggernaut: { coreStat: "strength", subStat: "constitution", damageType: "pure physical" },
+    BladeDancer: { coreStat: "strength", subStat: "dexterity", damageType: "hybrid A" },
+    Chieftain: { coreStat: "strength", subStat: "intelligence", damageType: "hybrid A" },
+    IronWill: { coreStat: "strength", subStat: "resolve", damageType: "pure physical" },
+    Berserker: { coreStat: "strength", subStat: "perception", damageType: "pure physical" },
+    Titan: { coreStat: "constitution", subStat: "strength", damageType: "pure physical" },
+    StalwartDefender: { coreStat: "constitution", subStat: "resolve", damageType: "pure physical" },
+    Mercenery: { coreStat: "constitution", subStat: "dexterity", damageType: "pure physical" },
+    Bladecaster: { coreStat: "dexterity", subStat: "intelligence", damageType: "hybrid A" },
+    MartialArtist: { coreStat: "dexterity", subStat: "resolve", damageType: "hybrid A" },
+    Sentinel: { coreStat: "constitution", subStat: "perception", damageType: "pure physical" },
+    SavageSwifter: { coreStat: "dexterity", subStat: "strength", damageType: "pure physical" },
+    Swiftblade: { coreStat: "dexterity", subStat: "constitution", damageType: "pure physical" },
+    AuraWarrior: { coreStat: "resolve", subStat: "strength", damageType: "hybrid A" },
+    Assassin: { coreStat: "dexterity", subStat: "perception", damageType: "hybrid A" },
+    Tactician: { coreStat: "intelligence", subStat: "strength", damageType: "hybrid A" },
+    Colossus: { coreStat: "strength", subStat: "strength", damageType: "pure physical" },
+    FleshFortress: { coreStat: "constitution", subStat: "constitution", damageType: "pure physical" },
+    Tempest: { coreStat: "dexterity", subStat: "dexterity", damageType: "pure physical" },
+    IronAura: { coreStat: "resolve", subStat: "constitution", damageType: "hybrid A" },
+    PhantomBlade: { coreStat: "resolve", subStat: "dexterity", damageType: "hybrid B" },
+    Deadeye: { coreStat: "perception", subStat: "dexterity", damageType: "pure physical" },
+    Scout: { coreStat: "perception", subStat: "resolve", damageType: "pure physical" },
+    Trickshot: { coreStat: "perception", subStat: "intelligence", damageType: "hybrid A" },
+    Powershot: { coreStat: "perception", subStat: "strength", damageType: "pure physical" },
+    Vanguard: { coreStat: "perception", subStat: "constitution", damageType: "pure physical" },
+    ArcaneArcher: { coreStat: "intelligence", subStat: "dexterity", damageType: "hybrid B" },
+    GodEye: { coreStat: "perception", subStat: "perception", damageType: "pure physical" },
+    Sorcerer: { coreStat: "resolve", subStat: "intelligence", damageType: "pure magic" },
+    Spiritist: { coreStat: "resolve", subStat: "perception", damageType: "pure magic" },
+    Mage: { coreStat: "intelligence", subStat: "resolve", damageType: "pure magic" },
+    Diviner: { coreStat: "intelligence", subStat: "perception", damageType: "pure magic" },
+    ManaWeaver: { coreStat: "intelligence", subStat: "intelligence", damageType: "pure magic" },
+    MentalFortress: { coreStat: "resolve", subStat: "resolve", damageType: "hybrid B" },
+    BattlePriest: { coreStat: "constitution", subStat: "intelligence", damageType: "hybrid B" },
+    Sage: { coreStat: "intelligence", subStat: "constitution", damageType: "hybrid B" },
+};
+
+// Class-Specific Technique Specifications
+const classTechniqueSpecs = {
+    Juggernaut: { name: "Earthshaker Slam", cooldown: 4, type: "tank_strike", dmgMult: 1.5, armorPen: 0.5, physResBuff: 1.3, buffTurns: 2 },
+    Titan: { name: "Colossal Impact", cooldown: 4, type: "tank_strike", dmgMult: 1.6, armorPen: 0.5, physResBuff: 1.3, buffTurns: 2 },
+    Colossus: { name: "Titanic Might", cooldown: 4, type: "tank_strike", dmgMult: 1.6, armorPen: 0.4, physResBuff: 1.4, buffTurns: 2 },
+    IronWill: { name: "Unbreakable Resolve", cooldown: 4, type: "tank_strike", dmgMult: 1.4, armorPen: 0.3, physResBuff: 1.5, buffTurns: 2 },
+
+    Berserker: { name: "Frenzied Onslaught", cooldown: 4, type: "berserk_strike", dmgMult: 1.8, critMultBonus: 0.35 },
+
+    BladeDancer: { name: "Silver Mirage Flurry", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.2 },
+    Swiftblade: { name: "Flashstep Slash", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.15 },
+    Tempest: { name: "Cyclone Fury", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.25 },
+    SavageSwifter: { name: "Predatory Pounce", cooldown: 3, type: "extra_hits", bonusHits: 1, dmgMult: 1.25 },
+
+    Assassin: { name: "Fatal Shadowstrike", cooldown: 6, type: "assassin_strike", dmgMult: 2.0, ignoreDefenses: true, critChanceBonus: 30 },
+    PhantomBlade: { name: "Ethereal Execution", cooldown: 5, type: "assassin_strike", dmgMult: 1.9, ignoreDefenses: true, critChanceBonus: 25 },
+
+    StalwartDefender: { name: "Unyielding Bastion", cooldown: 5, type: "ultimate_def", resBoost: 2.0, healPct: 0.15 },
+    FleshFortress: { name: "Ironclad Citadel", cooldown: 5, type: "ultimate_def", resBoost: 2.2, healPct: 0.25 },
+    Sentinel: { name: "Watchful Guardian", cooldown: 5, type: "ultimate_def", resBoost: 1.8, healPct: 0.20 },
+
+    Sorcerer: { name: "Arcane Cataclysm", cooldown: 4, type: "magic_burst", dmgMult: 1.7, magPen: 0.5, mpRegen: 20 },
+    ManaWeaver: { name: "Singularity Burst", cooldown: 4, type: "magic_burst", dmgMult: 1.8, magPen: 0.5, mpRegen: 25 },
+    Mage: { name: "Eldritch Overload", cooldown: 4, type: "magic_burst", dmgMult: 1.6, magPen: 0.4, mpRegen: 15 },
+
+    Spiritist: { name: "Soul Siphon", cooldown: 4, type: "utility_magic", dmgMult: 1.4, mpDrain: 20, healPct: 0.10 },
+    Diviner: { name: "Prophetic Foresight", cooldown: 4, type: "utility_magic", dmgMult: 1.3, evadeBuff: 25, buffTurns: 2 },
+    Sage: { name: "Runic Reflection", cooldown: 4, type: "utility_magic", dmgMult: 1.4, healPct: 0.15 },
+    MentalFortress: { name: "Psychic Barrier", cooldown: 4, type: "ultimate_def", resBoost: 1.8, healPct: 0.10 },
+
+    Deadeye: { name: "Heartseeker Shot", cooldown: 4, type: "ranged_precision", dmgMult: 1.7, guaranteeCrit: true, ignoreEvasion: true },
+    ArcaneArcher: { name: "Enchanted Volley", cooldown: 4, type: "ranged_precision", dmgMult: 1.6, guaranteeCrit: true, ignoreEvasion: true },
+    Powershot: { name: "Titanpiercer Shot", cooldown: 4, type: "ranged_precision", dmgMult: 1.8, guaranteeCrit: true, armorPen: 0.5 },
+    Scout: { name: "Sniper Vigilance", cooldown: 3, type: "ranged_precision", dmgMult: 1.5, guaranteeCrit: true, ignoreEvasion: true },
+    Trickshot: { name: "Ricochet Ambush", cooldown: 4, type: "ranged_precision", dmgMult: 1.6, guaranteeCrit: true, ignoreEvasion: true },
+    Vanguard: { name: "Aegis Barrage", cooldown: 4, type: "tank_strike", dmgMult: 1.4, physResBuff: 1.3, buffTurns: 2 },
+    GodEye: { name: "Clairvoyant Strike", cooldown: 4, type: "ranged_precision", dmgMult: 1.8, guaranteeCrit: true, ignoreEvasion: true },
+
+    BattlePriest: { name: "Divine Retribution", cooldown: 4, type: "hybrid_drain", dmgMult: 1.6, lifestealPct: 0.5 },
+    AuraWarrior: { name: "Aura Cleave", cooldown: 4, type: "hybrid_drain", dmgMult: 1.5, lifestealPct: 0.4 },
+    IronAura: { name: "Aegis Smite", cooldown: 4, type: "hybrid_drain", dmgMult: 1.4, lifestealPct: 0.4, physResBuff: 1.3, buffTurns: 2 },
+
+    Tactician: { name: "Strategic Gambit", cooldown: 3, type: "tactical", dmgMult: 1.4, evadeBuff: 15, critBuff: 15, buffTurns: 2 },
+    Chieftain: { name: "Runehammer Wrath", cooldown: 4, type: "tactical", dmgMult: 1.5, physResBuff: 1.2, buffTurns: 2 },
+    MartialArtist: { name: "Dragon Palm", cooldown: 3, type: "tactical", dmgMult: 1.4, evadeBuff: 20, buffTurns: 2 },
+    Bladecaster: { name: "Mindshard Surge", cooldown: 4, type: "tactical", dmgMult: 1.5, mpRegen: 15 },
+    Mercenery: { name: "Dirty Fighting", cooldown: 3, type: "tactical", dmgMult: 1.4, armorPen: 0.3 }
+};
+
+const tierRankMap = { "EX": 9, "SSS": 8, "SS": 7, "S": 6, "A": 5, "B": 4, "C": 3, "D": 2, "E": 1, "F": 0 };
+
+function getTierInfo(potentialStr) {
+    const match = String(potentialStr).match(/\((EX|SSS|SS|S|A|B|C|D|E|F)\)/i);
+    const letter = match ? match[1].toUpperCase() : "F";
+    const rank = tierRankMap[letter] !== undefined ? tierRankMap[letter] : 0;
+    return { letter, rank };
+}
+
+function extractRegex(text, regex, defaultValue = "") {
+    const match = text.match(regex);
+    return match ? match[1].trim() : defaultValue;
+}
+
+function parseStatsFromStatusText(statusText) {
+    const stats = { strength: 10, constitution: 10, dexterity: 10, intelligence: 10, resolve: 10, perception: 10 };
+    const regex = /(Strength|Constitution|Dexterity|Intelligence|Resolve|Perception):\s*(\d+)/gi;
+    let match;
+    while ((match = regex.exec(statusText)) !== null) {
+        const statName = match[1].toLowerCase();
+        stats[statName] = parseInt(match[2], 10);
+    }
+    return stats;
+}
+
+// Attack Chain Multi-Hit Calculation
+function calculateAttackChain(attackSpeed) {
+    let hits = 0;
+
+    if (attackSpeed < 8) {
+        let hit1Chance = Math.max(0, attackSpeed / 8);
+        if (Math.random() < hit1Chance) hits++;
+        else return 0; // Too slow to attack
+    } else {
+        hits++; // Hit 1 guaranteed
+    }
+
+    if (attackSpeed >= 8) {
+        let hit2Chance = attackSpeed >= 16 ? 0.75 : ((attackSpeed - 8) / (16 - 8)) * 0.75;
+        if (Math.random() < hit2Chance) hits++;
+        else return hits;
+    }
+
+    if (attackSpeed >= 16) {
+        let hit3Chance = attackSpeed >= 26 ? 0.80 : ((attackSpeed - 16) / (26 - 16)) * 0.80;
+        if (Math.random() < hit3Chance) hits++;
+        else return hits;
+    }
+
+    if (attackSpeed >= 26) {
+        let hit4Chance = attackSpeed >= 40 ? 0.82 : ((attackSpeed - 26) / (40 - 26)) * 0.82;
+        if (Math.random() < hit4Chance) hits++;
+        else return hits;
+    }
+
+    if (attackSpeed >= 40) {
+        let hit5Chance = attackSpeed >= 60 ? 0.88 : ((attackSpeed - 40) / (60 - 40)) * 0.88;
+        if (Math.random() < hit5Chance) hits++;
+        else return hits;
+    }
+
+    if (attackSpeed >= 60) {
+        let hit6Chance = attackSpeed >= 92 ? 1.00 : ((attackSpeed - 60) / (92 - 60)) * 1.00;
+        if (Math.random() < hit6Chance) hits++;
+        else return hits;
+    }
+
+    return hits;
+}
+
+// Upgraded Apply Defense Boost Helper (With Reversion Reset)
+function applyDefenseBoost(char, multiplier = 1.5, duration = 2) {
+    if (char.boostApplied && char.appliedResBoost > 0) {
+        char.physRes /= char.appliedResBoost;
+        char.magRes /= char.appliedResBoost;
+    }
+
+    char.appliedResBoost = multiplier;
+    char.physRes *= multiplier;
+    char.magRes *= multiplier;
+    char.defenseBoostDuration = duration;
+    char.boostApplied = true;
+}
+
+// Global Arena Variables
+let entities = [];
+let isSimulationRunning = false;
+let isPaused = false;
+let simSpeed = 1;
+let gracePeriodActive = true;
+let activeWatchedBattle = null;
+
+// =========================================================
+// EMBLEM ENTITY CLASS (REVISED FORMULAS)
+// =========================================================
+class EmblemEntity {
+    constructor(dbData, x, y, sizeRadius) {
+        this.key = dbData.key;
+        this.firstName = dbData.firstName || "Hero";
+        this.lastName = dbData.lastName || "";
+        this.name = `${this.firstName} ${this.lastName}`;
+        this.combatClass = dbData.combatClass || "Juggernaut";
+        this.race = dbData.race || "Human";
+        this.pixelArtImage = dbData.pixelArtImage;
+        this.statusText = dbData.statusText || "";
+        this.potential = dbData.potential || "40 (F)";
+        this.tierInfo = getTierInfo(this.potential);
+
+        this.rawStats = parseStatsFromStatusText(this.statusText);
+        this.statAllocations = { strength: 0, constitution: 0, dexterity: 0, intelligence: 0, resolve: 0, perception: 0 };
+        this.mainHand = extractRegex(this.statusText, /Main Hand:\s*([^\n\r\t]+)/i, "Fists");
+        this.offHand = extractRegex(this.statusText, /Offhand:\s*([^\n\r\t]+)/i, "Fists");
+        this.technique = extractRegex(this.statusText, /Combat Technique:\s*([^\n\r\t]+)/i, "Basic Stance");
+
+        this.wins = 0;
+        this.totalDamageDealt = 0;
+        this.bonusStatsGained = 0;
+        this.placement = 0;
+        this.eliminatedBy = null;
+        this.matchHistory = [];
+
+        this.techniqueSpec = classTechniqueSpecs[this.combatClass] || {
+            name: this.technique || "Basic Strike", cooldown: 4, type: "tactical", dmgMult: 1.4, evadeBuff: 10, buffTurns: 2
+        };
+
+        this.recalculateStats();
+        this.resetCombatState();
+
+        // Physics Properties
+        this.x = x;
+        this.y = y;
+        this.radius = sizeRadius;
+        this.vx = (Math.random() - 0.5) * 3;
+        this.vy = (Math.random() - 0.5) * 3;
+        this.state = 'moving'; // 'moving', 'battling', 'dead'
+
+        // DOM Element
+        this.element = document.createElement('div');
+        this.element.className = 'emblem-node';
+        this.element.style.width = `${this.radius * 2}px`;
+        this.element.style.height = `${this.radius * 2}px`;
+        this.element.style.backgroundImage = `url('${this.pixelArtImage}')`;
+        this.element.innerHTML = `<span class="wins-badge" id="badge-${this.key}">0</span>`;
+        this.element.addEventListener('click', (e) => { e.stopPropagation(); this.handleClick(); });
+
+        document.getElementById('arena').appendChild(this.element);
+        this.updatePositionDOM();
+    }
+
+    // Full Formulas Copy with Constitution Soft Cap & 0.4 PhysRes + Con AS Penalty
+    recalculateStats() {
+        const stats = this.rawStats;
+        const classInfo = combatClassMapping[this.combatClass] || { damageType: "pure physical" };
+
+        let maxHp = stats.constitution <= 25
+            ? stats.constitution * 10
+            : 250 + (stats.constitution - 25) * 5;
+        let maxMp = (stats.intelligence + stats.resolve) * 5;
+        let physRes = stats.constitution * 0.4;
+        let magRes = stats.resolve * 0.8;
+        let physDmg = stats.strength * 1.5 + stats.dexterity * 0.5;
+        let magDmg = stats.intelligence * 1.5 + stats.resolve * 0.5;
+        let attackSpeed = stats.dexterity * 0.8;
+
+       let attackSpeed = stats.dexterity * 0.8;
+
+    if (stats.constitution >= 15) {
+        attackSpeed -= 1 + (Math.min(stats.constitution, 24) - 15) * 0.25;
+
+        if (stats.constitution >= 25) {
+            attackSpeed -= (Math.min(stats.constitution, 34) - 24) * 0.35;
+        }
+
+        if (stats.constitution >= 35) {
+            attackSpeed -= (stats.constitution - 34) * 0.5;
+        }
+    }
+
+    // Helper: Calculate Tiered Attack Speed Bonus
+    function getTieredSpeedBonus(statVal, multiplier = 1.0) {
+        if (statVal <= 15) return 0;
+        let bonus = 0;
+        if (statVal >= 16) bonus += (Math.min(statVal, 20) - 15) * 0.75;
+        if (statVal >= 21) bonus += (Math.min(statVal, 25) - 20) * 0.50;
+        if (statVal >= 26) bonus += (Math.min(statVal, 30) - 25) * 0.25;
+        if (statVal >= 31) bonus += (Math.min(statVal, 35) - 30) * 0.20;
+        if (statVal >= 36) bonus += (Math.min(statVal, 40) - 35) * 0.15;
+        if (statVal >= 41) bonus += (statVal - 40) * 0.10;
+        return bonus * multiplier;
+    }
+
+    // Class-Specific Stat Scaling for Attack Speed
+    const dmgType = combatClassInfo.damageType;
+    if (dmgType === "pure magic") {
+        attackSpeed += getTieredSpeedBonus(stats.intelligence, 1.0);
+    } else if (dmgType === "pure physical") {
+        attackSpeed += getTieredSpeedBonus(stats.strength, 1.0);
+    } else if (dmgType === "hybrid A") {
+        // Physical-leaning Hybrid (65% STR / 35% INT)
+        attackSpeed += getTieredSpeedBonus(stats.strength, 0.65) + getTieredSpeedBonus(stats.intelligence, 0.35);
+    } else if (dmgType === "hybrid B") {
+        // Magic-leaning Hybrid (65% INT / 35% STR)
+        attackSpeed += getTieredSpeedBonus(stats.intelligence, 0.65) + getTieredSpeedBonus(stats.strength, 0.35);
+    }
+
+        let evasion = stats.dexterity * 0.8 + stats.perception * 0.4;
+        let critChance = stats.perception * 1.2;
+        let blockChance = 0;
+        let parryChance = 0;
+        let critMult = 1.5 + (stats.perception / 100);
+
+        // Equipment Checks
+        const mainHand = this.mainHand.toLowerCase();
+        const offHand = this.offHand.toLowerCase();
+
+        if (offHand.includes("shield")) {
+            blockChance = 25;
+            physRes += 6;
+            if (offHand.includes("tower")) { blockChance = 35; physRes += 10; evasion -= 5; }
+        }
+
+        if (mainHand.includes("katana") || mainHand.includes("rapier") || mainHand.includes("dagger") || mainHand.includes("saber")) {
+            parryChance = 5;
+        }
+
+        if (mainHand.includes("greatsword") || mainHand.includes("battleaxe") || mainHand.includes("scythe") || mainHand.includes("longsword")) {
+            physDmg *= 1.2;
+            critMult += 0.25;
+            attackSpeed *= 0.9;
+        }
+
+        if (mainHand.includes("staff") || mainHand.includes("wand") || mainHand.includes("orb") || mainHand.includes("grimoire")) {
+            magDmg *= 1.2;
+        }
+
+        let hybridADamage = 0;
+        let hybridBDamage = 0;
+
+        if (classInfo.damageType === "pure physical") {
+            magDmg = 0;
+            maxMp = 0;
+        } else if (classInfo.damageType === "pure magic") {
+            physDmg = 0;
+            magDmg = (stats.intelligence * 2) + (stats.resolve * 0.8);
+        } else if (classInfo.damageType === "hybrid A") {
+            hybridADamage = (physDmg * 0.8) + (magDmg * 0.2);
+        } else if (classInfo.damageType === "hybrid B") {
+            hybridBDamage = (magDmg * 0.8) + (physDmg * 0.2);
+        }
+
+        this.maxHp = Math.round(maxHp);
+        this.hp = Math.round(maxHp);
+        this.maxMp = Math.round(maxMp);
+        this.mp = Math.round(maxMp);
+        this.physRes = Math.round(physRes);
+        this.magRes = Math.round(magRes);
+        this.physDmg = Math.round(physDmg);
+        this.magDmg = Math.round(magDmg);
+        this.hybridADamage = Math.round(hybridADamage);
+        this.hybridBDamage = Math.round(hybridBDamage);
+        this.attackSpeed = Math.round(Math.max(4, attackSpeed) * 10) / 10;
+        this.evasion = Math.round(evasion * 10) / 10;
+        this.critChance = Math.round(critChance * 10) / 10;
+        this.critMult = Math.round(critMult * 100) / 100;
+        this.blockChance = blockChance;
+        this.parryChance = parryChance;
+        this.damageType = classInfo.damageType;
+    }
+
+    resetCombatState() {
+        this.techniqueCooldown = 0;
+        this.activeBuffs = { physResMult: 1.0, evasionBonus: 0, critBonus: 0, duration: 0 };
+        this.defenseBoostDuration = 0;
+        this.boostApplied = false;
+        this.appliedResBoost = 1.0;
+        this.berserkActive = false;
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+    }
+
+    allocateStatPoints(points) {
+        const classInfo = combatClassMapping[this.combatClass] || { coreStat: "strength", subStat: "constitution" };
+        const core = classInfo.coreStat;
+        const sub = classInfo.subStat;
+
+        for (let i = 0; i < points; i++) {
+            const statEntries = Object.entries(this.rawStats);
+            statEntries.sort((a, b) => a[1] - b[1]);
+            const lowestStat = statEntries[0][0];
+            const avg = statEntries.reduce((sum, s) => sum + s[1], 0) / 6;
+
+            let chosenStat = lowestStat;
+            if (statEntries[0][1] < (avg - 3)) {
+                chosenStat = lowestStat;
+            } else {
+                const roll = Math.random();
+                if (roll < 0.65) chosenStat = core;
+                else if (roll < 0.90) chosenStat = sub;
+                else chosenStat = lowestStat;
+            }
+
+            this.rawStats[chosenStat]++;
+            this.statAllocations[chosenStat]++;
+            this.bonusStatsGained++;
+        }
+
+        this.recalculateStats();
+    }
+
+    updatePositionDOM() {
+        this.element.style.left = `${this.x}px`;
+        this.element.style.top = `${this.y}px`;
+    }
+
+    handleClick() {
+        if (this.state === 'battling' && this.currentMatchLog) {
+            showBattleModal(this.currentMatchLog);
+        } else {
+            showInfoModal(this);
+        }
+    }
+
+    destroy() {
+        this.state = 'dead';
+        if (this.element && this.element.parentNode) {
+            this.element.remove();
+        }
+    }
+}
+
+// Database Fetch
+function loadCharactersFromDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("characterDatabase", 3);
+        request.onsuccess = function (e) {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains("characters")) { resolve([]); return; }
+            const transaction = db.transaction(["characters"], "readonly");
+            const objectStore = transaction.objectStore("characters");
+            const cursorRequest = objectStore.openCursor();
+            const list = [];
+
+            cursorRequest.onsuccess = function (event) {
+                const cursor = event.target.result;
+                if (cursor) { list.push(cursor.value); cursor.continue(); }
+                else { resolve(list); }
+            };
+        };
+        request.onerror = function (e) { reject(e); };
+    });
+}
+
+// Spawning Logic
+async function startSimulation() {
+    if (isSimulationRunning) return;
+
+    const arena = document.getElementById('arena');
+    arena.innerHTML = '';
+    entities = [];
+
+    const dbCharacters = await loadCharactersFromDB();
+    if (dbCharacters.length < 2) {
+        alert("Please generate at least 2 characters on the Generator page before starting!");
+        return;
+    }
+
+    const count = dbCharacters.length;
+    const width = arena.clientWidth;
+    const height = arena.clientHeight;
+
+    const radius = Math.max(3, Math.min(9, Math.floor(120 / Math.sqrt(count))));
+
+    const cols = Math.ceil(Math.sqrt(count * (width / height)));
+    const rows = Math.ceil(count / cols);
+    const spacingX = (width - 60) / cols;
+    const spacingY = (height - 60) / rows;
+
+    dbCharacters.forEach((charData, idx) => {
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+
+        const x = 30 + col * spacingX + (Math.random() - 0.5) * (spacingX * 0.4);
+        const y = 30 + row * spacingY + (Math.random() - 0.5) * (spacingY * 0.4);
+
+        const entity = new EmblemEntity(charData, x, y, radius);
+        entities.push(entity);
+    });
+
+    isSimulationRunning = true;
+    isPaused = false;
+    gracePeriodActive = true;
+    document.getElementById('startBtn').innerText = "Running...";
+    updateAliveCount();
+    updateTicker(`Arena initialized with ${count} combatants! Dispersing...`);
+
+    setTimeout(() => { gracePeriodActive = false; updateTicker("⚔️ COLLISION ACTIVE: Battles commence!"); }, 5000);
+
+    requestAnimationFrame(physicsLoop);
+}
+
+// Physics Loop
+function physicsLoop() {
+    if (!isSimulationRunning) return;
+
+    if (!isPaused) {
+        const arena = document.getElementById('arena');
+        const width = arena.clientWidth;
+        const height = arena.clientHeight;
+        const activeEntities = entities.filter(e => e.state === 'moving');
+
+        const remainingCount = activeEntities.length;
+        const attractionForce = (1 / Math.max(1, remainingCount)) * (0.05 * simSpeed);
+
+        for (let i = 0; i < activeEntities.length; i++) {
+            let e = activeEntities[i];
+
+            let closestDist = Infinity;
+            let target = null;
+            for (let j = 0; j < activeEntities.length; j++) {
+                if (i === j) continue;
+                let other = activeEntities[j];
+                let dx = other.x - e.x;
+                let dy = other.y - e.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < closestDist) { closestDist = dist; target = other; }
+            }
+
+            if (target && !gracePeriodActive) {
+                let dx = target.x - e.x;
+                let dy = target.y - e.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0) {
+                    e.vx += (dx / dist) * attractionForce;
+                    e.vy += (dy / dist) * attractionForce;
+                }
+            }
+
+            let currentSpeed = Math.sqrt(e.vx * e.vx + e.vy * e.vy);
+            let maxSpeed = 3.5 * Math.min(2, simSpeed);
+            if (currentSpeed > maxSpeed) { e.vx = (e.vx / currentSpeed) * maxSpeed; e.vy = (e.vy / currentSpeed) * maxSpeed; }
+
+            e.x += e.vx;
+            e.y += e.vy;
+
+            if (e.x - e.radius < 0) { e.x = e.radius; e.vx = -e.vx; }
+            if (e.x + e.radius > width) { e.x = width - e.radius; e.vx = -e.vx; }
+            if (e.y - e.radius < 0) { e.y = e.radius; e.vy = -e.vy; }
+            if (e.y + e.radius > height) { e.y = height - e.radius; e.vy = -e.vy; }
+
+            e.updatePositionDOM();
+        }
+
+        if (!gracePeriodActive) {
+            for (let i = 0; i < activeEntities.length; i++) {
+                for (let j = i + 1; j < activeEntities.length; j++) {
+                    let a = activeEntities[i];
+                    let b = activeEntities[j];
+
+                    if (a.state !== 'moving' || b.state !== 'moving') continue;
+
+                    let dx = b.x - a.x;
+                    let dy = b.y - a.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < (a.radius + b.radius)) {
+                        triggerBattle(a, b);
+                    }
+                }
+            }
+        }
+
+        const aliveEntities = entities.filter(e => e.state !== 'dead');
+        updateAliveCount();
+
+        if (aliveEntities.length === 1 && isSimulationRunning) {
+            isSimulationRunning = false;
+            triggerVictory(aliveEntities[0]);
+            return;
+        }
+    }
+
+    requestAnimationFrame(physicsLoop);
+}
+
+// Trigger Battle
+function triggerBattle(f1, f2) {
+    f1.state = 'battling';
+    f2.state = 'battling';
+    f1.element.classList.add('battling');
+    f2.element.classList.add('battling');
+
+    const matchData = { f1, f2, logs: [], turn: 1 };
+    f1.currentMatchLog = matchData;
+    f2.currentMatchLog = matchData;
+
+    runBattleSimulation(matchData);
+}
+
+// =========================================================
+// REAL BATTLE ENGINE (WITH STALEMATE BREAKER & REVISED MATH)
+// =========================================================
+function runBattleSimulation(match) {
+    const f1 = match.f1;
+    const f2 = match.f2;
+
+    f1.resetCombatState();
+    f2.resetCombatState();
+
+    // Determine Opening Initiative based on Bows & Attack Speed
+    const f1HasBow = f1.mainHand.toLowerCase().includes("bow") || f1.offHand.toLowerCase().includes("bow");
+    const f2HasBow = f2.mainHand.toLowerCase().includes("bow") || f2.offHand.toLowerCase().includes("bow");
+
+    let firstAttacker = f1;
+    let secondAttacker = f2;
+
+    if (f1HasBow && !f2HasBow) {
+        firstAttacker = f1;
+        secondAttacker = f2;
+        match.logs.push(`<span class="log-system">🏹 ${f1.name} gains Ranged Opening Initiative!</span>`);
+    } else if (f2HasBow && !f1HasBow) {
+        firstAttacker = f2;
+        secondAttacker = f1;
+        match.logs.push(`<span class="log-system">🏹 ${f2.name} gains Ranged Opening Initiative!</span>`);
+    } else if (f2.attackSpeed > f1.attackSpeed) {
+        firstAttacker = f2;
+        secondAttacker = f1;
+        match.logs.push(`<span class="log-system">⚡ ${f2.name} gains Opening Initiative due to higher Attack Speed (${f2.attackSpeed} vs ${f1.attackSpeed})!</span>`);
+    } else if (f1.attackSpeed > f2.attackSpeed) {
+        firstAttacker = f1;
+        secondAttacker = f2;
+        match.logs.push(`<span class="log-system">⚡ ${f1.name} gains Opening Initiative due to higher Attack Speed (${f1.attackSpeed} vs ${f2.attackSpeed})!</span>`);
+    } else if (f2.rawStats.dexterity > f1.rawStats.dexterity) {
+        firstAttacker = f2;
+        secondAttacker = f1;
+        match.logs.push(`<span class="log-system">⚡ ${f2.name} gains Opening Initiative due to higher Dexterity!</span>`);
+    } else {
+        firstAttacker = f1;
+        secondAttacker = f2;
+    }
+
+    match.firstAttacker = firstAttacker;
+    match.secondAttacker = secondAttacker;
+
+    match.logs.push(`<span class="log-system">Battle Commenced! ${firstAttacker.name} takes the lead.</span>`);
+
+    function stepTurn() {
+        if (f1.hp <= 0 || f2.hp <= 0) {
+            let winner = f1.hp > 0 ? f1 : f2;
+            let loser = f1.hp > 0 ? f2 : f1;
+            match.logs.push(`<br><h3 class="log-crit">🏆 ${winner.name} is VICTORIOUS! ${loser.name} has been defeated.</h3>`);
+            resolveBattleEnd(winner, loser, match);
+            return;
+        }
+
+        let attacker = match.turn % 2 === 1 ? match.firstAttacker : match.secondAttacker;
+        let defender = match.turn % 2 === 1 ? match.secondAttacker : match.firstAttacker;
+
+        takeTurnInMatch(attacker, defender, match);
+
+        match.turn++;
+
+        const delay = simSpeed >= 100 ? 0 : Math.max(10, 300 / simSpeed);
+        if (delay === 0) {
+            stepTurn(); // Instant loop for MAX speed
+        } else {
+            setTimeout(stepTurn, delay);
+        }
+    }
+
+    stepTurn();
+}
+
+// Turn Execution Engine
+function takeTurnInMatch(attacker, defender, match) {
+    // Immediate exit guard if combat is already finished
+    if (attacker.hp <= 0 || defender.hp <= 0) return;
+
+    if (match.turn === BALANCING_CONFIG.ARMOR_DECAY_START_TURN) {
+        match.logs.push(`<span class="log-slow">🛡️ Combat Escalation: Armor degradation begins! (-${(BALANCING_CONFIG.ARMOR_DECAY_PER_TURN * 100).toFixed(0)}%/turn)</span>`);
+    }
+    if (match.turn === BALANCING_CONFIG.FATIGUE_START_TURN) {
+        match.logs.push(`<span class="log-slow">🥀 Combat Fatigue sets in: Healing efficiency begins decaying! (-${(BALANCING_CONFIG.HEAL_DECAY_PER_TURN * 100).toFixed(0)}%/turn)</span>`);
+    }
+
+    if (attacker.techniqueCooldown > 0) attacker.techniqueCooldown--;
+
+    if (attacker.activeBuffs.duration > 0) {
+        attacker.activeBuffs.duration--;
+        if (attacker.activeBuffs.duration === 0) {
+            attacker.activeBuffs.physResMult = 1.0;
+            attacker.activeBuffs.evasionBonus = 0;
+            attacker.activeBuffs.critBonus = 0;
+        }
+    }
+
+    if (attacker.damageType === 'pure magic' || attacker.damageType.startsWith('hybrid')) {
+        attacker.mp = Math.min(attacker.maxMp, attacker.mp + attacker.rawStats.resolve * 0.1);
+    }
+
+    if ((attacker.race.toLowerCase().includes("orc") || attacker.race.toLowerCase().includes("goliath")) && !attacker.berserkActive && (attacker.hp / attacker.maxHp) < 0.3) {
+        attacker.berserkActive = true;
+        attacker.physDmg *= 1.25;
+        match.logs.push(`<span class="log-tech">${attacker.name}'s Racial Instinct triggers BERSERK! Damage boosted!</span>`);
+    }
+
+    if (defender.boostApplied) {
+        defender.defenseBoostDuration--;
+        if (defender.defenseBoostDuration <= 0) {
+            defender.physRes /= defender.appliedResBoost;
+            defender.magRes /= defender.appliedResBoost;
+            defender.boostApplied = false;
+            defender.appliedResBoost = 1.0;
+        }
+    }
+
+    match.logs.push(`<div class="log-turn">--- Turn ${match.turn}: ${attacker.name}'s Action ---</div>`);
+
+    let hitsThisTurn = calculateAttackChain(attacker.attackSpeed);
+
+    if (hitsThisTurn === 0) {
+        match.logs.push(`<span class="log-slow">⏳ ${attacker.name} was too slow to react this turn! (AS: ${attacker.attackSpeed.toFixed(1)})</span>`);
+        return;
+    }
+
+    let primaryMpCost = 0;
+    if (attacker.damageType === 'pure magic') primaryMpCost = 25;
+    else if (attacker.damageType === 'hybrid A') primaryMpCost = 15;
+    else if (attacker.damageType === 'hybrid B') primaryMpCost = 20;
+
+    if (attacker.damageType !== 'pure physical' && attacker.mp < primaryMpCost) {
+        let mpRecovered = attacker.rawStats.resolve * 6;
+        attacker.mp = Math.min(attacker.maxMp, attacker.mp + mpRecovered);
+        applyDefenseBoost(attacker, 1.5, 2);
+        match.logs.push(`<span class="log-system">🔮 ${attacker.name} has insufficient mana (${attacker.mp.toFixed(1)} MP) for a spell/hybrid strike! Takes a defensive stance and recovers +${mpRecovered.toFixed(1)} MP.</span>`);
+        return;
+    }
+
+    let isTechniqueTurn = false;
+    let techSpec = attacker.techniqueSpec;
+
+    if (attacker.techniqueCooldown === 0) {
+        isTechniqueTurn = true;
+        attacker.techniqueCooldown = techSpec.cooldown;
+
+        let techDisplayName = attacker.technique && attacker.technique !== "nothing" 
+            ? attacker.technique 
+            : techSpec.name;
+
+        match.logs.push(`<span class="log-tech">✨ ${attacker.name} executes Technique: [${techDisplayName}]! (Cooldown: ${techSpec.cooldown}t)</span>`);
+
+        if (techSpec.type === "extra_hits") {
+            hitsThisTurn += techSpec.bonusHits || 1;
+        } else if (techSpec.type === "ultimate_def") {
+            const resBoost = techSpec.resBoost || 1.5;
+            applyDefenseBoost(attacker, resBoost, 2);
+
+            let healAmt = attacker.maxHp * (techSpec.healPct || 0.12) * getHealEfficiency(match.turn);
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+
+            let fatigueTag = getHealEfficiency(match.turn) < 1.0 ? ` <span class="log-slow">(${Math.round(getHealEfficiency(match.turn)*100)}% Heal Eff.)</span>` : '';
+            match.logs.push(`<span class="log-block">🛡️ [${techDisplayName}]: Armor boosted ${resBoost}x and recovered +${healAmt.toFixed(1)} HP!${fatigueTag}</span>`);
+        } else if (techSpec.type === "tank_strike" && techSpec.physResBuff) {
+            attacker.activeBuffs.physResMult = techSpec.physResBuff;
+            attacker.activeBuffs.duration = techSpec.buffTurns || 2;
+        } else if (techSpec.type === "tactical") {
+            if (techSpec.evadeBuff) attacker.activeBuffs.evasionBonus = techSpec.evadeBuff;
+            if (techSpec.critBuff) attacker.activeBuffs.critBonus = techSpec.critBuff;
+            attacker.activeBuffs.duration = techSpec.buffTurns || 2;
+            match.logs.push(`<span class="log-tech">⚡ Gained Tactical Evasion & Crit Buff for ${techSpec.buffTurns} turns!</span>`);
+        } else if (techSpec.type === "utility_magic") {
+            if (techSpec.mpDrain) {
+                let drained = Math.min(defender.mp, techSpec.mpDrain);
+                defender.mp -= drained;
+                attacker.mp = Math.min(attacker.maxMp, attacker.mp + drained);
+                match.logs.push(`<span class="log-magic">🔮 Drained ${drained.toFixed(1)} MP from ${defender.name}!</span>`);
+            }
+            if (techSpec.healPct) {
+                let healAmt = attacker.maxHp * techSpec.healPct * getHealEfficiency(match.turn);
+                attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+                match.logs.push(`<span class="log-block">❤️ Recovered +${healAmt.toFixed(1)} HP!</span>`);
+            }
+        }
+    }
+
+    let attackSummaryHeader = hitsThisTurn === 1 ? `1 strike` : `${hitsThisTurn} times in a rapid combo!`;
+    match.logs.push(`⚔️ <strong>${attacker.name}</strong> attacks ${attackSummaryHeader}`);
+
+    for (let i = 0; i < hitsThisTurn; i++) {
+        if (defender.hp <= 0) break;
+
+        let attackType = 'physical';
+        let baseDamage = attacker.physDmg;
+        let mpCost = 0;
+        let isFallbackPhysical = false;
+
+        if (attacker.damageType === 'pure magic') {
+            attackType = 'magic';
+            baseDamage = attacker.magDmg;
+            mpCost = 25;
+        } else if (attacker.damageType === 'hybrid A') {
+            attackType = 'hybridA';
+            baseDamage = attacker.hybridADamage;
+            mpCost = 15;
+        } else if (attacker.damageType === 'hybrid B') {
+            attackType = 'hybridB';
+            baseDamage = attacker.hybridBDamage;
+            mpCost = 20;
+        }
+
+        if (attacker.damageType !== 'pure physical' && attacker.mp < mpCost) {
+            isFallbackPhysical = true;
+            mpCost = 0;
+            if (attacker.damageType === 'pure magic') {
+                attackType = 'physical';
+                baseDamage = attacker.physDmg * 0.8;
+            } else {
+                attackType = 'physical';
+                baseDamage = attacker.physDmg;
+            }
+        } else {
+            attacker.mp -= mpCost;
+        }
+
+        let effectiveEvasion = defender.evasion + defender.activeBuffs.evasionBonus;
+        let isDodge = Math.random() < (effectiveEvasion - attacker.rawStats.perception * 0.2) / 100;
+        let isParry = !isDodge && Math.random() < (defender.parryChance / 100);
+        let isBlock = !isDodge && !isParry && Math.random() < (defender.blockChance / 100);
+
+        if (isTechniqueTurn) {
+            if (techSpec.ignoreDefenses || techSpec.ignoreEvasion) {
+                isDodge = false;
+                isParry = false;
+                if (techSpec.ignoreDefenses) isBlock = false;
+            }
+        }
+
+        let ordinalPrefix = i === 0 ? "First" : (i === 1 ? "Then" : "Then again");
+
+        if (isDodge) {
+            match.logs.push(`<span class="log-dodge">💨 ${ordinalPrefix}, ${defender.name} swiftly dodged the attack!</span>`);
+            continue;
+        }
+
+        if (isParry) {
+            match.logs.push(`<span class="log-block">⚔️ ${ordinalPrefix}, ${defender.name} parried the strike with their weapon!</span>`);
+            continue;
+        }
+
+        let effectiveCritChance = attacker.critChance + attacker.activeBuffs.critBonus;
+        if (isTechniqueTurn && techSpec.critChanceBonus) effectiveCritChance += techSpec.critChanceBonus;
+
+        let isCrit = Math.random() < (effectiveCritChance / 100);
+        if (isTechniqueTurn && techSpec.guaranteeCrit) isCrit = true;
+
+        let finalDmg = baseDamage * Math.max(0.6, (1 - (i * 0.10)));
+
+        if (isCrit) finalDmg *= attacker.critMult;
+        if (isTechniqueTurn && techSpec.dmgMult) finalDmg *= techSpec.dmgMult;
+
+        // Mitigation Calculations with Slow Armor Decay
+        let currentArmorEff = getArmorEfficiency(match.turn);
+        let effPhysRes = (defender.physRes * defender.activeBuffs.physResMult) * currentArmorEff;
+        let effMagRes = defender.magRes * currentArmorEff;
+
+        if (isTechniqueTurn && techSpec.armorPen) effPhysRes *= (1 - techSpec.armorPen);
+        if (isTechniqueTurn && techSpec.magPen) effMagRes *= (1 - techSpec.magPen);
+
+        let mitigation = attackType === 'magic' ? effMagRes : effPhysRes;
+        if (attackType.startsWith('hybrid')) mitigation = (effPhysRes + effMagRes) * 0.5;
+
+        // Damage Floor Penetration
+        let minPenetrationFloor = baseDamage * BALANCING_CONFIG.BASE_DAMAGE_PENETRATION_PCT;
+        finalDmg = Math.max(minPenetrationFloor, finalDmg - mitigation);
+
+        let fallbackTag = isFallbackPhysical ? ` <span class="log-slow">(Low MP: Physical Fallback)</span>` : '';
+
+        if (isBlock) {
+            finalDmg *= 0.3;
+            match.logs.push(`<span class="log-block">🛡️ ${ordinalPrefix}, ${defender.name} raised their shield! Took reduced ${finalDmg.toFixed(1)} ${attackType} damage.${fallbackTag}</span>`);
+        } else {
+            let dmgClass = attackType === 'magic' ? 'log-magic' : (attackType.startsWith('hybrid') ? 'log-hybrid' : 'log-phys');
+            let critText = isCrit ? `<span class="log-crit">(CRITICAL HIT!)</span>` : '';
+            
+            if (i === 0) {
+                match.logs.push(`• He dealt <span class="${dmgClass}">${finalDmg.toFixed(1)} ${attackType} damage</span>.${fallbackTag} ${critText}`);
+            } else {
+                match.logs.push(`• He dealt another <span class="${dmgClass}">${finalDmg.toFixed(1)} ${attackType} damage</span>!${fallbackTag} ${critText}`);
+            }
+        }
+
+        if (isTechniqueTurn && techSpec.lifestealPct) {
+            let healed = finalDmg * techSpec.lifestealPct * getHealEfficiency(match.turn);
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + healed);
+            match.logs.push(`<span class="log-block">❤️ Lifestealed +${healed.toFixed(1)} HP!</span>`);
+        }
+
+        defender.hp -= finalDmg;
+        attacker.totalDamageDealt += finalDmg;
+    }
+
+    if (activeWatchedBattle === match) {
+        updateLiveBattleModal(match);
+    }
+}
+
+// Resolve Battle Outcome & Stat Points
+function resolveBattleEnd(winner, loser, match) {
+    winner.wins++;
+    const badge = document.getElementById(`badge-${winner.key}`);
+    if (badge) {
+        badge.innerText = winner.wins;
+        badge.style.display = 'block';
+    }
+
+    const tierDiff = loser.tierInfo.rank - winner.tierInfo.rank;
+    const pointsGained = 1 + Math.max(0, tierDiff);
+
+    winner.allocateStatPoints(pointsGained);
+    winner.state = 'moving';
+    winner.element.classList.remove('battling');
+    winner.currentMatchLog = null;
+
+    const matchRecord = {
+        opponentName: loser.name,
+        opponentClass: loser.combatClass,
+        result: 'Victory',
+        pointsGained,
+        logs: [...match.logs]
+    };
+    winner.matchHistory.push(matchRecord);
+
+    loser.matchHistory.push({
+        opponentName: winner.name,
+        opponentClass: winner.combatClass,
+        result: 'Defeat',
+        pointsGained: 0,
+        logs: [...match.logs]
+    });
+
+    loser.eliminatedBy = winner.name;
+    loser.placement = entities.filter(e => e.state !== 'dead').length;
+    loser.destroy();
+
+    updateTicker(`🏆 ${winner.name} defeated ${loser.name}! Gained +${pointsGained} stats & restored to Full HP!`);
+
+    if (activeWatchedBattle === match) {
+        closeModal('battleModal');
+    }
+}
+
+// Controls Logic
+function togglePause() {
+    isPaused = !isPaused;
+    document.getElementById('pauseBtn').innerText = isPaused ? "▶️ Resume" : "Pause";
+    updateTicker(isPaused ? "⏸️ Simulation Paused" : "▶️ Simulation Resumed");
+}
+
+function changeSpeed() {
+    simSpeed = parseFloat(document.getElementById('simSpeedSelect').value);
+}
+
+function updateAliveCount() {
+    const alive = entities.filter(e => e.state !== 'dead').length;
+    document.getElementById('aliveCount').innerText = alive;
+}
+
+function updateTicker(msg) {
+    document.getElementById('tickerBar').innerText = msg;
+}
+
+// Modals & Battle Report Table
+function showReportModal() {
+    renderReportTable();
+    document.getElementById('reportModal').style.display = 'flex';
+}
+
+function renderReportTable() {
+    const search = document.getElementById('reportSearch').value.toLowerCase();
+    const sortBy = document.getElementById('reportSort').value;
+    const tbody = document.getElementById('reportTableBody');
+    tbody.innerHTML = '';
+
+    let list = [...entities];
+
+    if (search) {
+        list = list.filter(e => e.name.toLowerCase().includes(search) || e.combatClass.toLowerCase().includes(search));
+    }
+
+    list.sort((a, b) => {
+        if (sortBy === 'wins') return b.wins - a.wins;
+        if (sortBy === 'points') return b.bonusStatsGained - a.bonusStatsGained;
+        if (sortBy === 'damage') return b.totalDamageDealt - a.totalDamageDealt;
+        if (sortBy === 'tier') return b.tierInfo.rank - a.tierInfo.rank;
+        if (sortBy === 'name') return a.name.localeCompare(b.name);
+        if (sortBy === 'status') {
+            if (a.state !== 'dead' && b.state === 'dead') return -1;
+            if (a.state === 'dead' && b.state !== 'dead') return 1;
+            return a.placement - b.placement;
+        }
+        return 0;
+    });
+
+    list.forEach((e, idx) => {
+        const tr = document.createElement('tr');
+        const statusText = e.state !== 'dead' ? '<span style="color:#1dd1a1;">🟢 Alive</span>' : `<span style="color:#ef476f;">🔴 Defeated by ${e.eliminatedBy || 'Unknown'}</span>`;
+
+        tr.innerHTML = `
+            <td>#${e.state === 'dead' ? e.placement : idx + 1}</td>
+            <td style="text-align:left; display:flex; align-items:center; gap:6px;">
+                <img src="${e.pixelArtImage}" style="width:20px; height:20px; border-radius:50%;">
+                <strong>${e.name}</strong>
+            </td>
+            <td>${e.combatClass} (${e.race})</td>
+            <td>${statusText}</td>
+            <td><strong>${e.wins}</strong></td>
+            <td>+${e.bonusStatsGained}</td>
+            <td>${Math.round(e.totalDamageDealt)}</td>
+            <td><button class="btn" style="padding:2px 6px; font-size:11px;" onclick="showInfoModalByKey('${e.key}')">Inspect</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function showInfoModalByKey(key) {
+    const entity = entities.find(e => e.key === key);
+    if (entity) showInfoModal(entity);
+}
+
+function showInfoModal(entity) {
+    const content = document.getElementById('infoModalContent');
+    
+    const renderStat = (name, val, alloc) => `
+        <p><strong>${name}:</strong> ${val} ${alloc > 0 ? `<span class="stat-plus">(+${alloc})</span>` : ''}</p>
+    `;
+
+    content.innerHTML = `
+        <div style="text-align:center;">
+            <img src="${entity.pixelArtImage}" style="width:70px; height:70px; border-radius:50%; border:3px solid #ffd166;">
+            <h2 style="margin:5px 0;">${entity.name}</h2>
+            <p style="margin:0; color:#d8c7a7;">${entity.race} ${entity.combatClass} | Potential: ${entity.potential}</p>
+            <p style="color:#1dd1a1; font-weight:bold;">Victories: ${entity.wins} | Total Points Gained: +${entity.bonusStatsGained}</p>
+        </div>
+        <hr style="border-color:#6d5c4b;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:12px;">
+            ${renderStat('Strength', entity.rawStats.strength, entity.statAllocations.strength)}
+            ${renderStat('Constitution', entity.rawStats.constitution, entity.statAllocations.constitution)}
+            ${renderStat('Dexterity', entity.rawStats.dexterity, entity.statAllocations.dexterity)}
+            ${renderStat('Intelligence', entity.rawStats.intelligence, entity.statAllocations.intelligence)}
+            ${renderStat('Resolve', entity.rawStats.resolve, entity.statAllocations.resolve)}
+            ${renderStat('Perception', entity.rawStats.perception, entity.statAllocations.perception)}
+        </div>
+        <hr style="border-color:#6d5c4b;">
+        <p style="font-size:12px;"><strong>Main Hand:</strong> ${entity.mainHand}</p>
+        <p style="font-size:12px;"><strong>Offhand:</strong> ${entity.offHand}</p>
+        <p style="font-size:12px;"><strong>Technique:</strong> ${entity.technique}</p>
+        
+        <h4 style="margin:10px 0 5px 0; color:#ffd166;">Fight History (${entity.matchHistory.length})</h4>
+        <div style="max-height:120px; overflow-y:auto; font-size:11px; background:#2b211a; padding:6px; border-radius:4px;">
+            ${entity.matchHistory.length === 0 ? '<p style="margin:0;">No fights engaged yet.</p>' : 
+                entity.matchHistory.map(m => `
+                    <p style="margin:3px 0;">VS <strong>${m.opponentName}</strong> (${m.opponentClass}) - 
+                    <span style="color:${m.result === 'Victory' ? '#1dd1a1' : '#ef476f'};">${m.result}</span> 
+                    ${m.pointsGained > 0 ? `(+${m.pointsGained} stats)` : ''}</p>
+                `).join('')
+            }
+        </div>
+    `;
+    document.getElementById('infoModal').style.display = 'flex';
+}
+
+function showBattleModal(match) {
+    activeWatchedBattle = match;
+    document.getElementById('battleModalTitle').innerText = `${match.f1.name} VS ${match.f2.name}`;
+    updateLiveBattleModal(match);
+    document.getElementById('battleModal').style.display = 'flex';
+}
+
+function updateLiveBattleModal(match) {
+    const content = document.getElementById('battleModalContent');
+    content.innerHTML = `
+        <div style="display:flex; justify-content:space-between; text-align:center;">
+            <div>
+                <strong>${match.f1.name}</strong>
+                <p style="color:#e84a5f; margin:2px 0;">HP: ${Math.max(0, match.f1.hp.toFixed(1))}/${match.f1.maxHp}</p>
+            </div>
+            <div style="font-size:18px; font-weight:bold; color:#ffd166;">VS</div>
+            <div>
+                <strong>${match.f2.name}</strong>
+                <p style="color:#e84a5f; margin:2px 0;">HP: ${Math.max(0, match.f2.hp.toFixed(1))}/${match.f2.maxHp}</p>
+            </div>
+        </div>
+        <div class="battle-spectator-log" id="spectatorLog">
+            ${match.logs.map(l => `<p style="margin:2px 0;">${l}</p>`).join('')}
+        </div>
+    `;
+    const logBox = document.getElementById('spectatorLog');
+    if (logBox) logBox.scrollTop = logBox.scrollHeight;
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    if (modalId === 'battleModal') activeWatchedBattle = null;
+}
+
+// Victory Screen
+function triggerVictory(winner) {
+    document.getElementById('winnerEmblem').src = winner.pixelArtImage;
+    document.getElementById('winnerName').innerText = winner.name;
+    document.getElementById('winnerTitle').innerText = `${winner.race} ${winner.combatClass} — Undefeated Grand Champion!`;
+
+    document.getElementById('winnerStats').innerHTML = `
+        <p style="color:#ffd166; font-size:15px; margin:4px 0;"><strong>Total Victories: ${winner.wins} Defeats</strong></p>
+        <p style="margin:4px 0;"><strong>Stat Points Gained:</strong> +${winner.bonusStatsGained}</p>
+        <p style="margin:4px 0;"><strong>Total Damage Dealt:</strong> ${Math.round(winner.totalDamageDealt)}</p>
+        <hr style="border-color:#6d5c4b;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:12px;">
+            <span>Strength: ${winner.rawStats.strength} (+${winner.statAllocations.strength})</span>
+            <span>Constitution: ${winner.rawStats.constitution} (+${winner.statAllocations.constitution})</span>
+            <span>Dexterity: ${winner.rawStats.dexterity} (+${winner.statAllocations.dexterity})</span>
+            <span>Intelligence: ${winner.rawStats.intelligence} (+${winner.statAllocations.intelligence})</span>
+            <span>Resolve: ${winner.rawStats.resolve} (+${winner.statAllocations.resolve})</span>
+            <span>Perception: ${winner.rawStats.perception} (+${winner.statAllocations.perception})</span>
+        </div>
+    `;
+
+    document.getElementById('victoryModal').style.display = 'flex';
+    document.getElementById('startBtn').innerText = "Restart Royale";
+    updateTicker(`🏆 CHAMPION CROWNED: ${winner.name} won the Arena Tournament!`);
+}
+</script>
+</body>
+</html>

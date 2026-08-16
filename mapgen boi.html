@@ -1,0 +1,4509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5K UHD 3-Tier Zone & Settlement Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cinzel', 'Georgia', serif;
+      background-color: #0c0c0e;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 15px;
+    }
+    h1 {
+      margin-bottom: 12px;
+      color: #d4af37;
+      font-size: 2.1rem;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 8px #000;
+    }
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-width: 1950px;
+      width: 100%;
+      background: #18181d;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 10px 32px rgba(0,0,0,0.85);
+      border: 1px solid #2a2a32;
+    }
+    .controls-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      background: #101013;
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      align-items: end;
+      font-family: 'Georgia', serif;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    label {
+      font-size: 0.8rem;
+      color: #c5a059;
+      font-weight: bold;
+    }
+    input, select, button {
+      padding: 8px 10px;
+      background: #1a1a1e;
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-family: 'Georgia', serif;
+    }
+    input:focus, select:focus { outline: none; border-color: #d4af37; }
+    button {
+      background: #d4af37;
+      color: #121214;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover { background: #f3ca52; transform: translateY(-1px); }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 6px;
+    }
+    .checkbox-group input { cursor: pointer; }
+    
+    /* Interactive Map Viewport with Deep Zoom */
+    .map-wrapper {
+      position: relative;
+      width: 100%;
+      height: 80vh;
+      background: #060608;
+      border-radius: 8px;
+      border: 2px solid #282832;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+    }
+    .map-wrapper:active { cursor: grabbing; }
+
+.main-canvas-wrapper {
+      position: relative;
+      transform-origin: center center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: min(92vw, calc(78vh * 16 / 9));
+      height: min(78vh, calc(92vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      flex-shrink: 0;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.8);
+      border-radius: 4px;
+      will-change: transform;
+      backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #mapCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      pointer-events: none;
+      image-rendering: auto;
+    }
+
+    #mapSvgOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    /* Vector SVG Typography */
+    .map-text {
+      font-family: 'Cinzel', 'Palatino Linotype', 'Georgia', serif;
+      text-anchor: middle;
+      dominant-baseline: central;
+      paint-order: stroke fill;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      stroke-miterlimit: 2;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* On-Map HUD */
+    .map-hud {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      display: flex;
+      gap: 8px;
+      background: rgba(18, 18, 22, 0.88);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid #d4af37;
+      z-index: 5;
+      align-items: center;
+      backdrop-filter: blur(4px);
+      font-family: 'Georgia', serif;
+    }
+    .map-hud span {
+      color: #d4af37;
+      font-size: 0.85rem;
+      font-weight: bold;
+      min-width: 55px;
+      text-align: center;
+    }
+    .map-hud button {
+      padding: 4px 10px;
+      font-size: 0.85rem;
+    }
+
+    /* Interactive Tooltip */
+    .map-tooltip {
+      position: absolute;
+      background: rgba(12, 12, 16, 0.95);
+      border: 1px solid #d4af37;
+      border-radius: 6px;
+      padding: 8px 14px;
+      color: #fff;
+      font-family: 'Georgia', serif;
+      pointer-events: none;
+      z-index: 50;
+      display: none;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.9);
+      transform: translate(-50%, -130%);
+      white-space: nowrap;
+      text-align: center;
+    }
+    .tt-title { font-size: 1.05rem; font-weight: bold; color: #f1c40f; margin-bottom: 2px; }
+    .tt-type { font-size: 0.82rem; color: #74b9ff; margin-bottom: 2px; }
+    .tt-realm { font-size: 0.75rem; color: #aaa; }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 10, 14, 0.92);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .loading-overlay.active { opacity: 1; pointer-events: auto; }
+    .spinner {
+      width: 55px; height: 55px;
+      border: 4px solid rgba(212, 175, 55, 0.2);
+      border-top-color: #d4af37;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 1.2rem; color: #d4af37; font-weight: bold; text-shadow: 0 2px 4px #000; }
+
+    /* Fullscreen Deep Zoom Modal */
+    .zoom-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #050507;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .zoom-modal.active { display: flex; }
+    .zoom-header {
+      position: absolute;
+      top: 15px; left: 20px; right: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 110; pointer-events: none;
+      font-family: 'Cinzel', 'Georgia', serif;
+    }
+    .zoom-controls-hud {
+      pointer-events: auto;
+      display: flex; gap: 10px; background: rgba(18, 18, 22, 0.85);
+      padding: 8px 15px; border-radius: 8px; border: 1px solid #d4af37;
+      font-family: 'Georgia', serif;
+    }
+    .zoom-viewport {
+      flex: 1; width: 100%; height: 100%;
+      display: flex; justify-content: center; align-items: center;
+      cursor: grab; user-select: none;
+      overflow: hidden;
+    }
+    .zoom-viewport:active { cursor: grabbing; }
+   .zoom-canvas-wrapper {
+      position: relative;
+      transform-origin: center center;
+      width: min(92vw, calc(86vh * 16 / 9));
+      height: min(86vh, calc(92vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      flex-shrink: 0;
+      box-shadow: 0 0 40px rgba(0,0,0,0.9);
+      border-radius: 6px;
+      will-change: transform;
+      backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #zoomCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      pointer-events: none;
+    }
+    #zoomSvgOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      pointer-events: none;
+      overflow: visible;
+    }
+    /* --- Interactive Text Label Checklist Dropdown --- */
+    .label-menu-container {
+      position: relative;
+    }
+    .label-dropdown-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      width: 310px;
+      background: #14141a;
+      border: 1px solid #d4af37;
+      border-radius: 8px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.95);
+      padding: 12px 14px;
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      gap: 7px;
+      font-family: 'Georgia', serif;
+    }
+    .label-dropdown-panel.active {
+      display: flex;
+    }
+    .dropdown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      color: #d4af37;
+      font-size: 0.85rem;
+      border-bottom: 1px solid #2e2e38;
+      padding-bottom: 6px;
+    }
+    .dropdown-section-title {
+      font-size: 0.72rem;
+      color: #74b9ff;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .dropdown-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 8px;
+    }
+    .dropdown-grid label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ddd;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: normal;
+    }
+    .dropdown-grid input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #d4af37;
+    }
+    .mini-btn {
+      padding: 2px 7px;
+      font-size: 0.72rem;
+      background: #2a2a35;
+      color: #ddd;
+      border: 1px solid #444;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .mini-btn:hover {
+      background: #d4af37;
+      color: #000;
+    }
+    /* --- Slide-in Location Directory Sidebar --- */
+    .location-sidebar {
+      position: fixed;
+      top: 0;
+      right: -440px;
+      width: 420px;
+      max-width: 90vw;
+      height: 100vh;
+      background: #121217;
+      border-left: 2px solid #d4af37;
+      box-shadow: -8px 0 35px rgba(0,0,0,0.9);
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      font-family: 'Georgia', serif;
+    }
+    .location-sidebar.active {
+      right: 0;
+    }
+    .sidebar-header {
+      padding: 16px 20px;
+      background: #0a0a0d;
+      border-bottom: 1px solid #2e2e38;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-header h3 {
+      color: #d4af37;
+      font-size: 1.15rem;
+      font-family: 'Cinzel', serif;
+      letter-spacing: 1px;
+    }
+    .close-sidebar-btn {
+      background: transparent;
+      border: none;
+      color: #aaa;
+      font-size: 1.6rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .close-sidebar-btn:hover {
+      color: #ff7675;
+      background: rgba(255,255,255,0.05);
+      transform: none;
+    }
+    .sidebar-controls {
+      padding: 12px 16px;
+      background: #181820;
+      border-bottom: 1px solid #2a2a35;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sidebar-search-input {
+      width: 100%;
+      padding: 8px 12px;
+      background: #0e0e12;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+    .sidebar-search-input:focus {
+      outline: none;
+      border-color: #d4af37;
+    }
+    .sidebar-filter-row {
+      display: flex;
+      gap: 8px;
+    }
+    .sidebar-filter-row select {
+      flex: 1;
+      padding: 6px 8px;
+      background: #0e0e12;
+      border: 1px solid #444;
+      color: #ddd;
+      border-radius: 5px;
+      font-size: 0.8rem;
+    }
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-item {
+      background: #1a1a22;
+      border: 1px solid #2e2e3c;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .sidebar-item:hover {
+      background: #23232e;
+      border-color: #d4af37;
+    }
+    .item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+      padding-right: 8px;
+    }
+    .item-name {
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item-type-badge {
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .item-realm {
+      font-size: 0.7rem;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .locate-btn {
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      border-radius: 5px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .locate-btn:hover {
+      background: #2ecc71;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>5K UHD 3-Tier Zone & Settlement Generator</h1>
+
+  <div class="main-container">
+    <div class="controls-bar">
+      <div class="control-group">
+        <label for="seed">World Seed:</label>
+        <div style="display: flex; gap: 5px; width: 100%; align-items: center;">
+          <input type="text" id="seed" value="Aethelgard" style="flex: 1; min-width: 0;">
+          <button id="randomSeedBtn" style="flex-shrink: 0; width: 42px; text-align: center;">🎲</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="mapType">Land Formation:</label>
+        <select id="mapType">
+          <option value="continents">Continents</option>
+          <option value="archipelago">Archipelago</option>
+          <option value="pangaea">Pangaea</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="style">Visual Theme:</label>
+        <select id="style">
+          <option value="biomes">Realistic Biomes</option>
+          <option value="parchment">Parchment / Vintage</option>
+          <option value="dark">Dark Fantasy</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="realms">Grand Zones: <span id="realmsVal">5</span></label>
+        <input type="range" id="realms" min="2" max="20" value="5">
+      </div>
+
+      <div class="control-group">
+        <label for="rivers">Major Rivers: <span id="riversVal">12</span></label>
+        <input type="range" id="rivers" min="0" max="50" value="12">
+      </div>
+
+      <div class="control-group">
+        <label for="poiDensity">Settlements & POIs: <span id="poiVal">500</span></label>
+        <input type="range" id="poiDensity" min="20" max="1000" value="500">
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showGrand" checked>
+        <label for="showGrand">Grand Zones</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showMed">
+        <label for="showMed">Medium Zones</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showSmall">
+        <label for="showSmall">Small Zones</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showRoads" checked>
+        <label for="showRoads">Roads & Routes</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showMountains" checked>
+        <label for="showMountains">Mountains</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showHillshade" checked>
+        <label for="showHillshade">3D Hillshade</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showPois" checked>
+        <label for="showPois">Settlements</label>
+      </div>
+
+<div class="label-menu-container">
+        <button id="labelMenuBtn" type="button" style="background: #2c3e50; color: #fff; padding: 8px 12px; font-size: 0.85rem;">🏷️ Text Labels ▼</button>
+        <div id="labelMenuDropdown" class="label-dropdown-panel">
+          <div class="dropdown-header">
+            <span>Label Visibility</span>
+            <div style="display: flex; gap: 5px;">
+              <button id="lblSelectAll" type="button" class="mini-btn">All</button>
+              <button id="lblDeselectAll" type="button" class="mini-btn">None</button>
+            </div>
+          </div>
+          
+          <div class="dropdown-section-title">Realm &amp; Zone Titles</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_grand" checked> Grand Zones</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_med" checked> Medium Zones</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_small" checked> Small Zones</label>
+          </div>
+
+          <div class="dropdown-section-title">Major Settlements</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_capital" checked> Capitals</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_city" checked> Major Cities</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_town" checked> Walled Towns</label>
+          </div>
+
+          <div class="dropdown-section-title">Rural Settlements</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_village" checked> Villages</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_hamlet" checked> Hamlets</label>
+          </div>
+
+          <div class="dropdown-section-title">Strategic &amp; Resource POIs</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_port" checked> Coastal Ports</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_fort" checked> Border Forts</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_spire" checked> Arcane Spires</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_mine" checked> Mines</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_ruins" checked> Ancient Ruins</label>
+          </div>
+        </div>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="showLegend" checked>
+        <label for="showLegend">Map Legend</label>
+      </div>
+
+      <button id="generateBtn" style="padding: 10px; font-size: 0.95rem;">Generate 5K Map</button>
+      <button id="zoomBtn" style="background: #27ae60; color: white; padding: 10px;">🔍 Fullscreen Zoom</button>
+      <button id="downloadBtn" style="background: #3a7bd5; color: white; padding: 10px;">Download PNG</button>
+      <button id="downloadSvgBtn" style="background: #8e44ad; color: white; padding: 10px;">Download SVG</button>
+      <button id="openSidebarBtn" style="background: #e67e22; color: white; padding: 10px;">📋 Location Directory</button>
+    </div>
+
+    <div class="map-wrapper" id="mainMapViewport">
+      <div class="map-hud">
+        <span id="mainZoomBadge">100%</span>
+        <button id="mainZoomInBtn" title="Zoom In">+</button>
+        <button id="mainZoomOutBtn" title="Zoom Out">−</button>
+        <button id="mainZoomResetBtn" title="Reset View">⟲</button>
+      </div>
+
+      <div id="mapTooltip" class="map-tooltip">
+        <div class="tt-title" id="ttTitle">Whiteford</div>
+        <div class="tt-type" id="ttType">Walled Town (Barony Seat)</div>
+        <div class="tt-realm" id="ttRealm">Grand Duchy of Eldglen</div>
+      </div>
+
+      <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loadingText" class="loading-text">Generating 5K World...</div>
+      </div>
+
+      <div id="mainCanvasWrapper" class="main-canvas-wrapper">
+        <canvas id="mapCanvas" width="5120" height="2880"></canvas>
+        <svg id="mapSvgOverlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5120 2880" width="5120" height="2880"></svg>
+      </div>
+    </div>
+  </div>
+<!-- Slide-in Location Directory Sidebar -->
+  <div id="locationSidebar" class="location-sidebar">
+    <div class="sidebar-header">
+      <h3>Location Directory (<span id="sidebarCount">0</span>)</h3>
+      <button id="closeSidebarBtn" class="close-sidebar-btn">&times;</button>
+    </div>
+    <div class="sidebar-controls">
+      <input type="text" id="sidebarSearch" class="sidebar-search-input" placeholder="🔍 Search by name or realm..." />
+      <div class="sidebar-filter-row">
+        <select id="sidebarTypeFilter">
+          <option value="all">All Settlement Types</option>
+          <option value="capital">Capitals</option>
+          <option value="city">Major Cities</option>
+          <option value="town">Walled Towns</option>
+          <option value="village">Villages</option>
+          <option value="hamlet">Hamlets</option>
+          <option value="port">Coastal Ports</option>
+          <option value="fort">Citadels / Forts</option>
+          <option value="spire">Arcane Spires</option>
+          <option value="mine">Mines</option>
+          <option value="ruins">Ruins</option>
+        </select>
+        <select id="sidebarSort">
+          <option value="tier">Sort: Importance</option>
+          <option value="name_asc">Sort: Name (A-Z)</option>
+          <option value="name_desc">Sort: Name (Z-A)</option>
+          <option value="realm">Sort: Realm</option>
+        </select>
+      </div>
+    </div>
+    <div id="sidebarList" class="sidebar-list"></div>
+  </div>
+  <!-- Fullscreen Deep Zoom Modal -->
+  <div id="zoomModal" class="zoom-modal">
+    <div class="zoom-header">
+      <div style="font-size: 1.2rem; color: #d4af37; font-weight: bold; text-shadow: 0 2px 4px #000;">
+        Interactive 5K Deep Zoom Viewer (Up to 25x)
+      </div>
+      <div class="zoom-controls-hud">
+        <span style="color: #ccc; font-size: 0.85rem; align-self: center;">Wheel to Zoom • Drag to Pan</span>
+        <button id="resetZoomBtn" style="padding: 5px 12px;">Reset View</button>
+        <button id="closeZoomBtn" style="background: #c0392b; color: white; padding: 5px 12px;">Close</button>
+      </div>
+    </div>
+    <div id="zoomViewport" class="zoom-viewport">
+      <div id="zoomCanvasWrapper" class="zoom-canvas-wrapper">
+        <canvas id="zoomCanvas" width="5120" height="2880"></canvas>
+        <svg id="zoomSvgOverlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5120 2880" width="5120" height="2880"></svg>
+      </div>
+    </div>
+  </div>
+
+<script>
+// --- Priority Queue ---
+class PriorityQueue {
+  constructor() { this.nodes = []; }
+  push(element, priority) {
+    this.nodes.push({element, priority});
+    this.bubbleUp(this.nodes.length - 1);
+  }
+  pop() {
+    const min = this.nodes[0];
+    const end = this.nodes.pop();
+    if (this.nodes.length > 0) {
+      this.nodes[0] = end;
+      this.sinkDown(0);
+    }
+    return min ? min.element : null;
+  }
+  bubbleUp(n) {
+    const element = this.nodes[n];
+    while (n > 0) {
+      let parentN = Math.floor((n + 1) / 2) - 1;
+      let parent = this.nodes[parentN];
+      if (element.priority >= parent.priority) break;
+      this.nodes[parentN] = element;
+      this.nodes[n] = parent;
+      n = parentN;
+    }
+  }
+  sinkDown(n) {
+    const length = this.nodes.length;
+    const element = this.nodes[n];
+    while (true) {
+      let child2N = (n + 1) * 2, child1N = child2N - 1;
+      let swap = null;
+      if (child1N < length) {
+        if (this.nodes[child1N].priority < element.priority) swap = child1N;
+      }
+      if (child2N < length) {
+        if (this.nodes[child2N].priority < (swap === null ? element.priority : this.nodes[child1N].priority)) swap = child2N;
+      }
+      if (swap === null) break;
+      this.nodes[n] = this.nodes[swap];
+      this.nodes[swap] = element;
+      n = swap;
+    }
+  }
+  isEmpty() { return this.nodes.length === 0; }
+}
+
+// --- Seeded PRNG ---
+class SeededRandom {
+  constructor(seedStr) {
+    let h = 2166136261 >>> 0;
+    seedStr = String(seedStr || "Seed");
+    for (let i = 0; i < seedStr.length; i++) {
+      h = Math.imul(h ^ seedStr.charCodeAt(i), 16777619);
+    }
+    this.state = h >>> 0;
+  }
+  next() {
+    let t = (this.state += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    let val = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    return (isNaN(val) || val < 0 || val >= 1) ? 0.5 : val;
+  }
+}
+
+function safeSample(arr, rng, fallback) {
+  if (!Array.isArray(arr) || arr.length === 0) return fallback;
+  let idx = Math.floor(rng.next() * arr.length);
+  if (idx < 0 || idx >= arr.length || isNaN(idx)) idx = 0;
+  return arr[idx] || fallback;
+}
+
+function escapeXml(unsafe) {
+  return String(unsafe || "")
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function getStarPoints(cx, cy, spikes, outerRadius, innerRadius) {
+  let rot = Math.PI / 2 * 3, step = Math.PI / spikes;
+  let pts = [];
+  for (let i = 0; i < spikes; i++) {
+    pts.push(`${(cx + Math.cos(rot) * outerRadius).toFixed(1)},${(cy + Math.sin(rot) * outerRadius).toFixed(1)}`);
+    rot += step;
+    pts.push(`${(cx + Math.cos(rot) * innerRadius).toFixed(1)},${(cy + Math.sin(rot) * innerRadius).toFixed(1)}`);
+    rot += step;
+  }
+  return pts.join(" ");
+}
+
+// --- Clean Perlin Noise ---
+class CleanPerlinNoise {
+  constructor(rng) {
+    this.p = new Uint8Array(512);
+    let perm = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) perm[i] = i;
+    for (let i = 255; i > 0; i--) {
+      let j = Math.floor(rng.next() * (i + 1));
+      [perm[i], perm[j]] = [perm[j], perm[i]];
+    }
+    for (let i = 0; i < 512; i++) this.p[i] = perm[i & 255];
+  }
+
+  fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+  lerp(t, a, b) { return a + t * (b - a); }
+  grad(hash, x, y) {
+    let h = hash & 7;
+    let u = h < 4 ? x : y, v = h < 4 ? y : x;
+    return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+  }
+
+  noise(x, y) {
+    let X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+    x -= Math.floor(x); y -= Math.floor(y);
+    let u = this.fade(x), v = this.fade(y);
+    let A = this.p[X] + Y, B = this.p[X + 1] + Y;
+    return this.lerp(v,
+      this.lerp(u, this.grad(this.p[A], x, y), this.grad(this.p[B], x - 1, y)),
+      this.lerp(u, this.grad(this.p[A + 1], x, y - 1), this.grad(this.p[B + 1], x - 1, y - 1))
+    );
+  }
+
+  fbm(x, y, octaves = 6, persistence = 0.5, lacunarity = 2.0) {
+    let total = 0, freq = 1, amp = 1, maxVal = 0;
+    for (let i = 0; i < octaves; i++) {
+      total += this.noise(x * freq, y * freq) * amp;
+      maxVal += amp;
+      amp *= persistence;
+      freq *= lacunarity;
+    }
+    return (total / maxVal + 1) / 2;
+  }
+}
+
+// --- Cartographic Hierarchy Titles ---
+const HIERARCHY_TITLES = {
+  empire: {
+    grand: ["Holy Empire of", "Imperial Realm of", "Grand Empire of", "Celestial Empire of", "High Empire of", "Sovereign Empire of"],
+    crownMed: "Imperial Crownlands of",
+    crownSmall: "Imperial Seat of",
+    islandMed: "Imperial Island Territory of",
+    islandSmall: "Imperial Isle of",
+    medium: [
+      { type: "archduchy", titles: ["Archduchy of", "Grand Duchy of", "Imperial Archduchy of"], smallTypes: ["barony", "county", "lordship", "viscounty"] },
+      { type: "grand_duchy", titles: ["Grand Duchy of", "High Duchy of"], smallTypes: ["barony", "county", "viscounty", "fiefdom"] },
+      { type: "province", titles: ["Imperial Province of", "Crown Province of"], smallTypes: ["county", "prefecture", "district", "viscounty"] },
+      { type: "electorate", titles: ["Electorate of", "Imperial Marches of"], smallTypes: ["barony", "lordship", "burgraviate", "county"] }
+    ]
+  },
+  kingdom: {
+    grand: ["Kingdom of", "Sovereign Kingdom of", "High Realm of", "Crown Realm of", "Royal Kingdom of"],
+    crownMed: "Royal Domain of",
+    crownSmall: "High Crown Barony of",
+    islandMed: "Royal Island Duchy of",
+    islandSmall: "Lordship of",
+    medium: [
+      { type: "duchy", titles: ["Duchy of", "High Duchy of", "Grand Duchy of"], smallTypes: ["barony", "county", "lordship", "fiefdom"] },
+      { type: "principality", titles: ["Principality of", "Sovereign Principality of"], smallTypes: ["barony", "county", "seigniory", "lordship"] },
+      { type: "earldom", titles: ["Earldom of", "Landgraviate of", "Margraviate of"], smallTypes: ["county", "barony", "viscounty", "shire"] },
+      { type: "march", titles: ["March of", "Border March of"], smallTypes: ["barony", "lordship", "fiefdom", "castle_fief"] }
+    ]
+  },
+  republic: {
+    grand: ["Republic of", "Sovereign Republic of", "Commonwealth of", "Free Federation of", "United Republic of", "Confederated Republic of"],
+    crownMed: "Federal Capital District of",
+    crownSmall: "Capital Sector of",
+    islandMed: "Maritime State of",
+    islandSmall: "Island Canton of",
+    medium: [
+      { type: "state", titles: ["State of", "Free State of", "Member State of"], smallTypes: ["county", "district", "borough", "municipality", "canton"] },
+      { type: "province", titles: ["Province of", "Commonwealth Province of"], smallTypes: ["district", "county", "department", "commune"] },
+      { type: "canton", titles: ["Canton of", "Free Canton of"], smallTypes: ["district", "municipality", "ward", "borough"] },
+      { type: "prefecture", titles: ["Prefecture of", "Autonomous Region of"], smallTypes: ["district", "commune", "prefecture_district"] }
+    ]
+  },
+  dominion: {
+    grand: ["Dominion of", "Confederation of", "Grand Alliance of", "United Dominion of", "League of"],
+    crownMed: "Grand Domain of",
+    crownSmall: "Chartered Seat of",
+    islandMed: "Island Protectorate of",
+    islandSmall: "Chartered Isle of",
+    medium: [
+      { type: "protectorate", titles: ["Protectorate of", "Sovereign Protectorate of"], smallTypes: ["barony", "lordship", "bailiwick", "district"] },
+      { type: "territory", titles: ["Territory of", "Free Territory of", "Autonomous Territory of"], smallTypes: ["district", "canton", "settlement_ward", "county"] },
+      { type: "confederate_state", titles: ["Confederate State of", "Chartered Realm of"], smallTypes: ["barony", "canton", "district", "borough"] },
+      { type: "free_city_league", titles: ["Free City-State of", "Hanse of"], smallTypes: ["district", "bailiwick", "borough", "township"] }
+    ]
+  }
+};
+
+const SMALL_TITLE_FORMATS = {
+  barony: ["Barony of", "Free Barony of", "High Barony of"],
+  county: ["County of", "Viscounty of", "High County of", "Shire of"],
+  lordship: ["Lordship of", "Seigniory of", "Fief of"],
+  viscounty: ["Viscounty of", "Old Viscounty of"],
+  fiefdom: ["Fiefdom of", "Castellany of"],
+  burgraviate: ["Burgraviate of", "Landgrafdom of"],
+  castle_fief: ["Castle Realm of", "Keep of"],
+  seigniory: ["Seigniory of", "Lordship of"],
+  shire: ["Shire of", "County of"],
+  district: ["District of", "Prefecture District of", "Regional District of"],
+  borough: ["Borough of", "Free Borough of"],
+  municipality: ["Municipality of", "Canton District of"],
+  canton: ["Canton of", "Sub-Canton of"],
+  department: ["Department of", "Prefecture Sector of"],
+  commune: ["Commune of", "Free Commune of"],
+  ward: ["Ward of", "Municipal Ward of"],
+  bailiwick: ["Bailiwick of", "Prefecture of"],
+  township: ["Township of", "Parish of"],
+  settlement_ward: ["Ward of", "District of"],
+  prefecture_district: ["District of", "Sector of"]
+};
+
+// --- Comprehensive Regional Thematic Name Pools ---
+// --- MASSIVELY EXPANDED REGIONAL THEMATIC NAME POOLS ---
+const THEME_POOLS = {
+  medieval: {
+    prefixes: [
+      "Raven", "Gold", "West", "Kings", "Oaken", "Silver", "High", "Ald", "Bram", "Black",
+      "Red", "North", "South", "East", "Fair", "Stone", "Deep", "Wind", "Thorn", "Sun",
+      "Ash", "Winter", "Storm", "Wolf", "Fox", "Hart", "Hawk", "Falcon", "Crow", "Knight",
+      "Lion", "Shield", "Crown", "Castle", "Mill", "Bridge", "Green", "Bright", "Swift", "Iron",
+      "Broad", "Marsh", "Wood", "Meadow", "Dale", "Brook", "Cross", "Wynd", "Heath", "Fen"
+    ],
+    suffixes: [
+      "ford", "shire", "march", "bridge", "ton", "bury", "wick", "ham", "haven", "stead",
+      "dale", "field", "wood", "hill", "cliff", "brook", "well", "cross", "watch", "holt",
+      "garth", "gate", "moor", "worth", "water", "crest", "down", "glade", "wall", "keep",
+      "hold", "ley", "mist", "ridge", "path", "port", "hurst", "combe", "stow", "minster"
+    ],
+    stems: [
+      "Ravenford", "Goldshire", "Westmarch", "Kingsbridge", "Oakenbury", "Alderton", "Brampton", "Highham",
+      "Fairbrook", "Stonecross", "Windwatch", "Thornbury", "Sunridge", "Ashdown", "Winterdale", "Wolfgate",
+      "Knightshaven", "Hawksworth", "Foxfield", "Millpond", "Blackwych", "Deepmere", "Shieldwall", "Crownstead",
+      "Broadhurst", "Ironhaven", "Swiftwater", "Northwick", "Redford", "Southgate", "Hartfield", "Falconridge",
+      "Crowhurst", "Lionkeep", "Castlecombe", "Greenwood", "Brightwater", "Marshwood", "Meadowdale", "Wyndgarth"
+    ]
+  },
+  nordic: {
+    prefixes: [
+      "Frost", "Skall", "Bjorn", "Hrafn", "Tor", "Gunn", "Svein", "Einar", "Ulfr", "Vinter",
+      "As", "Grim", "Sig", "Val", "Ragnar", "Fen", "Freyr", "Hel", "Jarl", "Kjell",
+      "Orm", "Styr", "Thorb", "Vid", "Yng", "Brand", "Draug", "Eld", "Fjord", "Geri",
+      "Hal", "Is", "Jarn", "Run", "Skar", "Tryg", "Ulv", "Valk", "Varg", "Ymir"
+    ],
+    suffixes: [
+      "heim", "vik", "fjord", "mark", "gard", "dal", "sund", "borg", "holm", "foss",
+      "nes", "stadr", "berg", "lund", "vatn", "skog", "fell", "karr", "tind", "ey",
+      "bu", "vang", "hall", "grip", "sjo", "sand", "a", "dalr", "vollr", "toft"
+    ],
+    stems: [
+      "Frostheim", "Skallvik", "Bjornfjord", "Hrafnmark", "Torgard", "Gunndal", "Ulfsund", "Vinterborg",
+      "Asgardr", "Grimstadr", "Sigurdsnes", "Valhalla", "Fenrislund", "Freyrfoss", "Jarlsberg", "Ormstind",
+      "Ragnarsfell", "Styrsvatn", "Vidarskog", "Brandvik", "Eldgard", "Halvatn", "Jarnborg", "Runaholm",
+      "Skardal", "Trygveim", "Valkyria", "Vargafoss", "Isengard", "Draugsvik", "Yngvildr", "Kjellsvatn"
+    ]
+  },
+  celtic: {
+    prefixes: [
+      "Caer", "Dun", "Tair", "Bryn", "Aber", "Glen", "Llan", "Inver", "Pen", "Tre",
+      "Kil", "Bal", "Mor", "Craig", "Rhos", "Cwm", "Ard", "Rath", "Blaen", "Strath",
+      "Glan", "Drum", "Knock", "Cor", "Llyn", "Maen", "Pont", "Pwll", "Ros", "Tara",
+      "Tor", "Tull", "Ben", "Ken", "Dal", "Carn", "Brae", "Car", "Eilean", "Loch"
+    ],
+    suffixes: [
+      "wyn", "arraidh", "loch", "moor", "mor", "cairn", "ross", "glen", "brae", "craig",
+      "gwyn", "dwr", "llyn", "bwlch", "faen", "gell", "fynydd", "rhon", "tref", "don",
+      "glas", "nan", "begg", "na", "du", "rie", "barrow", "rath", "carraig", "nafe"
+    ],
+    stems: [
+      "Caerwyn", "Dunarraidh", "Tairloch", "Brynmoor", "Aberross", "Invercairn", "Glenmor", "Penbrae",
+      "Llanfair", "Kilmarnock", "Balquhidder", "Craigellachie", "Rhosddu", "Cwmbran", "Ardnacrusha", "Rathmullan",
+      "Blaenau", "Strathspey", "Glanmire", "Drumnadrochit", "Knockdu", "Corcomroe", "Llandovery", "Maentwrog",
+      "Pontypridd", "Pwllheli", "Rostrevor", "Taramor", "Torglen", "Tullamore", "Benmore", "Carndu"
+    ]
+  },
+  slavic: {
+    prefixes: [
+      "Vol", "Drago", "Belo", "Moroz", "Krasno", "Nov", "Yaro", "Svyato", "Zve", "Gor",
+      "Cherno", "Vladi", "Rad", "Mstis", "Bogu", "Dobro", "Zlato", "Stan", "Ostr", "Bely",
+      "Lyu", "Puti", "Sla", "Voro", "Tver", "Miro", "Velik", "Yar", "Kaz", "Zven",
+      "Brani", "Gost", "Rog", "Boris", "Rus", "Dnie", "Perun", "Lada", "Veles", "Bog"
+    ],
+    suffixes: [
+      "grad", "mir", "ov", "na", "sk", "slav", "bor", "pol", "les", "yar",
+      "gora", "dvor", "stan", "tsi", "vitsa", "chek", "rog", "litsa", "vo", "nits",
+      "brod", "log", "voda", "stadt", "dol", "most", "kray", "jar", "vats", "polye"
+    ],
+    stems: [
+      "Volgrad", "Dragomir", "Belov", "Morozna", "Novogor", "Krasnopol", "Yaroslav", "Svyatobor",
+      "Chernogora", "Vladimir", "Radogost", "Mstislav", "Boguslav", "Dobrovod", "Zlatograd", "Stanislav",
+      "Ostrogor", "Belozersk", "Lyubomir", "Putivl", "Zvenigorod", "Branibor", "Tveridvor", "Miroles",
+      "Velikodol", "Kazimir", "Borispol", "Perunodol", "Velesov", "Dnieprogora", "Rusograd", "Ladovitsa"
+    ]
+  },
+  romance: {
+    prefixes: [
+      "Mont", "Belle", "Val", "Roche", "Beau", "Clair", "Font", "Grand", "Chasteau", "Haut",
+      "Bois", "Fleur", "Saint", "Cour", "Pont", "Champ", "Mire", "Castel", "Rive", "Vigne",
+      "Croix", "Lune", "Port", "Mar", "Terre", "Neuve", "Chant", "Faucon", "Lys", "Argent",
+      "Verd", "Sombre", "Puy", "Forez", "Vaux", "Chene", "Loup", "Ombre", "Gris", "Pier"
+    ],
+    suffixes: [
+      "clair", "fort", "mont", "val", "court", "lieu", "bourg", "vaux", "rive", "mare",
+      "bois", "fleur", "pont", "champ", "font", "ombre", "pre", "puy", "giron", "chene",
+      "loup", "garde", "roche", "vigne", "brise", "ville", "nois", "serge", "clos", "bise"
+    ],
+    stems: [
+      "Montclair", "Bellefort", "Valmont", "Rochefort", "Beauvaux", "Fontclair", "Grandlieu", "Chasteaubourg",
+      "Hautbois", "Fleurdelys", "Saint-Mire", "Courcelles", "Pontchamps", "Castelvaux", "Rivecroix", "Vignemont",
+      "Luneville", "Portsombre", "Chantemerle", "Fauconberg", "Argentbois", "Sombreval", "Forezvaux", "Puy-de-Drome",
+      "Chenebourg", "Loupmont", "Pierrefont", "Grisval", "Ombrelieu", "Bellecroix", "Verdlieu", "Chanteloup"
+    ]
+  },
+  germanic: {
+    prefixes: [
+      "Eisen", "Falken", "Rosen", "Silber", "Adler", "Dorn", "Kron", "Wald", "Nord", "Stein",
+      "Wolf", "Eber", "Graf", "Hoch", "Jaeger", "Koenig", "Loewen", "Rot", "Schwarz", "Sonnen",
+      "Sturm", "Tann", "Vogel", "Wild", "Blitz", "Hirsch", "Raben", "Scharlach", "Schild", "Speer",
+      "Thurn", "Weiss", "Burg", "Eichen", "Felsen", "Gais", "Halden", "Klaus", "Linde", "Muehl"
+    ],
+    suffixes: [
+      "wald", "heim", "burg", "mark", "berg", "furt", "fels", "dorf", "brunn", "stadt",
+      "thal", "bach", "lohe", "gart", "hausen", "bad", "horn", "kreuz", "wiese", "stein",
+      "holz", "pass", "kopf", "kloster", "waldung", "brugg", "fahrt", "tor", "au", "rath"
+    ],
+    stems: [
+      "Eisenwald", "Falkenheim", "Rosenburg", "Silbermark", "Adlerberg", "Dornfels", "Steinbrunn", "Kronfurt",
+      "Wolfsdorf", "Eberthal", "Grafenhausen", "Hochstadt", "Koenigstein", "Loewenbach", "Rotenburg", "Schwarzenburg",
+      "Sonnenwald", "Tannenberg", "Wildbach", "Hirschberg", "Rabenstein", "Weissburg", "Eichenwald", "Felsendorf",
+      "Klausenbad", "Muehlhausen", "Schildberg", "Speerthal", "Thurnstein", "Blitzwald", "Gaisberg", "Lindenau"
+    ]
+  },
+  mediterranean: {
+    prefixes: [
+      "Valen", "Aurel", "Mont", "Bella", "Santa", "Monte", "Serra", "Porto", "Sol", "Vento",
+      "Villa", "Casa", "San", "Rio", "Costa", "Fuente", "Isla", "Camp", "Roca", "Mar",
+      "Ter", "Tor", "Vista", "Mira", "Alba", "Palma", "Sierra", "Bravo", "Lago", "Oro",
+      "Verde", "Valle", "Faro", "Bahia", "Cielo", "Cima", "Playa", "Punta", "Reina", "Santo"
+    ],
+    suffixes: [
+      "cia", "ia", "ara", "vista", "fina", "mar", "rosa", "terra", "reale", "luna",
+      "sol", "selva", "valle", "fonte", "berto", "monte", "blanco", "dorado", "lago", "mare",
+      "costa", "vera", "playa", "loma", "piedra", "brisa", "cova", "llano", "puerto", "campo"
+    ],
+    stems: [
+      "Valencia", "Aurelia", "Montara", "Bellavista", "Santafina", "Portomar", "Solterra", "Montefina",
+      "Villareal", "Casabella", "Sanluna", "Riovento", "Costablanca", "Fuentemare", "Islarosa", "Rocaverde",
+      "Mirasol", "Albadora", "Palmarosa", "Sierrabrava", "Lagoverde", "Oromar", "Valledorado", "Farocielo",
+      "Bahialuna", "Cimavista", "Playadulce", "Puntablanca", "Reinadelmar", "Santaclara", "Monteverde", "Camporeal"
+    ]
+  },
+  greek: {
+    prefixes: [
+      "Thera", "Myr", "Aster", "Kalli", "Heli", "Chrono", "Niko", "Dora", "Phala", "Lyco",
+      "Delphi", "Alex", "Chryso", "Dio", "Eury", "Gla", "Ioni", "Kass", "Kor", "Lacon",
+      "Mega", "Nax", "Olym", "Pelo", "Rho", "Sparta", "Tele", "Xeno", "Zephyr", "Aega",
+      "Arka", "Bero", "Cith", "Dimi", "Eleu", "Hali", "Ith", "Kryo", "Lar", "Mel"
+    ],
+    suffixes: [
+      "polis", "thos", "ion", "pylos", "kallos", "kastro", "dromos", "theon", "kora", "stolos",
+      "nos", "phora", "tria", "mita", "lissos", "krini", "sela", "gon", "ptera", "myra",
+      "dora", "sthen", "vrisi", "chore", "lakkos", "mete", "rhea", "peia", "phon", "syros"
+    ],
+    stems: [
+      "Therapolis", "Myrthos", "Asterion", "Kallipolis", "Helipylos", "Nikotheon", "Phalakora", "Chronomyr",
+      "Delphion", "Alexandrea", "Chrysocastro", "Dionysia", "Eurypolis", "Glaphira", "Kassandra", "Laconion",
+      "Megalopolis", "Naxosthos", "Olympias", "Pelopylos", "Rhodosthen", "Spartakallos", "Telephora", "Xenotheon",
+      "Zephyria", "Aegadromos", "Arkadion", "Halikora", "Ithakastro", "Melanthos", "Kryovrisi", "Eleusina"
+    ]
+  },
+  roman: {
+    prefixes: [
+      "Aurel", "Valer", "Nov", "Aquil", "Caes", "Tiber", "August", "Flav", "Castr", "Maxi",
+      "Claud", "Corn", "Domit", "Fab", "Fulv", "Hadri", "Jul", "Liv", "Marc", "Nero",
+      "Octav", "Plin", "Quin", "Reg", "Serv", "Traj", "Tull", "Vect", "Victor", "Vitel",
+      "Alba", "Bell", "Cast", "Dec", "Equi", "Fort", "Gran", "Hon", "Just", "Luc"
+    ],
+    suffixes: [
+      "ia", "ius", "um", "ara", "opolis", "iana", "odunum", "ivium", "onia", "entinum",
+      "castra", "vicus", "forum", "portus", "mons", "collis", "pons", "flumen", "vallum", "arx",
+      "curia", "lucus", "fanum", "pagus", "turris", "fossa", "clivus", "thermae", "circus", "via"
+    ],
+    stems: [
+      "Aurelia", "Valerius", "Novum", "Aquilara", "Caesarodunum", "Tiberiana", "Augustivium", "Castronia",
+      "Maximopolis", "Claudiana", "Domitianum", "Fabrianum", "Hadriano", "Julianum", "Liviana", "Marcomagus",
+      "Neronis", "Octaviana", "Plinianum", "Quintiana", "Regium", "Servianum", "Trajanopolis", "Tullianum",
+      "Victorianum", "Albalonga", "Castravetere", "Fortunata", "Lucentia", "Honoria", "Decentium", "Flavianum"
+    ]
+  },
+  chinese: {
+    prefixes: [
+      "Long", "Feng", "Qing", "Tian", "Jin", "Bai", "Song", "Ming", "Yuan", "Cang",
+      "Hong", "Shen", "Wu", "Yun", "Zhen", "An", "Dong", "Guang", "He", "Hu",
+      "Jiang", "Lan", "Ling", "Nan", "Ping", "Tai", "Wen", "Xiao", "Yan", "Zhu",
+      "Bei", "Chun", "Gui", "Huang", "Kun", "Lin", "Lu", "Mo", "Ning", "Yue"
+    ],
+    suffixes: [
+      "shan", "zhou", "shui", "jing", "hai", "yang", "ling", "cheng", "dao", "chuan",
+      "guan", "men", "yuan", "feng", "tai", "du", "lin", "ting", "an", "zhen",
+      "ge", "bao", "pu", "kou", "tan", "wan", "lou", "gang", "xi", "ye"
+    ],
+    stems: [
+      "Longshan", "Fengzhou", "Qingshui", "Tianjing", "Jinling", "Songhai", "Baiyang", "Cangcheng",
+      "Hongshan", "Shenzhou", "Wudang", "Yunhai", "Zhenguan", "Anjing", "Dongling", "Guangchuan",
+      "Hecheng", "Huzhou", "Jiangnan", "Lanfeng", "Lingshui", "Nanyuan", "Pingtai", "Taidu",
+      "Wenshan", "Xiaodao", "Yanjing", "Zhuhai", "Kunlun", "Huanggang", "Chunfeng", "Ningbo"
+    ]
+  },
+  japanese: {
+    prefixes: [
+      "Kuro", "Aki", "Hoshi", "Mizu", "Shiro", "Kami", "Matsu", "Kawa", "Yama", "Tsuki",
+      "Fuji", "Hana", "Ichi", "Kiri", "Mori", "Naga", "Oki", "Ryu", "Sakura", "Taka",
+      "Ume", "Waka", "Yoshi", "Zen", "Haru", "Inari", "Kage", "Minato", "Saki", "Tada",
+      "Tori", "Yuki", "Asahi", "Chiba", "Date", "Gifu", "Hayate", "Koga", "Shin", "Toyo"
+    ],
+    suffixes: [
+      "yama", "tsuki", "kawa", "noki", "hara", "mori", "shima", "kura", "zaki", "tani",
+      "gawa", "mura", "saki", "jima", "daira", "oka", "bashi", "machi", "no", "to",
+      "zaka", "nishi", "higashi", "kita", "minami", "gata", "se", "ura", "numa", "sato"
+    ],
+    stems: [
+      "Kuroyama", "Akitsuki", "Hoshikawa", "Mizunoki", "Matsuura", "Kamishiro", "Shiroyama", "Kawamori",
+      "Fujishima", "Hanazono", "Kirishima", "Morigawa", "Nagahama", "Okazaki", "Ryujin", "Sakuradani",
+      "Takayama", "Umemura", "Wakayama", "Yoshino", "Zensho", "Haruhara", "Inarizaki", "Kageyama",
+      "Minatogawa", "Sakitama", "Yukiguni", "Asahidake", "Hayatetsuki", "Kogamura", "Shinano", "Toyotomi"
+    ]
+  },
+  korean: {
+    prefixes: [
+      "Haneul", "Seo", "Baek", "Cheon", "Gyeong", "Miru", "Namu", "Pyeong", "Song", "Hwa",
+      "Byeol", "Dam", "Eun", "Gaon", "Han", "Jin", "Maru", "Nuri", "On", "Raon",
+      "Sae", "Sol", "Tae", "Won", "Yeo", "Baram", "Boram", "Dan", "Gil", "Haen",
+      "Jey", "Nare", "Pureun", "Saerom", "Seul", "Som", "Tara", "Uri", "Yeoul", "Yoo"
+    ],
+    suffixes: [
+      "ryeong", "jin", "san", "won", "cheon", "ju", "gang", "seong", "gol", "hae",
+      "do", "ri", "pyeong", "dam", "maru", "teo", "sil", "gae", "bae", "nul",
+      "gok", "ro", "mun", "mae", "nae", "am", "bong", "hyeon", "deok", "tan"
+    ],
+    stems: [
+      "Haneul", "Seoryeong", "Baekjin", "Cheonsan", "Gyeongju", "Songwon", "Miruseong", "Hwacheon",
+      "Byeoldam", "Eunjin", "Gaonuri", "Hangang", "Jinju", "Marugol", "Nurisan", "Oncheon",
+      "Raonmaru", "Saecheon", "Solgae", "Taebaek", "Wonju", "Yeosu", "Baramgol", "Danwon",
+      "Gilseong", "Haenam", "Pureuncheon", "Saeromjin", "Somnae", "Yeoulryeong", "Boramjin", "Jeymun"
+    ]
+  },
+  steppe: {
+    prefixes: [
+      "Khar", "Or", "Temur", "Bor", "Batu", "Alt", "Khang", "Teng", "Chul", "Sar",
+      "Ar", "Bayan", "Darkh", "Erd", "Gal", "Khob", "Mung", "Naran", "Ol", "Shar",
+      "Tag", "Tset", "Ulan", "Zag", "Zev", "Bogd", "Ching", "Gur", "Khas", "Mand",
+      "Noy", "Olg", "Salkh", "Tar", "Tsog", "Url", "Yav", "Zer", "Burk", "Choj"
+    ],
+    suffixes: [
+      "gan", "du", "tal", "okh", "gait", "bator", "khot", "nor", "tsagaan", "qash",
+      "bulag", "davaa", "gol", "khairkhan", "uul", "nur", "balgas", "sum", "oroo", "mod",
+      "burg", "shand", "tavan", "chuluu", "ger", "khoroo", "teeg", "khooloi", "zam", "rash"
+    ],
+    stems: [
+      "Khargan", "Ordu", "Temur-Tal", "Borokh", "Altankhot", "Baturuk", "Tengrinor", "Khangait",
+      "Bayangol", "Darkhan", "Erdenet", "Galuut", "Khovd", "Mungun", "Narantsatsral", "Olonnuur",
+      "Sharkhad", "Taggait", "Tsetserleg", "Ulaanbaatar", "Zagastai", "Zevteeg", "Bogdkhan", "Chingissum",
+      "Gurvansaikhan", "Mandalgobi", "Noyon-Uul", "Olgii", "Salkhit", "Tsogttsetsii", "Burkhan", "Choibalsan"
+    ]
+  },
+  persian: {
+    prefixes: [
+      "Mehr", "Shir", "Darva", "Rosh", "Zaf", "Shah", "Isp", "Khor", "Pard", "Gul",
+      "Azar", "Bahar", "Dari", "Far", "Jam", "Kam", "Lor", "Nav", "Par", "Rust",
+      "Sam", "Tab", "Yaz", "Zar", "Sim", "Beh", "Fir", "Gov", "Horm", "Khva",
+      "Mah", "Nil", "Pir", "Sar", "Tis", "Var", "Yam", "Zand", "Sor", "Dan"
+    ],
+    suffixes: [
+      "abad", "az", "zeh", "an", "estan", "shan", "pur", "kand", "giran", "daran",
+      "van", "sar", "gah", "bar", "mand", "rood", "var", "kuh", "shahr", "deh",
+      "dast", "bagh", "pul", "paye", "dar", "zar", "jird", "mir", "rud", "gard"
+    ],
+    stems: [
+      "Mehrabad", "Shiraz", "Darvazeh", "Roshan", "Shahrezan", "Khorasan", "Zafaran", "Gullistan",
+      "Azarshahr", "Baharestan", "Darband", "Faravahar", "Jamsheed", "Kamran", "Larestan", "Navbahar",
+      "Pardisan", "Rustamabad", "Samangan", "Tabriz", "Yazd", "Zarrinkuh", "Siminrood", "Behshahr",
+      "Firuzkuh", "Govandar", "Hormozgan", "Mahshahr", "Niloufar", "Zandsar", "Tisrood", "Khvaf"
+    ]
+  },
+  arabic: {
+    prefixes: [
+      "Al-", "Qasr", "Wadi", "Dar", "Madinat", "Jabal", "Nahr", "Ayn", "Riyad", "Bayt",
+      "Bab", "Bir", "Burj", "Hisn", "Jazirat", "Khalij", "Manar", "Marfa", "Qal'at", "Ras",
+      "Shatt", "Suk", "Suq", "Tariq", "Umm", "Zawiyat", "Balad", "Dhu", "Fajj", "Ghabb",
+      "Hawd", "Kawkab", "Ma'an", "Naqab", "Rawdat", "Sabkhat", "Sharaf", "Tall", "Zubdat", "Sayf"
+    ],
+    suffixes: [
+      "Nur", "Hamra", "Malik", "Salam", "Rashid", "Fajr", "Zahra", "Khaldun", "Sharq", "Bahr",
+      "Shams", "Qamar", "Nil", "Nujum", "Riyah", "Sahra", "Zaytuna", "Safa", "Fayrouz", "Jamil",
+      "Khadra", "Majd", "Murad", "Naseem", "Qudus", "Sabr", "Tariq", "Wasit", "Yaqut", "Zomorrod"
+    ],
+    stems: [
+      "Al-Nur", "Qasr al-Nil", "Wadi al-Hamra", "Dar al-Malik", "Madinat al-Salam", "Jabal Rashid", "Ayn Zahra", "Bab al-Nasr",
+      "Bir al-Shams", "Burj al-Sahra", "Hisn al-Bahr", "Jazirat al-Nur", "Khalij al-Amir", "Manar al-Fajr", "Marfa al-Zaytuna", "Qal'at al-Hisn",
+      "Ras al-Ayn", "Shatt al-Arab", "Suq al-Jamil", "Umm al-Qura", "Zawiyat al-Majd", "Balad al-Sharaf", "Tall al-Fayrouz", "Rawdat al-Khadra",
+      "Sharaf al-Din", "Sayf al-Bahr", "Zubdat al-Mulk", "Bab al-Faraj", "Madinat al-Zahra", "Qasr al-Dahab", "Wadi al-Qamar", "Burj al-Nujum"
+    ]
+  },
+  indian: {
+    prefixes: [
+      "Deva", "Chandra", "Indra", "Surya", "Maha", "Raja", "Vidy", "Amri", "Brahma", "Sundar",
+      "Anan", "Bala", "Giri", "Hari", "Jaya", "Kamala", "Madhu", "Nara", "Padma", "Ranga",
+      "Shanti", "Tara", "Uma", "Vira", "Yash", "Bhu", "Govin", "Hem", "Kesh", "Mani",
+      "Nil", "Prag", "Ravi", "Shiv", "Soma", "Tril", "Utpal", "Var", "Yasho", "Som"
+    ],
+    suffixes: [
+      "nagar", "pur", "vati", "giri", "durg", "sthan", "dham", "garh", "pattanam", "vihara",
+      "gram", "konda", "van", "mandal", "palli", "shala", "tirth", "pura", "rashtra", "koot",
+      "desha", "khanda", "vad", "kota", "pet", "pattan", "sagar", "setu", "varam", "dweep"
+    ],
+    stems: [
+      "Devanagar", "Chandrapur", "Indravati", "Suryagiri", "Mahadurg", "Rajapattan", "Amritdham", "Vidyagarh",
+      "Anandpur", "Balagram", "Girikonda", "Haridwar", "Jayapura", "Kamalavati", "Madhuvana", "Narayangarh",
+      "Padmavati", "Rangapuram", "Shantigram", "Taragiri", "Umadham", "Viranagar", "Yashovarman", "Maninagar",
+      "Nilgiri", "Pragpura", "Ravigram", "Shivakonda", "Someshwar", "Trilokpur", "Hemkoot", "Govindpur"
+    ]
+  },
+  southeast_asian: {
+    prefixes: [
+      "Naga", "Jaya", "Surya", "Tan", "Sri", "Singha", "Bumi", "Kota", "Dharma", "Wan",
+      "Ang", "Banteay", "Champa", "Dan", "Indra", "Krat", "Luang", "Maha", "Nakhon", "Pura",
+      "Rat", "Samut", "Thani", "Ubon", "Wat", "Ayuth", "Bat", "Candi", "Dusit", "Kiri",
+      "Lop", "Muang", "Pak", "Rach", "Siam", "Song", "Tasek", "Udon", "Vang", "Wiang"
+    ],
+    suffixes: [
+      "raja", "pura", "na", "jung", "wijaya", "bhum", "karta", "buri", "raya", "wang",
+      "wan", "prasat", "kram", "nak", "thong", "sak", "seng", "noi", "luang", "chai",
+      "khet", "samet", "nok", "lek", "lam", "drak", "phong", "ban", "wat", "buri"
+    ],
+    stems: [
+      "Nagaraja", "Jayapura", "Suryana", "Tanjung", "Sriwijaya", "Singhaburi", "Kotaraya", "Dharmakarta",
+      "Angkorthom", "Banteay-Meanchey", "Champassak", "Danang", "Indrapura", "Luang-Prabang", "Nakhon-Sawan", "Puranagara",
+      "Ratchaburi", "Samut-Prakan", "Ubon-Ratcha", "Ayutthaya", "Candisari", "Dusit-Pura", "Kirimat", "Lopburi",
+      "Muang-Thong", "Pakse", "Siam-Rath", "Songkhla", "Tasek-Gelugor", "Wiang-Chai", "Vang-Vieng", "Kratiebhum"
+    ]
+  },
+  polynesian: {
+    prefixes: [
+      "Ava", "Moana", "Te ", "Vai", "Rangi", "Motu", "Nuku", "Malo", "Turi", "Hawa",
+      "Aka", "Fetu", "Kaha", "Lani", "Manu", "Olo", "Pua", "Roto", "Taum", "Ulu",
+      "Wai", "Whaka", "Ao", "Horo", "Kahu", "Mahu", "Ngar", "Papa", "Raro", "Tane",
+      "Tau", "Tihi", "Toa", "Tu", "Ura", "Vaka", "Wahi", "Whan", "Kava", "Lea"
+    ],
+    suffixes: [
+      "rua", "kai", "rangi", "ora", "nui", "toa", "hina", "loa", "kura", "tapu",
+      "maru", "tai", "vao", "motu", "roa", "lani", "mata", "whare", "tanga", "tupu",
+      "fare", "one", "repo", "puka", "ana", "rima", "vae", "fenua", "wai", "hiti"
+    ],
+    stems: [
+      "Avarua", "Moanakai", "Te Rangi", "Vaiora", "Motunui", "Nukuhina", "Malotoa", "Hawailoa",
+      "Akaroa", "Fetumaru", "Kahawai", "Lanikai", "Manunui", "Olongapo", "Pualani", "Rotoma",
+      "Taumata", "Uluroa", "Waikiki", "Whakatane", "Aoraki", "Horowhenua", "Kahurangi", "Ngaruawahia",
+      "Papatoetoe", "Rarotonga", "Tanenui", "Tihiraki", "Toawhare", "Whangarei", "Tuamotu", "Vaitupu"
+    ]
+  },
+  egyptian: {
+    prefixes: [
+      "Wa", "Nek", "Per-", "Khem", "Abu", "Ta-", "Men", "Amen", "Het-", "Djedu",
+      "Anx", "Bast", "Chen", "Dua", "Geh", "Hat", "Ipu", "Khep", "Meri", "Neb",
+      "Pa-", "Ra-", "Saqq", "Tan", "User", "Zau", "Ath", "Buto", "Dender", "Edfu",
+      "Fay", "Giza", "Heli", "Karn", "Med", "Oxy", "Pith", "Sais", "Theb", "Aby"
+    ],
+    suffixes: [
+      "set", "hen", "bast", "ptah", "re", "nefer", "kau", "hotep", "aten", "amun",
+      "net", "mut", "khons", "ankh", "mes", "neb", "sokar", "thoth", "isis", "osir",
+      "hor", "min", "sobek", "sekh", "anpu", "hathor", "tepi", "user", "ta", "ka"
+    ],
+    stems: [
+      "Waset", "Nekhen", "Per-Bast", "Khemptah", "Abunefer", "Ta-Seti", "Menhotep", "Djedu-Re",
+      "Anx-Aten", "Bast-Hathor", "Chenmut", "Duaptah", "Hatnefer", "Iput-Re", "Khepri-Set", "Meriamun",
+      "Nebankh", "Pa-Sobek", "Ra-Harakhte", "Saqqara", "Tanis", "Userkaf", "Zaut-Hen", "Athribis",
+      "Buto-Amun", "Dendera", "Edfu-Ptah", "Karnak-Re", "Medinet", "Abydos", "Thebes-Hotep", "Giza-Ptah"
+    ]
+  },
+  berber: {
+    prefixes: [
+      "Tizi", "Agh", "Tafi", "Imz", "Tad", "Ghad", "Azrou", "Ting", "Tame", "War",
+      "Agad", "Ayt", "Bou", "Draa", "Guel", "Ifr", "Ksar", "Mid", "Ouar", "Souss",
+      "Tag", "Tam", "Tar", "Taz", "Tim", "Tin", "Tou", "Zag", "Zell", "Zer",
+      "Assa", "Dakh", "Foum", "Gour", "Jbel", "M'ham", "N'kob", "Rich", "Sidi", "Tan"
+    ],
+    suffixes: [
+      "ri", "ram", "lalt", "our", "irt", "ames", "ourirt", "ghira", "zirt", "doun",
+      "mim", "nane", "gou", "zane", "out", "dalt", "rart", "nif", "dra", "gert",
+      "ghou", "mane", "zal", "tar", "nirt", "zou", "lit", "mirt", "zout", "kilt"
+    ],
+    stems: [
+      "Tiziri", "Aghram", "Tafilalt", "Imzour", "Tadirt", "Ghadames", "Azrou-War", "Tinghir",
+      "Agadir", "Ayt-Ben", "Boumalne", "Draaval", "Guelmim", "Ifrane", "Ksar-Sghir", "Midelt",
+      "Ouarzazate", "Souss-Massa", "Tagounite", "Tamnougalt", "Taroudant", "Taza", "Timimoun", "Tindouf",
+      "Touggourt", "Zagora", "Zellidja", "Zerhoun", "Foum-Zguid", "Taghit", "Jbel-Tadir", "Assaghou"
+    ]
+  },
+  west_african: {
+    prefixes: [
+      "Ku", "Kam", "Ni", "Djen", "Oua", "Bam", "Seg", "Yor", "Kan", "Tam",
+      "Abo", "Bida", "Coton", "Dalo", "Ede", "Fada", "Gao", "Iba", "Jenne", "Kadi",
+      "Lome", "Mopti", "N'dja", "Ogb", "Par", "Sika", "Timb", "Uyo", "Wari", "Zun",
+      "Abeo", "Baf", "Cal", "Epe", "Fouta", "Gba", "Ilo", "Keta", "Moba", "Zaria"
+    ],
+    suffixes: [
+      "masi", "bala", "ani", "ne", "gou", "ako", "ou", "uba", "kale", "bata",
+      "dan", "kuta", "koto", "sso", "dou", "fura", "kpe", "leba", "ria", "tchi",
+      "zaria", "fia", "gbo", "kourou", "me", "n'gou", "pe", "tou", "wari", "zugu"
+    ],
+    stems: [
+      "Kumasi", "Kambala", "Niani", "Djenne", "Ouagou", "Bamako", "Segou", "Kankale",
+      "Abomey", "Bidan", "Cotonou", "Daloa", "Edevo", "Fada-Gourma", "Gao-Zugu", "Ibadan",
+      "Jennene", "Kadikro", "Lome-Gbo", "Moptiko", "N'djamena", "Ogbomoso", "Parakou", "Sikasso",
+      "Timbuktu", "Uyodan", "Warri", "Zungeru", "Abeokuta", "Bafata", "Calabar", "Foutadjallon"
+    ]
+  },
+  swahili: {
+    prefixes: [
+      "Mom", "Kil", "Bah", "Zan", "Pamb", "Ung", "Mtw", "Mal", "Lam", "Dar-",
+      "Bag", "Cha", "Fun", "Gedi", "Kwe", "Lik", "Mik", "Mwa", "Pang", "Shi",
+      "Tan", "Tum", "Vum", "Was", "Zim", "Bar", "Gei", "Jom", "Kiw", "Maf",
+      "Mor", "Pem", "Ruf", "Shim", "Siyu", "Tanga", "Ukw", "Wete", "Ziw", "Kisim"
+    ],
+    suffixes: [
+      "basa", "wa", "ari", "jibar", "ani", "u", "indi", "ara", "uzi", "es-Salaam",
+      "moyo", "le", "ga", "si", "kaza", "noni", "oni", "zini", "ngi", "gwe",
+      "she", "roni", "beni", "wani", "nda", "kondo", "pwa", "vuno", "toto", "vanga"
+    ],
+    stems: [
+      "Mombasa", "Kilwa", "Bahari", "Zanj", "Unguja", "Pambani", "Mtwara", "Malindi",
+      "Lamuzi", "Dar-es-Salaam", "Bagamoyo", "Chake-Chake", "Funguni", "Gedi-Mji", "Kwekwe", "Likoni",
+      "Mikindani", "Mwanza", "Pangani", "Shimoni", "Tanga-Bari", "Tumbatu", "Vumba", "Wasini",
+      "Zimbani", "Barawa", "Geita", "Kiwayu", "Mafia-Kisiwa", "Morogoro", "Pembanoni", "Kisimani"
+    ]
+  },
+  ethiopian: {
+    prefixes: [
+      "Ax", "Gond", "Lali", "Har", "Ad", "Debre", "Haw", "Mek", "Jim", "Zi",
+      "Ank", "Bah", "Chen", "Dess", "Ente", "Fich", "Gamb", "Hos", "Jijj", "Keff",
+      "Met", "Naz", "Rob", "Shas", "Temb", "Wel", "Yir", "Zeq", "Add", "Bonga",
+      "Dansh", "Fin", "Gore", "Hag", "Kore", "May", "Neg", "Sek", "Wold", "Yeha"
+    ],
+    suffixes: [
+      "um", "ara", "bela", "dis", "mar", "tabor", "assa", "ele", "ma", "way",
+      "berhan", "libanos", "zeyt", "dar", "gora", "sena", "mecha", "dengel", "maryam", "selassie",
+      "markos", "doro", "birr", "gebeya", "meda", "amba", "shawa", "beta", "wenz", "korem"
+    ],
+    stems: [
+      "Axum", "Gondara", "Lalibela", "Hardis", "Debre-Tabor", "Hawassa", "Mekele", "Jimma",
+      "Ziway", "Ankober", "Bahir-Dar", "Chencha", "Dessie", "Entoto", "Fiche", "Gambela",
+      "Hosanna", "Jijjiga", "Keffa", "Metemma", "Nazret", "Robe", "Shashemene", "Tembien",
+      "Weldiya", "Yirgalem", "Zequala", "Debre-Berhan", "Debre-Libanos", "Debre-Zeyt", "Yehameda", "Addisamba"
+    ]
+  },
+  forest: {
+    prefixes: [
+      "Black", "Green", "Whisper", "Elder", "Shadow", "Moss", "Bramble", "Silver", "Thorn", "Deep",
+      "Oak", "Willow", "Pine", "Birch", "Cedar", "Elm", "Fern", "Ivy", "Briar", "Bark",
+      "Root", "Branch", "Twig", "Grove", "Leaf", "Ash", "Beech", "Yew", "Alder", "Hazel",
+      "Rowan", "Juniper", "Timber", "Glen", "Verdant", "Shade", "Sylvan", "Rustle", "Dense", "Murk"
+    ],
+    suffixes: [
+      "wood", "grove", "forest", "pines", "glade", "thicket", "hollow", "bower", "reach", "fen",
+      "shade", "dell", "coppice", "stand", "canopy", "tangle", "weir", "under", "bark", "copse",
+      "frond", "wild", "timber", "run", "verge", "fold", "hicket", "bough", "leaf", "moss"
+    ],
+    stems: [
+      "Blackwood", "Greenwood", "Whispering Pines", "Elderwood", "Mossgrove", "Silverglade", "Thornhollow", "Deepoak",
+      "Willowbower", "Birchreach", "Cedarfen", "Fernshade", "Briartangle", "Rootcopse", "Leafcanopy", "Ashdell",
+      "Yewweir", "Hazelglade", "Rowantimber", "Juniperfold", "Timberwood", "Verdantgrove", "Shadewhisper", "Sylvanreach",
+      "Rustlewood", "Densecanopy", "Murkglade", "Elmhollow", "Oakencopse", "Ivyhollow", "Beechwood", "Aldershade"
+    ]
+  },
+  mountain: {
+    prefixes: [
+      "Stone", "High", "Iron", "Crag", "Storm", "Thunder", "Frost", "Arak", "Cloud", "Sun",
+      "Peak", "Ridge", "Granite", "Basalt", "Cliff", "Tor", "Spire", "Steep", "Horn", "Apex",
+      "Crown", "Flint", "Boulder", "Shard", "Gap", "Pass", "Summit", "Bluff", "Scar", "Pillar",
+      "Rock", "Crest", "Anvil", "Grizzly", "Eagle", "Slate", "Sky", "Mist", "Snow", "Obsidian"
+    ],
+    suffixes: [
+      "crown", "peak", "spine", "mount", "crest", "cliff", "spire", "horn", "bastion", "ridge",
+      "crag", "tor", "scar", "apex", "pass", "gap", "summit", "bluff", "pillar", "face",
+      "needle", "drop", "wall", "rim", "precipice", "overlook", "terrace", "roost", "height", "pinnacle"
+    ],
+    stems: [
+      "Stonecrown", "Highpeak", "Ironspine", "Mount Arak", "Stormcrest", "Cragspire", "Thunderhorn", "Frostcliff",
+      "Cloudridge", "Sunsummit", "Granitebastion", "Basalttor", "Cliffscar", "Steephorn", "Apexcrest", "Crownneedle",
+      "Flintpass", "Bouldergap", "Shardbluff", "Summitwall", "Bluffprecipice", "Pillarface", "Rockroost", "Crestoverlook",
+      "Anvilheight", "Slatecliff", "Skypinnacle", "Mistridge", "Snowsummit", "Obsidianhorn", "Eaglecrest", "Grizzlypass"
+    ]
+  },
+  coastal: {
+    prefixes: [
+      "Sea", "Storm", "Salt", "Gull", "Wave", "Tide", "Harbor", "Anchor", "Mist", "Dune",
+      "Coral", "Pearl", "Surf", "Shell", "Drift", "Breeze", "Isle", "Cape", "Pelican", "Mariner",
+      "Beacon", "Cove", "Shoal", "Foam", "Windward", "Leeward", "Sailor", "Nautilus", "Siren", "Trident",
+      "Bay", "Strand", "Coast", "Blue", "Sandy", "Shell", "Port", "Reef", "Ocean", "Tidal"
+    ],
+    suffixes: [
+      "break", "haven", "mere", "port", "strand", "cove", "bay", "reef", "quay", "wharf",
+      "shoal", "light", "spit", "sound", "harbor", "anchorage", "dock", "tide", "surf", "head",
+      "landing", "bluff", "inlet", "shelf", "channel", "narrows", "bank", "waters", "ledge", "reach"
+    ],
+    stems: [
+      "Seabreak", "Stormhaven", "Saltmere", "Gullport", "Tidecove", "Wavehaven", "Anchorbay", "Mistreef",
+      "Dunequay", "Coralstrand", "Pearlshoal", "Surfanchorage", "Shellsound", "Driftspit", "Breezeinlet", "Islelanding",
+      "Capebeacon", "Pelicanbluff", "Marinerchannel", "Beaconlight", "Foamwaters", "Windwardreach", "Sirenquay", "Tridentcove",
+      "Bayhaven", "Strandshore", "Portmaris", "Reefhead", "Oceanledge", "Tidespurn", "Nautilusbay", "Bluechannel"
+    ]
+  },
+  river: {
+    prefixes: [
+      "River", "Ford", "Three", "Silver", "Brook", "Rush", "Swift", "Reed", "Twin", "Clear",
+      "Blue", "Flow", "Stream", "Current", "Delta", "Cascade", "Basin", "Bank", "Otter", "Beaver",
+      "Trout", "Salmon", "Water", "Rapids", "Drift", "Ripple", "Weeping", "Meander", "Spring", "Channel",
+      "Torrent", "Cross", "Ferry", "Barge", "Wash", "Estuary", "Crest", "Low", "Flood", "Moor"
+    ],
+    suffixes: [
+      "bend", "mere", "rivers", "flow", "ford", "water", "brook", "dell", "delta", "isle",
+      "basin", "rapids", "stream", "pool", "eddy", "run", "wash", "weir", "bank", "crossing",
+      "glide", "falls", "mouth", "cascade", "ripple", "shallow", "dock", "sluice", "channel", "reach"
+    ],
+    stems: [
+      "Riverbend", "Fordmere", "Three Rivers", "Silverflow", "Swiftwater", "Rushford", "Twinbrook", "Reedbasin",
+      "Clearstream", "Blueeddy", "Cascadefalls", "Basinmouth", "Bankcrossing", "Otterpool", "Beaverweir", "Troutbrook",
+      "Salmonrun", "Rapidsdell", "Driftisle", "Rippleglide", "Meanderbank", "Springford", "Channelreach", "Torrentfalls",
+      "Ferrycrossing", "Bargewash", "Estuaryisle", "Floodmere", "Lowbank", "Weepingfalls", "Swiftford", "Reedstream"
+    ]
+  },
+  desert: {
+    prefixes: [
+      "Red", "Sun", "Ashen", "Golden", "Dust", "Scorched", "Sirocco", "Oasis", "Mirage", "Sand",
+      "Dune", "Bleak", "Dry", "Barren", "Copper", "Brass", "Cinder", "Amber", "Glass", "Sunfire",
+      "Nomad", "Camel", "Serpent", "Vulture", "Cactus", "Shale", "Wind", "Heat", "Parch", "Searing",
+      "Bleached", "Sol", "Baked", "Yellow", "Kar", "Rub", "Sah", "Gobi", "Flint", "Drought"
+    ],
+    suffixes: [
+      "dune", "scar", "wells", "sands", "waste", "reach", "haven", "springs", "rock", "expanse",
+      "hollow", "flat", "basin", "sink", "gulch", "mesa", "canyon", "plateau", "bluffs", "barrens",
+      "oasis", "drift", "flats", "erg", "vent", "dust", "void", "dry", "stones", "kiln"
+    ],
+    stems: [
+      "Red Dune", "Sunscar", "Ashen Wells", "Dustwaste", "Scorched Sands", "Oasis Haven", "Mirage Springs", "Sandrock",
+      "Dune Expanse", "Bleak Basin", "Drysink", "Barrengulch", "Coppermesa", "Brasscanyon", "Cinderplateau", "Amberbluffs",
+      "Glassbarrens", "Sunfire Erg", "Nomadreach", "Camelwells", "Serpenthollow", "Vulturecliff", "Cactusflat", "Shalesink",
+      "Winddrift", "Heatvoid", "Parchflat", "Bleachederg", "Bakedrock", "Solbasin", "Sahramire", "Droughtflat"
+    ]
+  },
+  swamp: {
+    prefixes: [
+      "Mire", "Bog", "Drown", "Black", "Murk", "Rot", "Weeping", "Gloom", "Fog", "Slag",
+      "Mud", "Silt", "Reed", "Toad", "Leech", "Viper", "Moss", "Stagnant", "Fen", "Craw",
+      "Bayou", "Marsh", "Willow", "Dusk", "Haze", "Damp", "Muck", "Fester", "Dark", "Ooze",
+      "Sump", "Slough", "Rust", "Quag", "Venom", "Canker", "Grasp", "Sickle", "Fetid", "Blight"
+    ],
+    suffixes: [
+      "watch", "reach", "fen", "water", "marsh", "mire", "bog", "pool", "bottom", "glade",
+      "slough", "bayou", "hollow", "sink", "muck", "quag", "tangle", "ooze", "sump", "soak",
+      "weir", "creep", "bed", "drift", "damp", "fog", "pit", "gutter", "drain", "gloom"
+    ],
+    stems: [
+      "Mirewatch", "Bogreach", "Drownfen", "Blackwater", "Murkmarsh", "Gloomfen", "Weeping Pool", "Mudslough",
+      "Siltbayou", "Reedbottom", "Toadglade", "Leechsink", "Vipertangle", "Mossmuck", "Stagnantooze", "Fensump",
+      "Crawsoak", "Duskweir", "Dampcreep", "Muckbed", "Festerdrift", "Oozepool", "Sumpfen", "Sloughbottom",
+      "Rustquag", "Quagmire", "Venombog", "Cankersink", "Grasphollow", "Sicklepool", "Fetidmire", "Blightwater"
+    ]
+  },
+  tundra: {
+    prefixes: [
+      "Frost", "White", "Ice", "Winter", "Glacier", "Rime", "Snow", "Blizzard", "Cold", "Polar",
+      "Frozen", "Chill", "Bleak", "Hail", "Aurora", "Boreas", "Fang", "Shiver", "Pale", "Glaze",
+      "Hoar", "Howl", "Mammoth", "Wolf", "Tusk", "Seal", "Crystal", "North", "Arctic", "Skadi",
+      "Iceberg", "Sleet", "Icewind", "Frostbite", "Glacial", "Zero", "Frigid", "Perma", "Shard", "Rim"
+    ],
+    suffixes: [
+      "plain", "fang", "fall", "mere", "reach", "peak", "spire", "vale", "waste", "crag",
+      "field", "drift", "ridge", "berg", "expanse", "chill", "tundra", "hollow", "dome", "shelf",
+      "bank", "freeze", "floe", "gap", "point", "blow", "rim", "cleft", "wall", "sound"
+    ],
+    stems: [
+      "Frostplain", "Whitefang", "Icefall", "Wintermere", "Rimecrag", "Glacierpeak", "Coldvale", "Snowwaste",
+      "Blizzardfield", "Polarreach", "Frozenridge", "Chillberg", "Bleakexpanse", "Hailtundra", "Auroradome", "Boreasfloe",
+      "Shivershelf", "Palebank", "Glazecliff", "Hoarfreeze", "Howlgap", "Mammothpoint", "Tuskwall", "Crystaldrift",
+      "Arcticmere", "Skadifall", "Sleetvale", "Icewindridge", "Frigidplain", "Permafrost", "Frostbitegap", "Borealisdome"
+    ]
+  },
+  plains: {
+    prefixes: [
+      "Gold", "Long", "Wind", "Green", "Wide", "Sun", "Prairie", "Amber", "Meadow", "Open",
+      "Tall", "Broad", "Flat", "Wheat", "Grain", "Breeze", "Rolling", "Fair", "Horizon", "Grazing",
+      "Pasture", "Wild", "Clover", "Feather", "Barley", "Steppe", "Sunny", "Sweet", "Quiet", "Plain",
+      "Roam", "Herd", "Bison", "Antelope", "Lark", "Bloom", "Rye", "Goldenrod", "Grass", "Field"
+    ],
+    suffixes: [
+      "field", "grass", "plain", "reach", "meadow", "vale", "lands", "dale", "pasture", "view",
+      "prairie", "expanse", "sweep", "sward", "leas", "downs", "grounds", "flat", "verge", "horizon",
+      "lawn", "terrace", "range", "tracts", "crest", "trail", "run", "acres", "drift", "roll"
+    ],
+    stems: [
+      "Goldfield", "Longgrass", "Windplain", "Greenreach", "Ambervale", "Sunmeadow", "Openview", "Tallprairie",
+      "Broadexpanse", "Flatlands", "Wheatsweep", "Grainpasture", "Breezedowns", "Fairhorizon", "Grazingfields", "Wildclover",
+      "Feathergrass", "Barleysward", "Steppedale", "Sunnysweep", "Quietleas", "Roamgrounds", "Herdrange", "Bisonflat",
+      "Antelopetrail", "Larkmeadow", "Bloomacres", "Ryeverge", "Goldenrodplain", "Grassvale", "Sweetmeadow", "Rollingdowns"
+    ]
+  },
+  volcanic: {
+    prefixes: [
+      "Ash", "Ember", "Cinder", "Fire", "Magma", "Obsidian", "Sulfur", "Smolder", "Pyre", "Lava",
+      "Basalt", "Caldera", "Scorched", "Scoria", "Flare", "Blast", "Ignis", "Vulcan", "Redhot", "Brimstone",
+      "Furnace", "Vent", "Chasm", "Crater", "Smoke", "Fume", "Torch", "Hellfire", "Char", "Soot",
+      "Molten", "Burning", "Slag", "Gout", "Fiery", "Brand", "Glow", "Heat", "Spark", "Inferno"
+    ],
+    suffixes: [
+      "fall", "peak", "vale", "mount", "crater", "forge", "chasm", "spire", "flame", "cavern",
+      "vent", "caldera", "fissure", "pit", "gorge", "rift", "furnace", "cone", "breach", "slag",
+      "hearth", "gulch", "scar", "tongue", "bed", "maw", "flow", "crucible", "chamber", "depths"
+    ],
+    stems: [
+      "Ashfall", "Emberpeak", "Cinder Vale", "Firemount", "Magmacrater", "Obsidian Forge", "Pyrespire", "Lavachasm",
+      "Basaltvent", "Calderafissure", "Scorchedpit", "Scoriagorge", "Flarecone", "Blastfurnace", "Ignisbreach", "Vulcanhearth",
+      "Brimstonevent", "Furnacemaw", "Ventflow", "Cratercrucible", "Smokepyra", "Torchrift", "Moltendepths", "Burningchasm",
+      "Slagbed", "Charfall", "Fierycrag", "Brandspire", "Glowcavern", "Infernogorge", "Sootfissure", "Calderamouth"
+    ]
+  },
+  gothic: {
+    prefixes: [
+      "Graven", "Dread", "Black", "Veyr", "Mourn", "Raven", "Shadow", "Bleak", "Grim", "Blood",
+      "Crypt", "Tomb", "Bone", "Death", "Corpse", "Ghost", "Wraith", "Night", "Midnight", "Pale",
+      "Hollow", "Dark", "Bane", "Sorrow", "Spite", "Cursed", "Gloom", "Phantom", "Grave", "Shade",
+      "Morbid", "Doom", "Shroud", "Skull", "Haunt", "Sepulcher", "Woe", "Carrion", "Specter", "Noct"
+    ],
+    suffixes: [
+      "holm", "mere", "thorn", "spire", "keep", "wood", "crag", "hall", "crypt", "grove",
+      "shade", "barrow", "tomb", "veil", "vault", "watch", "fall", "grave", "roost", "manor",
+      "cairn", "cross", "gloom", "abbey", "mist", "hollow", "reach", "tower", "gate", "sanctuary"
+    ],
+    stems: [
+      "Gravenholm", "Dreadmere", "Blackthorn", "Veyrholm", "Mournkeep", "Grimspire", "Bleakwood", "Bloodhall",
+      "Cryptbarrow", "Tombvault", "Bonegloom", "Deathroost", "Corpsewatch", "Ghostcairn", "Wraithcross", "Nightabbey",
+      "Palemanor", "Hollowtomb", "Banespire", "Sorrowcrypt", "Spiteholm", "Cursedwood", "Gloomgrave", "Phantomveil",
+      "Shroudmere", "Skullcrag", "Sepulcherfall", "Woegrove", "Carrionhall", "Nocturne", "Morbidhollow", "Doomgate"
+    ]
+  },
+  fey: {
+    prefixes: [
+      "Moon", "Elo", "Silver", "Letha", "Syl", "Dew", "Glimmer", "Starlight", "Petal", "Willow",
+      "Blossom", "Twilight", "Dream", "Shimmer", "Whisper", "Fair", "Star", "Mystic", "Opal", "Velvet",
+      "Crystal", "Dawn", "Dusk", "Gossamer", "Iris", "Lily", "Lullaby", "Mirage", "Nymph", "Pearl",
+      "Radiant", "Silk", "Song", "Sprite", "Sunbeam", "Sweet", "Tinsel", "Violet", "Zephyr", "Aether"
+    ],
+    suffixes: [
+      "petal", "wen", "glade", "riel", "vale", "song", "mist", "dell", "wood", "bloom",
+      "chime", "drop", "grove", "dream", "light", "bow", "haven", "dance", "bell", "pool",
+      "ring", "whisper", "shimmer", "wisp", "sparkle", "veil", "haze", "hollow", "bower", "meadow"
+    ],
+    stems: [
+      "Moonpetal", "Elowen", "Silverglade", "Lethariel", "Sylvale", "Glimmersong", "Starlight Dell", "Blossomchime",
+      "Twilightdrop", "Dreamgrove", "Shimmerlight", "Whisperhaven", "Fairdance", "Stardell", "Mysticrool", "Opalbower",
+      "Velvetmist", "Crystallily", "Dawnbloom", "Duskgossamer", "Irisvale", "Lullabypool", "Nymphring", "Radiantwhisper",
+      "Silkgrove", "Songglade", "Spritewood", "Sunbeambower", "Violetmist", "Zephyrlane", "Elodell", "Moonbower"
+    ]
+  },
+  dwarven: {
+    prefixes: [
+      "Khaz", "Iron", "Durak", "Stone", "Grum", "Baruk", "Thor", "Krag", "Mhor", "Deep",
+      "Anvil", "Forge", "Gold", "Silver", "Bronze", "Granite", "Hammer", "Pick", "Ore", "Boulder",
+      "Mountain", "Vault", "Dwarf", "Mithril", "Steel", "Great", "Hearth", "Shield", "Beard", "Axe",
+      "Run", "Slate", "Rock", "Delve", "Mine", "Peak", "Horn", "Crag", "Strong", "Broad"
+    ],
+    suffixes: [
+      "rak", "deep", "vorn", "hall", "delve", "forge", "peak", "hold", "anvil", "bastion",
+      "mine", "vault", "gate", "keep", "hammer", "hearth", "beard", "quarry", "gap", "ton",
+      "run", "cairn", "shaft", "foundry", "chasm", "wall", "grip", "stone", "rock", "stand"
+    ],
+    stems: [
+      "Khazrak", "Irondeep", "Durak-Vorn", "Stonehall", "Barukdelve", "Grumforge", "Thorhold", "Kraganvil",
+      "Mhorbastion", "Deepmine", "Vaultgate", "Goldhammer", "Silverhearth", "Granitedelve", "Mithrilfoundry", "Steelkeep",
+      "Hearthgate", "Shieldbastion", "Axepeak", "Runestone", "Slatedeep", "Rockquarry", "Delverak", "Minehold",
+      "Stronganvil", "Broadhall", "Hammerdelve", "Orechasm", "Boulderforge", "Greatfoundry", "Khazad-Dum", "Baruk-Khaz"
+    ]
+  },
+  elven: {
+    prefixes: [
+      "Ael", "Sili", "Ela", "Loth", "Val", "Calen", "Fin", "Ithil", "Celeb", "Aer",
+      "Al", "Am", "An", "Ar", "Bel", "Cae", "Cel", "Da", "Eil", "El",
+      "Faen", "Gala", "Gil", "Ia", "Il", "Lae", "Lor", "Mae", "Mel", "Nae",
+      "Nym", "Ol", "Rae", "Rhi", "Sae", "Tae", "Tha", "Vala", "Ys", "Zar"
+    ],
+    suffixes: [
+      "thir", "vane", "rion", "wyn", "nor", "dil", "dor", "loth", "rien", "glen",
+      "driel", "lorn", "na", "lian", "thal", "las", "we", "rath", "var", "niel",
+      "dore", "lia", "mir", "sil", "thas", "thin", "van", "velle", "weth", "yl"
+    ],
+    stems: [
+      "Aelthir", "Silivane", "Elarion", "Lothwyn", "Valinor", "Calendor", "Ithildil", "Celebrien",
+      "Aerendil", "Alatariel", "Amranthir", "Bel-Danor", "Caelorn", "Celeborn", "Eilistraee", "Faelarion",
+      "Galadriel", "Gil-Estel", "Imladris", "Lorien", "Maedhros", "Melian", "Naerwyn", "Nimloth",
+      "Olorin", "Rhiellian", "Saeros", "Taen-Dore", "Valandil", "Yvanna", "Ithildor", "Celeblorn"
+    ]
+  },
+  draconic: {
+    prefixes: [
+      "Vyra", "Tzaar", "Khar", "Vael", "Drak", "Pyr", "Zul", "Ignis", "Brim", "Rhaeg",
+      "Bal", "Cinder", "Dread", "Fang", "Flam", "Gorg", "Ignar", "Kark", "Mal", "Mor",
+      "Nefar", "Nox", "Onyx", "Pyroth", "Raz", "Scylla", "Smaug", "Talon", "Verm", "Vor",
+      "Vyr", "Wyrm", "Xar", "Yg", "Zark", "Ash", "Claw", "Drake", "Grend", "Scale"
+    ],
+    suffixes: [
+      "kess", "zun", "thrax", "or", "fang", "maw", "scale", "gorg", "pyre", "claws",
+      "roost", "nest", "breath", "wing", "lair", "peak", "dread", "talons", "scar", "chasm",
+      "spire", "fire", "gaze", "horn", "heart", "scorch", "flame", "cinder", "tooth", "tor"
+    ],
+    stems: [
+      "Vyrakess", "Tzaar-Nor", "Kharzun", "Vaelthrax", "Drakfang", "Pyrmor", "Zulthrax", "Ignismap",
+      "Rhaegal", "Balerion", "Cinderroost", "Dreadlair", "Fangchasm", "Flamewing", "Gorgoroth", "Ignarclaw",
+      "Karkas", "Malpyr", "Nefarian", "Onyxmaw", "Pyrothrax", "Razorscale", "Smaug-Hold", "Talonpeak",
+      "Vermithrax", "Voragorg", "Wyrmscar", "Xarthrax", "Ygdrass", "Zarkon", "Drakroost", "Pyrethrax"
+    ]
+  },
+  arcane: {
+    prefixes: [
+      "Aether", "Thaum", "Arcan", "Velth", "Astra", "Chron", "Myst", "Nexus", "Run", "Prism",
+      "Alch", "Celes", "Divin", "Ench", "Flux", "Glyph", "Hex", "Illum", "Jinx", "Ley",
+      "Mag", "Nova", "Orb", "Pent", "Quint", "Rune", "Sigil", "Spell", "Tel", "Void",
+      "Warp", "Zeph", "Aegis", "Astral", "Circe", "Eld", "Fate", "Lumin", "Mana", "Spark"
+    ],
+    suffixes: [
+      "is", "ara", "um", "eris", "spire", "pillar", "sanct", "orium", "tower", "vale",
+      "gate", "nex", "hold", "dome", "sanctum", "vortex", "circle", "hall", "rift", "point",
+      "haven", "font", "weave", "ward", "core", "matrix", "sphere", "keep", "node", "sanctuary"
+    ],
+    stems: [
+      "Aetheris", "Thaumara", "Arcanum", "Veltheris", "Astraspire", "Chronorium", "Mysthaven", "Nexuspoint",
+      "Runeglyph", "Prismtower", "Alcheringa", "Celestarium", "Divinoria", "Enchanthold", "Fluxsanctum", "Glyphtower",
+      "Hextower", "Illumgate", "Leyspire", "Magisterium", "Novacore", "Orbhaven", "Pentagram", "Quintessence",
+      "Sigilhold", "Spellweave", "Voidnexus", "Warpvortex", "Zephyrus", "Aegishall", "Manaspire", "Circesanct"
+    ]
+  },
+  infernal: {
+    prefixes: [
+      "Vhal", "Mal", "Az", "Nerez", "Brim", "Gorg", "Hell", "Drak", "Bane", "Dis",
+      "Abaddon", "Belial", "Char", "Daemon", "Ereb", "Foul", "Grim", "Hells", "Imp", "Judas",
+      "Khor", "Lucif", "Meph", "Nether", "Orcus", "Pit", "Ruin", "Satan", "Tart", "Under",
+      "Vex", "Woe", "Xaphan", "Ygor", "Baal", "Cacod", "Fiend", "Moloch", "Styx", "Torment"
+    ],
+    suffixes: [
+      "zareth", "cairn", "rath", "za", "fire", "spire", "pit", "brand", "mouth", "tor",
+      "abyss", "gorge", "gate", "chasm", "scourge", "cage", "torment", "furnace", "depths", "tomb",
+      "wound", "maw", "flame", "keep", "hole", "lash", "scar", "pyre", "domain", "crawl"
+    ],
+    stems: [
+      "Vhalzareth", "Malcairn", "Azrath", "Nerezza", "Brimspire", "Banebrand", "Discairn", "Abaddon-Tor",
+      "Belialpit", "Charnelhouse", "Daemonreach", "Erebos", "Foulgate", "Grimmaw", "Hellspire", "Khorne-Rath",
+      "Lucifuge", "Mephistopheles", "Nethergorge", "Orcusdepths", "Pitfurnace", "Ruinscar", "Tartarus", "Underflame",
+      "Vexmouth", "Woecage", "Baalzebub", "Cacodemon", "Moloch-Rath", "Styxbridge", "Fiendspire", "Tormentgate"
+    ]
+  },
+  celestial: {
+    prefixes: [
+      "Seraph", "Sol", "Astr", "Cael", "Aura", "Empyr", "Lumi", "Divin", "Radi", "Heli",
+      "Angel", "Bene", "Cherub", "Dawn", "Eden", "Glor", "Heav", "Just", "Lux", "Mira",
+      "Nova", "Para", "Pure", "Sanct", "Stella", "Theos", "Uriel", "Vera", "Zenith", "Zion",
+      "Aegis", "Arch", "Celes", "Halo", "Holy", "Light", "Peace", "Saint", "Shine", "Vali"
+    ],
+    suffixes: [
+      "iel", "ara", "ion", "estis", "haven", "spire", "light", "dawn", "crown", "garde",
+      "throne", "sanctum", "grace", "realm", "heights", "dome", "gate", "pillar", "choir", "glow",
+      "rest", "crest", "star", "hold", "altar", "shine", "wing", "ray", "beam", "glory"
+    ],
+    stems: [
+      "Seraphiel", "Solara", "Astrion", "Caelestis", "Empyrgarde", "Luminhaven", "Radispire", "Helidawn",
+      "Angelgarde", "Benediction", "Cherubim", "Dawnhaven", "Edencrest", "Gloriathrone", "Heavensanctum", "Justiciara",
+      "Luxhaven", "Mirador", "Novastella", "Paradise", "Purelight", "Sanctaria", "Stellamaris", "Theopolis",
+      "Uriel-Throne", "Veridawn", "Zenithheights", "Ziongarde", "Halocrown", "Archangel", "Celestia", "Holycrest"
+    ]
+  },
+  eldritch: {
+    prefixes: [
+      "Yth", "Vhor", "Xal", "N'gor", "Zul", "K'th", "Mael", "Nyx", "R'ly", "Oor",
+      "Azath", "Cthul", "Dagon", "Gho", "Hast", "Inns", "Kad", "Lh", "Mgo", "Nya",
+      "Ogg", "Phn", "Q'u", "Rhan", "Shub", "Tsath", "Ubbo", "Vor", "Wry", "Yog",
+      "Zhar", "Cya", "D'end", "Gha", "Itha", "K'nar", "M'b", "N'g", "Th'r", "Z'x"
+    ],
+    suffixes: [
+      "eth", "gora", "oth", "uk", "goth", "void", "abyss", "depth", "shub", "nak",
+      "eh", "lyeh", "koth", "ftaghn", "rlyeh", "ya", "nog", "soth", "thoth", "zoth",
+      "tec", "vash", "ghal", "khur", "mor", "quoth", "ra", "sha", "vath", "zha"
+    ],
+    stems: [
+      "Yth-Goth", "Vhor-Nak", "Xaleth", "N'gora", "Zul'oth", "K'thuk", "Nyxdepth", "Maelvoid",
+      "R'lyeh", "Azathoth", "Cthulhu-Re", "Dagon-Garth", "Hastur-Vale", "Innsmouth", "Kadath", "Lh-Goth",
+      "Mgo-Vash", "Nyarlath", "Ogg-Zoth", "Phn-Glui", "Shub-Niggur", "Tsathoggua", "Ubbo-Sathla", "Vornak",
+      "Yog-Sothoth", "Zhar-Goth", "Cyranok", "Ithaqua", "K'naryan", "Th'rog", "Hasturglen", "Dagonabyss"
+    ]
+  },
+  steampunk: {
+    prefixes: [
+      "Brass", "Cogs", "Iron", "Gear", "Steam", "Piston", "Copper", "Rivet", "Clock", "Boiler",
+      "Anvil", "Bolt", "Gauge", "Hydro", "Lever", "Valve", "Wrench", "Zinc", "Coal", "Crank",
+      "Dynamo", "Engine", "Forge", "Grate", "Mill", "Plating", "Rust", "Sprocket", "Tinker", "Watt",
+      "Ash", "Beam", "Chimney", "Flywheel", "Nickel", "Pipe", "Smokestack", "Shaft", "Turbine", "Foundry"
+    ],
+    suffixes: [
+      "haven", "borough", "wick", "ford", "works", "ton", "vale", "port", "gate", "bay",
+      "yard", "mill", "forge", "station", "basin", "dock", "plant", "junction", "depot", "corner",
+      "foundry", "shop", "line", "terminal", "street", "row", "engine", "shaft", "chimney", "hold"
+    ],
+    stems: [
+      "Brasshaven", "Cogsborough", "Ironwick", "Gearford", "Steamworks", "Pistongate", "Copperport", "Rivetvale",
+      "Clockton", "Boilerbay", "Anvilyard", "Boltmills", "Gaugestation", "Hydrobasin", "Leverdock", "Valvedepot",
+      "Wrenchfoundry", "Zincplant", "Coaljunction", "Crankshop", "Dynamorow", "Engineworks", "Forgeground", "Gratemill",
+      "Rustline", "Sprocketbay", "Tinkerhaven", "Wattstation", "Ashworks", "Pipejunction", "Turbineforge", "Nickelquay"
+    ]
+  }
+};
+
+const THEME_KEYS = Object.keys(THEME_POOLS);
+const HAMLET_PREFIXES = ["Little", "Lower", "Old", "West", "East", "North", "South", "Upper", "St. ", "Great"];
+const POI_DESCRIPTORS = {
+  fort: ["Watchtower", "Garrison", "Bulwark", "Bastion", "Citadel", "Redoubt", "Keep", "Fortress"],
+  ruins: ["Ancient Ruins", "Fallen Temple", "Lost Sanctum", "Catacombs", "Forgotten Tomb", "Barrow"],
+  spire: ["Arcane Tower", "High Spire", "Wizard Observatory", "Astra Pillar", "Celestial Needle"],
+  mine: ["Iron Mine", "Gold Excavation", "Deep Delve", "Quarry", "Silver Pit", "Deep Mine"],
+  port: ["Harbor", "Bay Anchorage", "Wharf", "Haven Dock", "Pier Head", "Seaport", "Quay"]
+};
+
+function generateThemedName(themeKey, rng) {
+  let pool = THEME_POOLS[themeKey] || THEME_POOLS.medieval;
+  if (pool.stems && pool.stems.length > 0 && rng.next() < 0.35) {
+    return safeSample(pool.stems, rng, "Eldoria");
+  }
+  let p = safeSample(pool.prefixes, rng, "Eld");
+  let s = safeSample(pool.suffixes, rng, "haven");
+  return p + s;
+}
+
+function generateName(realmTheme, rng) {
+  let effectiveTheme = (realmTheme && rng.next() < 0.90) ? realmTheme : safeSample(THEME_KEYS, rng, "medieval");
+  return generateThemedName(effectiveTheme, rng);
+}
+
+function generateTownName(tier, realmTheme, rng) {
+  let baseName = generateName(realmTheme, rng);
+  if (tier === "hamlet" && rng.next() < 0.65) {
+    let hp = safeSample(HAMLET_PREFIXES, rng, "Little");
+    return `${hp} ${baseName}`;
+  }
+  return baseName;
+}
+
+function generatePoiName(type, realmTheme, rng) {
+  let baseName = generateName(realmTheme, rng);
+  let descList = POI_DESCRIPTORS[type] || ["Outpost"];
+  let desc = safeSample(descList, rng, "Outpost");
+  return `${baseName} ${desc}`;
+}
+
+const PALETTES = {
+  biomes: {
+    deepOcean: [18, 50, 95], ocean: [32, 80, 135], shallows: [60, 125, 170],
+    sand: [210, 195, 140], grass: [90, 140, 70], forest: [40, 100, 50],
+    hills: [110, 120, 80], mountain: [115, 110, 105], snow: [240, 240, 250],
+    river: "#216ba5", highway: "#7a3e1d", ruralRoad: "#4d3607", waterRoute: "#00cec9", text: "#ffffff"
+  },
+  parchment: {
+    deepOcean: [175, 160, 130], ocean: [190, 175, 145], shallows: [205, 190, 160],
+    sand: [220, 205, 175], grass: [230, 218, 188], forest: [215, 200, 170],
+    hills: [200, 185, 155], mountain: [170, 155, 130], snow: [240, 230, 210],
+    river: "#4a6b82", highway: "#5c3317", ruralRoad: "#8c6239", waterRoute: "#00838f", text: "#221810"
+  },
+  dark: {
+    deepOcean: [10, 15, 25], ocean: [20, 30, 48], shallows: [35, 50, 75],
+    sand: [80, 75, 65], grass: [40, 60, 45], forest: [20, 45, 30],
+    hills: [60, 55, 50], mountain: [90, 85, 80], snow: [180, 185, 195],
+    river: "#3a7bd5", highway: "#c08050", ruralRoad: "#8a6040", waterRoute: "#00cec9", text: "#e0e0e0"
+  }
+};
+
+const GRAND_ZONE_COLORS = [
+  { fillR: 225, fillG: 45,  fillB: 50,  alpha: 0.40, borderR: 255, borderG: 70,  borderB: 75,  nameColor: "#ff7675" },
+  { fillR: 30,  fillG: 110, fillB: 235, alpha: 0.40, borderR: 70,  borderG: 160, borderB: 255, nameColor: "#74b9ff" },
+  { fillR: 155, fillG: 45,  fillB: 215, alpha: 0.40, borderR: 195, borderG: 85,  borderB: 255, nameColor: "#a29bfe" },
+  { fillR: 235, fillG: 140, fillB: 15,  alpha: 0.40, borderR: 255, borderG: 170, borderB: 40,  nameColor: "#ffeaa7" },
+  { fillR: 225, fillG: 70,  fillB: 160, alpha: 0.40, borderR: 255, borderG: 110, borderB: 195, nameColor: "#fd79a8" },
+  { fillR: 10,  fillG: 165, fillB: 220, alpha: 0.40, borderR: 45,  borderG: 210, borderB: 255, nameColor: "#81ecec" },
+  { fillR: 185, fillG: 85,  fillB: 35,  alpha: 0.40, borderR: 230, borderG: 120, borderB: 65,  nameColor: "#fab1a0" },
+  { fillR: 105, fillG: 50,  fillB: 190, alpha: 0.40, borderR: 145, borderG: 85,  borderB: 240, nameColor: "#d6a2e8" }
+];
+
+function getNonGreenColor(index, alpha = 0.40) {
+  let angle = (index * 137.5) % 245;
+  let h = angle < 190 ? (170 + angle) : (angle - 190);
+  
+  let s = 0.85, l = 0.50;
+  let c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+  else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+  else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+  else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+  else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+  else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+  
+  let fillR = Math.round((r + m) * 255);
+  let fillG = Math.round((g + m) * 255);
+  let fillB = Math.round((b + m) * 255);
+  
+  return {
+    fillR, fillG, fillB, alpha,
+    borderR: Math.min(255, Math.round(fillR * 1.25 + 20)),
+    borderG: Math.min(255, Math.round(fillG * 1.25 + 20)),
+    borderB: Math.min(255, Math.round(fillB * 1.25 + 20)),
+    nameColor: `rgb(${Math.min(255, fillR + 70)}, ${Math.min(255, fillG + 70)}, ${Math.min(255, fillB + 70)})`
+  };
+}
+
+let worldData = null;
+
+// --- Chaikin Path Smoother ---
+function smoothPathChaikin(path, iterations = 2) {
+  if (!path || path.length < 3) return path;
+  let current = path;
+  for (let it = 0; it < iterations; it++) {
+    let next = [];
+    next.push(current[0]);
+    for (let i = 0; i < current.length - 1; i++) {
+      let p0 = current[i];
+      let p1 = current[i + 1];
+      next.push({
+        x: 0.75 * p0.x + 0.25 * p1.x,
+        y: 0.75 * p0.y + 0.25 * p1.y,
+        px: 0.75 * p0.px + 0.25 * p1.px,
+        py: 0.75 * p0.py + 0.25 * p1.py,
+        flow: p0.flow || p1.flow
+      });
+      next.push({
+        x: 0.25 * p0.x + 0.75 * p1.x,
+        y: 0.25 * p0.y + 0.75 * p1.y,
+        px: 0.25 * p0.px + 0.75 * p1.px,
+        py: 0.25 * p0.py + 0.75 * p1.py,
+        flow: p1.flow || p0.flow
+      });
+    }
+    next.push(current[current.length - 1]);
+    current = next;
+  }
+  return current;
+}
+
+// --- Generator Engine ---
+function generateWorldMap() {
+  const canvas = document.getElementById('mapCanvas');
+  const width = canvas.width;
+  const height = canvas.height;
+
+  const STEP = 2;
+  const gw = Math.floor(width / STEP);
+  const gh = Math.floor(height / STEP);
+  const totalCells = gw * gh;
+
+  const seed = document.getElementById('seed').value || "Aethelgard";
+  const rng = new SeededRandom(seed);
+  const perlin = new CleanPerlinNoise(rng);
+
+  const mapType = document.getElementById('mapType').value;
+  const numGrandZones = parseInt(document.getElementById('realms').value);
+  const targetRivers = parseInt(document.getElementById('rivers').value);
+  const targetPois = parseInt(document.getElementById('poiDensity').value);
+
+  const elevation = new Float32Array(totalCells);
+  const isWater = new Uint8Array(totalCells);
+  const flow = new Float32Array(totalCells);
+  const downIdx = new Int32Array(totalCells);
+  const grandState = new Int8Array(totalCells);
+  const medState = new Int16Array(totalCells);
+  const smallState = new Int16Array(totalCells);
+  const hillshade = new Float32Array(totalCells);
+  const isGrandBorder = new Uint8Array(totalCells);
+  const isMedBorder = new Uint8Array(totalCells);
+  const isSmallBorder = new Uint8Array(totalCells);
+  const hasRoad = new Uint8Array(totalCells);
+
+  flow.fill(1.0); downIdx.fill(-1);
+  grandState.fill(-1); medState.fill(-1); smallState.fill(-1);
+  hillshade.fill(1.0);
+
+  const scale = mapType === 'archipelago' ? 0.008 : 0.0035;
+  let maxRawElev = 0, seaLevel = 0.40;
+
+  for (let y = 0; y < gh; y++) {
+    let yOffset = y * gw;
+    for (let x = 0; x < gw; x++) {
+      let idx = yOffset + x;
+      let e = perlin.fbm(x * scale, y * scale, 6, 0.5, 2.0);
+
+      let dx = (x / gw) - 0.5, dy = (y / gh) - 0.5;
+      let dist = Math.sqrt(dx * dx + dy * dy) * 2;
+
+      if (mapType === 'continents') e -= Math.pow(dist, 1.8) * 0.45;
+      else if (mapType === 'pangaea') e -= Math.pow(dist, 1.2) * 0.65;
+      else if (mapType === 'archipelago') e -= Math.pow(dist, 2.6) * 0.25;
+
+      e = Math.max(0, Math.min(1, e));
+      if (e > maxRawElev) maxRawElev = e;
+      elevation[idx] = e;
+    }
+  }
+
+  let rawLandCells = [];
+  for (let idx = 0; idx < totalCells; idx++) {
+    let e = elevation[idx];
+    if (e >= seaLevel && maxRawElev > seaLevel) {
+      let normLand = (e - seaLevel) / (maxRawElev - seaLevel);
+      e = seaLevel + Math.pow(normLand, 1.1) * 0.55;
+      elevation[idx] = e;
+    }
+    let w = e < seaLevel ? 1 : 0;
+    isWater[idx] = w;
+    if (!w) rawLandCells.push(idx);
+  }
+
+  // Connected Landmass Component Analysis
+  const componentId = new Int16Array(totalCells).fill(-1);
+  let numComponents = 0;
+  const componentSizes = [];
+  const componentCoasts = [];
+  const componentCells = [];
+
+  for (let idx = 0; idx < totalCells; idx++) {
+    if (!isWater[idx] && componentId[idx] === -1) {
+      let compId = numComponents++;
+      componentSizes[compId] = 0;
+      componentCoasts[compId] = [];
+      componentCells[compId] = [];
+
+      let queue = [idx];
+      componentId[idx] = compId;
+      let head = 0;
+
+      while (head < queue.length) {
+        let curr = queue[head++];
+        componentSizes[compId]++;
+        componentCells[compId].push(curr);
+        let cx = curr % gw, cy = Math.floor(curr / gw);
+
+        let touchesWater = false;
+        if ((cx < gw - 1 && isWater[curr + 1]) ||
+            (cx > 0 && isWater[curr - 1]) ||
+            (cy < gh - 1 && isWater[curr + gw]) ||
+            (cy > 0 && isWater[curr - gw])) {
+          touchesWater = true;
+        }
+
+        if (touchesWater) {
+          componentCoasts[compId].push({ idx: curr, x: cx, y: cy, flow: flow[curr] });
+        }
+
+        const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+        for (let n of neighbors) {
+          if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+            let nIdx = n.y * gw + n.x;
+            if (!isWater[nIdx] && componentId[nIdx] === -1) {
+              componentId[nIdx] = compId;
+              queue.push(nIdx);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Hillshading
+  for (let y = 1; y < gh - 1; y++) {
+    let yOffset = y * gw;
+    for (let x = 1; x < gw - 1; x++) {
+      let idx = yOffset + x;
+      let dzdx = (elevation[idx + 1] - elevation[idx - 1]) * 2.0;
+      let dzdy = (elevation[idx + gw] - elevation[idx - gw]) * 2.0;
+
+      let lx = -0.707, ly = -0.707, lz = 0.5;
+      let nx = -dzdx, ny = -dzdy, nz = 1.0;
+      let len = Math.sqrt(nx*nx + ny*ny + nz*nz);
+      let dot = (nx*lx + ny*ly + nz*lz) / len;
+
+      hillshade[idx] = Math.max(0.4, Math.min(1.4, 0.6 + dot * 0.8));
+    }
+  }
+
+  // Flow Accumulation
+  for (let y = 0; y < gh; y++) {
+    let yOffset = y * gw;
+    for (let x = 0; x < gw; x++) {
+      let idx = yOffset + x;
+      if (isWater[idx]) continue;
+
+      let lowestIdx = -1, lowestElev = elevation[idx];
+      const neighbors = [
+        {x: x+1, y: y}, {x: x-1, y: y}, {x: x, y: y+1}, {x: x, y: y-1},
+        {x: x+1, y: y+1}, {x: x-1, y: y-1}, {x: x+1, y: y-1}, {x: x-1, y: y+1}
+      ];
+
+      for (let n of neighbors) {
+        if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+          let nIdx = n.y * gw + n.x;
+          if (elevation[nIdx] < lowestElev) {
+            lowestElev = elevation[nIdx];
+            lowestIdx = nIdx;
+          }
+        }
+      }
+      downIdx[idx] = lowestIdx;
+    }
+  }
+
+  const numBuckets = 1024;
+  const buckets = Array.from({length: numBuckets}, () => []);
+  for (let i = 0; i < rawLandCells.length; i++) {
+    let idx = rawLandCells[i];
+    let b = Math.min(numBuckets - 1, Math.max(0, Math.floor(elevation[idx] * numBuckets)));
+    buckets[b].push(idx);
+  }
+
+  const landCellIndices = [];
+  for (let b = numBuckets - 1; b >= 0; b--) {
+    let list = buckets[b];
+    for (let j = 0; j < list.length; j++) landCellIndices.push(list[j]);
+  }
+
+  for (let i = 0; i < landCellIndices.length; i++) {
+    let idx = landCellIndices[i];
+    let d = downIdx[idx];
+    if (d !== -1) flow[d] += flow[idx];
+  }
+
+  // Watershed Rivers
+  let riverMouths = [];
+  for (let y = 1; y < gh - 1; y++) {
+    let yOffset = y * gw;
+    for (let x = 1; x < gw - 1; x++) {
+      let idx = yOffset + x;
+      if (!isWater[idx] && flow[idx] > 200) {
+        let touchesOcean = isWater[idx+1] || isWater[idx-1] || isWater[idx+gw] || isWater[idx-gw];
+        if (touchesOcean) riverMouths.push(idx);
+      }
+    }
+  }
+
+  riverMouths.sort((a, b) => flow[b] - flow[a]);
+  let selectedMouths = riverMouths.slice(0, targetRivers);
+
+  let riverPaths = [];
+  for (let mouthIdx of selectedMouths) {
+    let rawPath = [];
+    let currIdx = mouthIdx;
+    let visited = new Set();
+
+    while (currIdx !== -1 && rawPath.length < 500) {
+      if (visited.has(currIdx)) break;
+      visited.add(currIdx);
+
+      let cx = currIdx % gw, cy = Math.floor(currIdx / gw);
+      rawPath.push({
+        x: cx,
+        y: cy,
+        px: cx * STEP + STEP/2,
+        py: cy * STEP + STEP/2,
+        flow: flow[currIdx]
+      });
+
+      let upstream = -1, maxFlow = 0;
+      const neighbors = [
+        {x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1},
+        {x: cx+1, y: cy+1}, {x: cx-1, y: cy-1}, {x: cx+1, y: cy-1}, {x: cx-1, y: cy+1}
+      ];
+
+      for (let n of neighbors) {
+        if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+          let nIdx = n.y * gw + n.x;
+          if (!isWater[nIdx] && downIdx[nIdx] === currIdx && !visited.has(nIdx)) {
+            if (flow[nIdx] > maxFlow) {
+              maxFlow = flow[nIdx];
+              upstream = nIdx;
+            }
+          }
+        }
+      }
+      currIdx = upstream;
+    }
+    if (rawPath.length > 5) {
+      riverPaths.push(smoothPathChaikin(rawPath, 2));
+    }
+  }
+
+  // Unified Urban Registry
+  let globalUrbanNodes = [];
+  function isUrbanSpaceClear(cx, cy, reqDist) {
+    return globalUrbanNodes.every(n => Math.hypot(n.x - cx, n.y - cy) >= reqDist);
+  }
+  function registerUrbanNode(x, y, type, name) {
+    globalUrbanNodes.push({ x, y, type, name });
+  }
+
+  // TIER 1: GRAND ZONES
+  let grandZones = [];
+  let medZones = [];
+  let smallZones = [];
+  let capitals = [];
+  let medSeats = [];
+  let smallSeats = [];
+
+  let marginCandidates = landCellIndices.filter(idx => {
+    let e = elevation[idx], cx = idx % gw, cy = Math.floor(idx / gw);
+    return e >= 0.44 && e <= 0.72 && cx > gw * 0.10 && cx < gw * 0.90 && cy > gh * 0.10 && cy < gh * 0.90;
+  });
+  if (marginCandidates.length === 0) marginCandidates = [...landCellIndices];
+  marginCandidates.sort((a, b) => flow[b] - flow[a]);
+
+  let grandRankKeys = ["empire", "kingdom", "republic", "dominion"];
+  let minSpacing = 220;
+
+  while (grandZones.length < numGrandZones && minSpacing >= 40) {
+    for (let idx of marginCandidates) {
+      if (grandZones.length >= numGrandZones) break;
+      let cx = idx % gw, cy = Math.floor(idx / gw);
+      let farEnough = grandZones.every(z => Math.hypot(z.capital.x - cx, z.capital.y - cy) > minSpacing);
+      if (farEnough) {
+        let gCulture = THEME_KEYS[(grandZones.length * 5 + Math.floor(rng.next() * 3)) % THEME_KEYS.length];
+        let gName = generateThemedName(gCulture, rng);
+        let rankType = grandRankKeys[grandZones.length % grandRankKeys.length];
+        let titleList = HIERARCHY_TITLES[rankType].grand;
+        let title = safeSample(titleList, rng, "Kingdom of");
+        let fullName = `${title} ${gName}`;
+
+        let cellObj = { x: cx, y: cy, px: cx * STEP + STEP/2, py: cy * STEP + STEP/2, elevation: elevation[idx] };
+        let gZone = {
+          id: grandZones.length,
+          rank: rankType,
+          culture: gCulture,
+          name: fullName,
+          shortName: gName,
+          color: GRAND_ZONE_COLORS[grandZones.length % GRAND_ZONE_COLORS.length],
+          capital: cellObj,
+          compId: componentId[idx]
+        };
+        grandState[idx] = gZone.id;
+        grandZones.push(gZone);
+        capitals.push({ ...cellObj, type: "capital", tier: "capital", name: gName, realmId: gZone.id, compId: componentId[idx] });
+        registerUrbanNode(cx, cy, "capital", gName);
+      }
+    }
+    minSpacing -= 30;
+  }
+
+  // Flood fill Grand Zones
+  let grandPQ = new PriorityQueue();
+  for (let g of grandZones) {
+    grandPQ.push({ idx: g.capital.y * gw + g.capital.x, state: g.id, cost: 0 }, 0);
+  }
+
+  while (!grandPQ.isEmpty()) {
+    let curr = grandPQ.pop();
+    let cx = curr.idx % gw, cy = Math.floor(curr.idx / gw);
+
+    const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+    for (let n of neighbors) {
+      if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+        let nIdx = n.y * gw + n.x;
+        if (!isWater[nIdx] && grandState[nIdx] === -1) {
+          grandState[nIdx] = curr.state;
+          let moveCost = 1.0 + Math.pow(elevation[nIdx], 2) * 3.0;
+          grandPQ.push({ idx: nIdx, state: curr.state, cost: curr.cost + moveCost }, curr.cost + moveCost);
+        }
+      }
+    }
+  }
+
+  for (let idx of landCellIndices) {
+    if (grandState[idx] === -1) {
+      let cx = idx % gw, cy = Math.floor(idx / gw);
+      let bestDistSq = Infinity, bestState = 0;
+      for (let g = 0; g < grandZones.length; g++) {
+        let dx = grandZones[g].capital.x - cx, dy = grandZones[g].capital.y - cy;
+        let dSq = dx * dx + dy * dy;
+        if (dSq < bestDistSq) { bestDistSq = dSq; bestState = g; }
+      }
+      grandState[idx] = bestState;
+    }
+  }
+
+ // =========================================================================
+  // --- TIER 2: MEDIUM ZONES (With Strict Small Capital Zone Radius) ---
+  // =========================================================================
+  let globalMedId = 0;
+  const maxMedAreaRatio = 0.25;
+  const CAPITAL_ZONE_RADIUS = 38; // Small compact radius around capital (~76 canvas pixels)
+
+  for (let grand of grandZones) {
+    let gCells = landCellIndices.filter(idx => grandState[idx] === grand.id);
+    let totalGCells = gCells.length;
+    if (totalGCells === 0) continue;
+
+    let medDefs = HIERARCHY_TITLES[grand.rank].medium;
+    let maxMedCap = Math.ceil(totalGCells * maxMedAreaRatio);
+    let targetMedCount = Math.max(3, Math.ceil(1.0 / maxMedAreaRatio));
+
+    let localMedList = [];
+
+    // 1. Primary Medium Zone = Special Crown Capital Territory (Restricted to small radius)
+    let gCapIdx = grand.capital.y * gw + grand.capital.x;
+    medState[gCapIdx] = globalMedId;
+    let crownMedTitle = HIERARCHY_TITLES[grand.rank].crownMed || "Crownlands of";
+    let primaryMed = {
+      id: globalMedId,
+      grandId: grand.id,
+      name: `${crownMedTitle} ${grand.shortName}`,
+      capital: grand.capital,
+      medDef: medDefs[0],
+      isCapitalZone: true,
+      color: getNonGreenColor(globalMedId + 3, 0.40)
+    };
+    medZones.push(primaryMed);
+    localMedList.push(primaryMed);
+    globalMedId++;
+
+    // 2. Autonomous Medium Zones for Large Isolated Islands
+    for (let compId = 0; compId < numComponents; compId++) {
+      if (compId !== grand.compId && componentSizes[compId] > 200) {
+        let compLand = componentCells[compId].filter(idx => grandState[idx] === grand.id);
+        if (compLand.length > 150) {
+          let centerIdx = compLand[Math.floor(compLand.length / 2)];
+          let cx = centerIdx % gw, cy = Math.floor(centerIdx / gw);
+          let islName = generateName(grand.culture, rng);
+          let islTitle = HIERARCHY_TITLES[grand.rank].islandMed || "Island Province of";
+          let mCellObj = { x: cx, y: cy, px: cx * STEP + STEP/2, py: cy * STEP + STEP/2, elevation: elevation[centerIdx] };
+
+          medState[centerIdx] = globalMedId;
+          let islandMed = {
+            id: globalMedId,
+            grandId: grand.id,
+            name: `${islTitle} ${islName}`,
+            capital: mCellObj,
+            medDef: medDefs[localMedList.length % medDefs.length],
+            isCapitalZone: false,
+            color: getNonGreenColor(globalMedId + 3, 0.40)
+          };
+          medZones.push(islandMed);
+          localMedList.push(islandMed);
+          medSeats.push({ ...mCellObj, type: "city", tier: "city", name: islName, realmId: grand.id, compId: compId });
+          registerUrbanNode(cx, cy, "city", islName);
+          globalMedId++;
+        }
+      }
+    }
+
+    // 3. Mainland Duchies (Spawn outside the capital zone)
+    let medDist = 90;
+    gCells.sort((a, b) => flow[b] - flow[a]);
+
+    while (localMedList.length < targetMedCount && medDist >= 35) {
+      for (let idx of gCells) {
+        if (localMedList.length >= targetMedCount) break;
+        let cx = idx % gw, cy = Math.floor(idx / gw);
+
+        // Keep major cities strictly outside the capital city radius
+        if (Math.hypot(grand.capital.x - cx, grand.capital.y - cy) < CAPITAL_ZONE_RADIUS + 15) continue;
+
+        if (isUrbanSpaceClear(cx, cy, medDist)) {
+          let mName = generateName(grand.culture, rng);
+          let subDef = medDefs[localMedList.length % medDefs.length];
+          let subTitle = safeSample(subDef.titles, rng, "Duchy of");
+          let mCellObj = { x: cx, y: cy, px: cx * STEP + STEP/2, py: cy * STEP + STEP/2, elevation: elevation[idx] };
+
+          medState[idx] = globalMedId;
+          let newMed = {
+            id: globalMedId,
+            grandId: grand.id,
+            name: `${subTitle} ${mName}`,
+            capital: mCellObj,
+            medDef: subDef,
+            isCapitalZone: false,
+            color: getNonGreenColor(globalMedId + 3, 0.40)
+          };
+          medZones.push(newMed);
+          localMedList.push(newMed);
+          medSeats.push({ ...mCellObj, type: "city", tier: "city", name: mName, realmId: grand.id, compId: componentId[idx] });
+          registerUrbanNode(cx, cy, "city", mName);
+          globalMedId++;
+        }
+      }
+      medDist -= 15;
+    }
+
+    // Flood fill medium zones with strict radius clamp on Capital Zone
+    let medCellCounts = {};
+    localMedList.forEach(m => { medCellCounts[m.id] = 1; });
+
+    let medPQ = new PriorityQueue();
+    for (let mz of localMedList) {
+      medPQ.push({ idx: mz.capital.y * gw + mz.capital.x, mState: mz.id, gState: mz.grandId, cost: 0 }, 0);
+    }
+
+    const maxCapZoneCells = Math.floor(Math.PI * CAPITAL_ZONE_RADIUS * CAPITAL_ZONE_RADIUS * 0.9);
+
+    while (!medPQ.isEmpty()) {
+      let curr = medPQ.pop();
+      let cx = curr.idx % gw, cy = Math.floor(curr.idx / gw);
+
+      const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+      for (let n of neighbors) {
+        if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+          let nIdx = n.y * gw + n.x;
+          if (!isWater[nIdx] && grandState[nIdx] === curr.gState && medState[nIdx] === -1) {
+            let isCapZone = (curr.mState === primaryMed.id);
+
+            // Hard clamp: Capital Zone cannot expand beyond small radius
+            if (isCapZone) {
+              let distToCap = Math.hypot(n.x - grand.capital.x, n.y - grand.capital.y);
+              if (distToCap > CAPITAL_ZONE_RADIUS || medCellCounts[curr.mState] >= maxCapZoneCells) {
+                continue;
+              }
+            } else {
+              if (medCellCounts[curr.mState] >= maxMedCap * 1.25) continue;
+            }
+
+            medState[nIdx] = curr.mState;
+            medCellCounts[curr.mState]++;
+            let moveCost = 1.0 + Math.pow(elevation[nIdx], 2) * 3.0;
+            medPQ.push({ idx: nIdx, mState: curr.mState, gState: curr.gState, cost: curr.cost + moveCost }, curr.cost + moveCost);
+          }
+        }
+      }
+    }
+
+    // Dynamic Auto-Spawning for remaining mainland territory outside the capital
+    let unassigned = gCells.filter(idx => medState[idx] === -1);
+    let spawnAttempts = 0;
+    while (unassigned.length > totalGCells * 0.05 && spawnAttempts < 6) {
+      spawnAttempts++;
+      unassigned.sort((a, b) => flow[b] - flow[a]);
+
+      let spawnCandidate = unassigned.find(idx => {
+        let scx = idx % gw, scy = Math.floor(idx / gw);
+        return Math.hypot(grand.capital.x - scx, grand.capital.y - scy) >= CAPITAL_ZONE_RADIUS + 10 &&
+               isUrbanSpaceClear(scx, scy, 60);
+      });
+      if (!spawnCandidate) break;
+
+      let scx = spawnCandidate % gw, scy = Math.floor(spawnCandidate / gw);
+      let mName = generateName(grand.culture, rng);
+      let subDef = medDefs[localMedList.length % medDefs.length];
+      let subTitle = safeSample(subDef.titles, rng, "Duchy of");
+      let mCellObj = { x: scx, y: scy, px: scx * STEP + STEP/2, py: scy * STEP + STEP/2, elevation: elevation[spawnCandidate] };
+
+      let spawnedMed = {
+        id: globalMedId,
+        grandId: grand.id,
+        name: `${subTitle} ${mName}`,
+        capital: mCellObj,
+        medDef: subDef,
+        isCapitalZone: false,
+        color: getNonGreenColor(globalMedId + 3, 0.40)
+      };
+      medState[spawnCandidate] = globalMedId;
+      medZones.push(spawnedMed);
+      localMedList.push(spawnedMed);
+      medSeats.push({ ...mCellObj, type: "city", tier: "city", name: mName, realmId: grand.id, compId: componentId[spawnCandidate] });
+      registerUrbanNode(scx, scy, "city", mName);
+      medCellCounts[globalMedId] = 1;
+
+      let spawnPQ = new PriorityQueue();
+      spawnPQ.push({ idx: spawnCandidate, mState: globalMedId, gState: grand.id, cost: 0 }, 0);
+      globalMedId++;
+
+      while (!spawnPQ.isEmpty()) {
+        let curr = spawnPQ.pop();
+        let cx = curr.idx % gw, cy = Math.floor(curr.idx / gw);
+        const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+        for (let n of neighbors) {
+          if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+            let nIdx = n.y * gw + n.x;
+            if (!isWater[nIdx] && grandState[nIdx] === curr.gState && medState[nIdx] === -1) {
+              if (medCellCounts[curr.mState] < maxMedCap * 1.25) {
+                medState[nIdx] = curr.mState;
+                medCellCounts[curr.mState]++;
+                let moveCost = 1.0 + Math.pow(elevation[nIdx], 2) * 3.0;
+                spawnPQ.push({ idx: nIdx, mState: curr.mState, gState: curr.gState, cost: curr.cost + moveCost }, curr.cost + moveCost);
+              }
+            }
+          }
+        }
+      }
+      unassigned = gCells.filter(idx => medState[idx] === -1);
+    }
+
+    // Assign any remaining unassigned cells strictly to non-capital duchies
+    const nonCapMeds = localMedList.filter(mz => !mz.isCapitalZone);
+    const candidateMeds = nonCapMeds.length > 0 ? nonCapMeds : localMedList;
+
+    for (let idx of gCells) {
+      if (medState[idx] === -1) {
+        let cx = idx % gw, cy = Math.floor(idx / gw);
+        let bestDistSq = Infinity, bestMState = candidateMeds[0].id;
+        for (let mz of candidateMeds) {
+          let dx = mz.capital.x - cx, dy = mz.capital.y - cy;
+          let dSq = dx * dx + dy * dy;
+          if (dSq < bestDistSq) { bestDistSq = dSq; bestMState = mz.id; }
+        }
+        medState[idx] = bestMState;
+      }
+    }
+  }
+
+  // TIER 3: SMALL ZONES
+  let globalSmallId = 0;
+  const maxSmallAreaRatio = 0.28;
+
+  for (let compId = 0; compId < numComponents; compId++) {
+    let cCells = componentCells[compId];
+    if (cCells.length >= 20 && cCells.length <= 250) {
+      let sampleIdx = cCells[0];
+      let gId = grandState[sampleIdx];
+      let mId = medState[sampleIdx];
+      let pGrand = grandZones[gId] || grandZones[0];
+
+      let centerIdx = cCells[Math.floor(cCells.length / 2)];
+      let cx = centerIdx % gw, cy = Math.floor(centerIdx / gw);
+      let islName = generateName(pGrand.culture, rng);
+      let sTitle = HIERARCHY_TITLES[pGrand.rank].islandSmall || "Lordship of";
+      let sCellObj = { x: cx, y: cy, px: cx * STEP + STEP/2, py: cy * STEP + STEP/2, elevation: elevation[centerIdx] };
+
+      let islandSmall = {
+        id: globalSmallId,
+        medId: mId,
+        name: `${sTitle} ${islName}`,
+        capital: sCellObj,
+        isCapitalZone: false,
+        color: getNonGreenColor(globalSmallId + 11, 0.42)
+      };
+      smallZones.push(islandSmall);
+
+      for (let idx of cCells) {
+        smallState[idx] = globalSmallId;
+      }
+      globalSmallId++;
+    }
+  }
+
+  for (let med of medZones) {
+    let mCells = landCellIndices.filter(idx => medState[idx] === med.id && smallState[idx] === -1);
+    let totalMCells = mCells.length;
+    if (totalMCells === 0) continue;
+
+    let parentGrand = grandZones[med.grandId];
+    let allowedSmallTypes = med.medDef.smallTypes;
+    let maxSmallCap = Math.ceil(totalMCells * maxSmallAreaRatio);
+    let targetSmallCount = Math.max(3, Math.ceil(1.0 / maxSmallAreaRatio));
+
+    let localSmallList = [];
+
+    let mCapIdx = med.capital.y * gw + med.capital.x;
+    smallState[mCapIdx] = globalSmallId;
+
+    let sTitle0 = med.isCapitalZone
+      ? (HIERARCHY_TITLES[parentGrand.rank].crownSmall || "Imperial Seat of")
+      : safeSample(SMALL_TITLE_FORMATS[allowedSmallTypes[0]] || ["Barony of"], rng, "Barony of");
+    let sName0 = med.isCapitalZone ? parentGrand.shortName : generateName(parentGrand.culture, rng);
+
+    let primarySmall = {
+      id: globalSmallId,
+      medId: med.id,
+      name: `${sTitle0} ${sName0}`,
+      capital: med.capital,
+      isCapitalZone: med.isCapitalZone,
+      color: getNonGreenColor(globalSmallId + 11, 0.42)
+    };
+    smallZones.push(primarySmall);
+    localSmallList.push(primarySmall);
+    globalSmallId++;
+
+    mCells.sort((a, b) => flow[b] - flow[a]);
+    let smallDist = 50;
+
+    // Only spawn walled towns outside of the capital city zone
+    if (!med.isCapitalZone) {
+      while (localSmallList.length < targetSmallCount && smallDist >= 25) {
+        for (let idx of mCells) {
+          if (localSmallList.length >= targetSmallCount) break;
+          let cx = idx % gw, cy = Math.floor(idx / gw);
+
+          if (isUrbanSpaceClear(cx, cy, smallDist)) {
+            let sName = generateName(parentGrand.culture, rng);
+            let sType = allowedSmallTypes[localSmallList.length % allowedSmallTypes.length];
+            let sTitleList = SMALL_TITLE_FORMATS[sType] || ["County of"];
+            let sTitle = safeSample(sTitleList, rng, "County of");
+            let sCellObj = { x: cx, y: cy, px: cx * STEP + STEP/2, py: cy * STEP + STEP/2, elevation: elevation[idx] };
+
+            smallState[idx] = globalSmallId;
+            let newSmall = {
+              id: globalSmallId,
+              medId: med.id,
+              name: `${sTitle} ${sName}`,
+              capital: sCellObj,
+              isCapitalZone: false,
+              color: getNonGreenColor(globalSmallId + 11, 0.42)
+            };
+            smallZones.push(newSmall);
+            localSmallList.push(newSmall);
+            smallSeats.push({ ...sCellObj, type: "town", tier: "town", name: sName, compId: componentId[idx] });
+            registerUrbanNode(cx, cy, "town", sName);
+            globalSmallId++;
+          }
+        }
+        smallDist -= 10;
+      }
+    }
+
+    let smallCellCounts = {};
+    localSmallList.forEach(s => { smallCellCounts[s.id] = 1; });
+
+    let smallPQ = new PriorityQueue();
+    for (let sz of localSmallList) {
+      smallPQ.push({ idx: sz.capital.y * gw + sz.capital.x, sState: sz.id, mState: sz.medId, cost: 0 }, 0);
+    }
+
+    while (!smallPQ.isEmpty()) {
+      let curr = smallPQ.pop();
+      let cx = curr.idx % gw, cy = Math.floor(curr.idx / gw);
+
+      const neighbors = [{x: cx+1, y: cy}, {x: cx-1, y: cy}, {x: cx, y: cy+1}, {x: cx, y: cy-1}];
+      for (let n of neighbors) {
+        if (n.x >= 0 && n.x < gw && n.y >= 0 && n.y < gh) {
+          let nIdx = n.y * gw + n.x;
+          if (!isWater[nIdx] && medState[nIdx] === curr.mState && smallState[nIdx] === -1) {
+            if (smallCellCounts[curr.sState] < maxSmallCap * 1.15) {
+              smallState[nIdx] = curr.sState;
+              smallCellCounts[curr.sState]++;
+              let moveCost = 1.0 + Math.pow(elevation[nIdx], 2) * 3.0;
+              smallPQ.push({ idx: nIdx, sState: curr.sState, mState: curr.mState, cost: curr.cost + moveCost }, curr.cost + moveCost);
+            }
+          }
+        }
+      }
+    }
+
+    for (let idx of mCells) {
+      if (smallState[idx] === -1) {
+        let cx = idx % gw, cy = Math.floor(idx / gw);
+        let bestDistSq = Infinity, bestSState = localSmallList[0].id;
+        for (let sz of localSmallList) {
+          let dx = sz.capital.x - cx, dy = sz.capital.y - cy;
+          let dSq = dx * dx + dy * dy;
+          if (dSq < bestDistSq) { bestDistSq = dSq; bestSState = sz.id; }
+        }
+        smallState[idx] = bestSState;
+      }
+    }
+  }
+
+  // Border Extraction
+  for (let y = 1; y < gh - 1; y++) {
+    let yOffset = y * gw;
+    for (let x = 1; x < gw - 1; x++) {
+      let idx = yOffset + x;
+      if (isWater[idx]) continue;
+
+      const neighborIndices = [idx + 1, idx - 1, idx + gw, idx - gw];
+      for (let nIdx of neighborIndices) {
+        if (!isWater[nIdx]) {
+          if (grandState[nIdx] !== grandState[idx]) {
+            isGrandBorder[idx] = 1;
+            break;
+          } else if (medState[nIdx] !== medState[idx]) {
+            isMedBorder[idx] = 1;
+          } else if (smallState[nIdx] !== smallState[idx] && !isMedBorder[idx]) {
+            isSmallBorder[idx] = 1;
+          }
+        }
+      }
+    }
+  }
+
+  // Guaranteed Island & Coastal Ports
+  let placedPorts = [];
+
+  for (let compId = 0; compId < numComponents; compId++) {
+    let coasts = componentCoasts[compId];
+    if (coasts && coasts.length > 0 && componentSizes[compId] >= 20) {
+      coasts.sort((a, b) => b.flow - a.flow);
+      let bestCoast = coasts.find(c => isUrbanSpaceClear(c.x, c.y, 40)) || coasts[0];
+      let gId = grandState[bestCoast.idx];
+      let rCulture = grandZones[gId]?.culture;
+      let pName = generatePoiName("port", rCulture, rng);
+      placedPorts.push({
+        x: bestCoast.x, y: bestCoast.y,
+        px: bestCoast.x * STEP + STEP / 2,
+        py: bestCoast.y * STEP + STEP / 2,
+        elevation: elevation[bestCoast.idx],
+        type: "port",
+        tier: "port",
+        name: pName,
+        compId: compId
+      });
+      registerUrbanNode(bestCoast.x, bestCoast.y, "port", pName);
+    }
+  }
+
+  for (let med of medZones) {
+    let mCells = landCellIndices.filter(idx => medState[idx] === med.id);
+    let mCoasts = [];
+    for (let idx of mCells) {
+      let cx = idx % gw, cy = Math.floor(idx / gw);
+      let touchesWater = (cx < gw - 1 && isWater[idx + 1]) ||
+                         (cx > 0 && isWater[idx - 1]) ||
+                         (cy < gh - 1 && isWater[idx + gw]) ||
+                         (cy > 0 && isWater[idx - gw]);
+      if (touchesWater) {
+        mCoasts.push({ idx, x: cx, y: cy, flow: flow[idx] });
+      }
+    }
+
+    if (mCoasts.length > 0) {
+      let hasPortNearby = placedPorts.some(p => Math.hypot(p.x - mCoasts[0].x, p.y - mCoasts[0].y) < 140 && medState[p.y * gw + p.x] === med.id);
+      if (!hasPortNearby) {
+        mCoasts.sort((a, b) => b.flow - a.flow);
+        let chosen = mCoasts.find(c => isUrbanSpaceClear(c.x, c.y, 60)) || mCoasts[0];
+        let gId = grandState[chosen.idx];
+        let rCulture = grandZones[gId]?.culture;
+        let pName = generatePoiName("port", rCulture, rng);
+        placedPorts.push({
+          x: chosen.x, y: chosen.y,
+          px: chosen.x * STEP + STEP / 2,
+          py: chosen.y * STEP + STEP / 2,
+          elevation: elevation[chosen.idx],
+          type: "port",
+          tier: "port",
+          name: pName,
+          compId: componentId[chosen.idx]
+        });
+        registerUrbanNode(chosen.x, chosen.y, "port", pName);
+      }
+    }
+  }
+
+  // Rural Settlements & POIs (Spawn freely across the map, including in capital city zones)
+  let pois = [...medSeats, ...smallSeats, ...placedPorts];
+  const minPoiDist = Math.max(8, Math.min(22, 220 / Math.sqrt(targetPois)));
+  const cellSize = minPoiDist;
+  const sCols = Math.ceil(gw / cellSize);
+  const sRows = Math.ceil(gh / cellSize);
+  const sGrid = new Int32Array(sCols * sRows).fill(-1);
+
+  const registerPOI = (px, py, id) => {
+    let gx = Math.floor(px / cellSize);
+    let gy = Math.floor(py / cellSize);
+    if (gx >= 0 && gx < sCols && gy >= 0 && gy < sRows) {
+      sGrid[gy * sCols + gx] = id;
+    }
+  };
+
+  capitals.forEach((c, idx) => registerPOI(c.x, c.y, idx));
+  pois.forEach((p, idx) => registerPOI(p.x, p.y, capitals.length + idx));
+
+  let attempts = 0;
+  const maxAttempts = targetPois * 35;
+
+  while (pois.length < targetPois && attempts < maxAttempts) {
+    attempts++;
+    let randIdx = safeSample(landCellIndices, rng, null);
+    if (randIdx === null || isWater[randIdx]) continue;
+
+    let cx = randIdx % gw, cy = Math.floor(randIdx / gw);
+
+    let sgx = Math.floor(cx / cellSize);
+    let sgy = Math.floor(cy / cellSize);
+    let conflict = false;
+
+    for (let dy = -1; dy <= 1 && !conflict; dy++) {
+      for (let dx = -1; dx <= 1 && !conflict; dx++) {
+        let nx = sgx + dx, ny = sgy + dy;
+        if (nx >= 0 && nx < sCols && ny >= 0 && ny < sRows) {
+          let occupant = sGrid[ny * sCols + nx];
+          if (occupant !== -1) {
+            let occ = occupant < capitals.length ? capitals[occupant] : pois[occupant - capitals.length];
+            if (occ && Math.hypot(occ.x - cx, occ.y - cy) < minPoiDist) conflict = true;
+          }
+        }
+      }
+    }
+    if (conflict) continue;
+
+    let tier = "village";
+    let e = elevation[randIdx];
+
+    if (isGrandBorder[randIdx] && rng.next() > 0.40) tier = "fort";
+    else if (e > 0.82) tier = "spire";
+    else if (e > 0.70) tier = "mine";
+    else if (rng.next() > 0.80) tier = "ruins";
+    else {
+      let roll = rng.next();
+      if (roll > 0.55) tier = "village";
+      else tier = "hamlet";
+    }
+
+    let gId = grandState[randIdx];
+    let rCulture = grandZones[gId]?.culture;
+    let name = ["town", "village", "hamlet", "city"].includes(tier) ? generateTownName(tier, rCulture, rng) : generatePoiName(tier, rCulture, rng);
+    let newPoi = { x: cx, y: cy, px: cx * STEP + STEP/2, py: cy * STEP + STEP/2, elevation: e, type: tier, tier: tier, name, compId: componentId[randIdx] };
+    registerPOI(cx, cy, capitals.length + pois.length);
+    pois.push(newPoi);
+  }
+
+  // --- 100% COMPLETE HIERARCHICAL ROAD & MARITIME NETWORK ---
+  let majorRoadPaths = [];
+  let minorRoadPaths = [];
+  let waterRoutePaths = [];
+
+  const allNodes = capitals.concat(pois);
+  const componentNodesMap = new Map();
+
+  for (let node of allNodes) {
+    let gx = Math.min(gw - 1, Math.max(0, Math.floor(node.x)));
+    let gy = Math.min(gh - 1, Math.max(0, Math.floor(node.y)));
+    let cId = componentId[gy * gw + gx];
+    if (cId === -1 && node.compId !== undefined) cId = node.compId;
+    if (cId === -1) cId = 0;
+
+    if (!componentNodesMap.has(cId)) {
+      componentNodesMap.set(cId, []);
+    }
+    componentNodesMap.get(cId).push(node);
+  }
+
+  componentNodesMap.forEach((compNodes) => {
+    if (compNodes.length < 2) return;
+
+    const compMajor = compNodes.filter(p => ["capital", "city", "town", "fort", "port"].includes(p.type || p.tier));
+    const compMinor = compNodes.filter(p => !["capital", "city", "town", "fort", "port"].includes(p.type || p.tier));
+
+    const connectedNodesInComp = new Set();
+    const compMajorEdges = new Set();
+
+    // 1. Trade Highways between Major Nodes
+    if (compMajor.length >= 2) {
+      for (let i = 0; i < compMajor.length; i++) {
+        let m1 = compMajor[i];
+        let sortedMajor = [...compMajor]
+          .filter((_, idx) => idx !== i)
+          .sort((a, b) => Math.hypot(a.x - m1.x, a.y - m1.y) - Math.hypot(b.x - m1.x, b.y - m1.y));
+
+        for (let k = 0; k < Math.min(2, sortedMajor.length); k++) {
+          let m2 = sortedMajor[k];
+          let edgeKey = m1.x < m2.x || (m1.x === m2.x && m1.y < m2.y)
+            ? `${m1.x},${m1.y}-${m2.x},${m2.y}`
+            : `${m2.x},${m2.y}-${m1.x},${m1.y}`;
+
+          if (!compMajorEdges.has(edgeKey)) {
+            compMajorEdges.add(edgeKey);
+            let rawPath = findSmartRoad(m1, m2, elevation, isWater, hasRoad, gw, gh);
+            if (rawPath && rawPath.length > 1) {
+              majorRoadPaths.push(smoothPathChaikin(rawPath, 2));
+              connectedNodesInComp.add(m1);
+              connectedNodesInComp.add(m2);
+            }
+          }
+        }
+      }
+    }
+
+    if (connectedNodesInComp.size === 0) {
+      connectedNodesInComp.add(compNodes[0]);
+    }
+
+    // 2. Connect any unconnected Major Nodes
+    for (let m of compMajor) {
+      if (!connectedNodesInComp.has(m)) {
+        let sortedConn = [...connectedNodesInComp]
+          .sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y));
+        let target = sortedConn[0];
+        if (target) {
+          let rawPath = findSmartRoad(m, target, elevation, isWater, hasRoad, gw, gh);
+          if (rawPath && rawPath.length > 1) {
+            majorRoadPaths.push(smoothPathChaikin(rawPath, 2));
+          } else {
+            minorRoadPaths.push([
+              { x: m.x, y: m.y, px: m.px || (m.x * STEP + STEP/2), py: m.py || (m.y * STEP + STEP/2) },
+              { x: target.x, y: target.y, px: target.px || (target.x * STEP + STEP/2), py: target.py || (target.y * STEP + STEP/2) }
+            ]);
+          }
+          connectedNodesInComp.add(m);
+        }
+      }
+    }
+
+    // 3. Connect ALL Minor Nodes (Villages, Hamlets, Mines, Spires, Ruins)
+    let remainingMinors = [...compMinor];
+    while (remainingMinors.length > 0) {
+      let bestMinorIdx = -1;
+      let bestTarget = null;
+      let bestDist = Infinity;
+
+      for (let i = 0; i < remainingMinors.length; i++) {
+        let m = remainingMinors[i];
+        for (let conn of connectedNodesInComp) {
+          let d = Math.hypot(m.x - conn.x, m.y - conn.y);
+          if (d < bestDist) {
+            bestDist = d;
+            bestMinorIdx = i;
+            bestTarget = conn;
+          }
+        }
+      }
+
+      if (bestMinorIdx === -1 || !bestTarget) {
+        let m = remainingMinors.shift();
+        connectedNodesInComp.add(m);
+        continue;
+      }
+
+      let m = remainingMinors.splice(bestMinorIdx, 1)[0];
+      let rawPath = findSmartRoad(m, bestTarget, elevation, isWater, hasRoad, gw, gh);
+      if (rawPath && rawPath.length > 1) {
+        minorRoadPaths.push(smoothPathChaikin(rawPath, 2));
+      } else {
+        minorRoadPaths.push([
+          { x: m.x, y: m.y, px: m.px || (m.x * STEP + STEP/2), py: m.py || (m.y * STEP + STEP/2) },
+          { x: bestTarget.x, y: bestTarget.y, px: bestTarget.px || (bestTarget.x * STEP + STEP/2), py: bestTarget.py || (bestTarget.y * STEP + STEP/2) }
+        ]);
+      }
+      connectedNodesInComp.add(m);
+    }
+  });
+
+  // Maritime Routes (Port-to-Port Connections)
+  if (placedPorts.length >= 2) {
+    let seaEdges = [];
+    for (let i = 0; i < placedPorts.length; i++) {
+      let p1 = placedPorts[i];
+      let sorted = [...placedPorts]
+        .filter((_, idx) => idx !== i)
+        .sort((a, b) => Math.hypot(a.x - p1.x, a.y - p1.y) - Math.hypot(b.x - p1.x, b.y - p1.y));
+
+      for (let k = 0; k < Math.min(2, sorted.length); k++) {
+        let p2 = sorted[k];
+        let exists = seaEdges.some(e => 
+          (e.start === p1 && e.end === p2) || 
+          (e.start === p2 && e.end === p1)
+        );
+        if (!exists) {
+          let rawWaterPath = findNauticalSeaRoute(p1, p2, isWater, gw, gh);
+          if (rawWaterPath && rawWaterPath.length > 1) {
+            seaEdges.push({ start: p1, end: p2 });
+            waterRoutePaths.push(smoothPathChaikin(rawWaterPath, 2));
+          }
+        }
+      }
+    }
+
+    for (let p1 of placedPorts) {
+      let isConnected = seaEdges.some(e => e.start === p1 || e.end === p1);
+      if (!isConnected) {
+        let sortedAll = [...placedPorts]
+          .filter(p2 => p2 !== p1)
+          .sort((a, b) => Math.hypot(a.x - p1.x, a.y - p1.y) - Math.hypot(b.x - p1.x, b.y - p1.y));
+        for (let p2 of sortedAll) {
+          let rawWaterPath = findNauticalSeaRoute(p1, p2, isWater, gw, gh);
+          if (rawWaterPath && rawWaterPath.length > 1) {
+            seaEdges.push({ start: p1, end: p2 });
+            waterRoutePaths.push(smoothPathChaikin(rawWaterPath, 2));
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Mountain Peaks
+  let mountainPeaks = [];
+  const mStride = 14;
+  for (let y = 10; y < gh - 10; y += mStride) {
+    let yOffset = y * gw;
+    for (let x = 10; x < gw - 10; x += mStride) {
+      let jx = x + Math.floor((rng.next() - 0.5) * 8);
+      let jy = y + Math.floor((rng.next() - 0.5) * 8);
+
+      if (jx >= 0 && jx < gw && jy >= 0 && jy < gh) {
+        let idx = jy * gw + jx;
+        if (!isWater[idx] && elevation[idx] > 0.68) {
+          mountainPeaks.push({
+            x: jx, y: jy,
+            px: jx * STEP + STEP/2,
+            py: jy * STEP + STEP/2,
+            elevation: elevation[idx]
+          });
+        }
+      }
+    }
+  }
+  mountainPeaks.sort((a, b) => a.y - b.y);
+
+
+  worldData = {
+    gw, gh, STEP, width, height,
+    elevation, isWater, flow, hillshade,
+    grandState, medState, smallState,
+    isGrandBorder, isMedBorder, isSmallBorder, hasRoad,
+    grandZones, medZones, smallZones,
+    capitals, medSeats, smallSeats, pois, allNodes,
+    riverPaths, mountainPeaks,
+    majorRoadPaths, minorRoadPaths, waterRoutePaths
+  };
+
+  renderMap();
+}
+
+// --- Crisp Scalable Vector SVG Overlay Renderer (with Individual Label Toggles) ---
+function buildSvgOverlayContent() {
+  if (!worldData) return "";
+  const {
+    width, height, STEP,
+    grandZones, medZones, smallZones,
+    capitals, pois
+  } = worldData;
+
+  const styleName = document.getElementById('style').value;
+  const palette = PALETTES[styleName];
+  const showPois = document.getElementById('showPois').checked;
+  const showLegend = document.getElementById('showLegend').checked;
+
+  // Individual Label Checkbox State Checks
+  const showGrandLbl = document.getElementById('lbl_grand')?.checked ?? true;
+  const showMedLbl = document.getElementById('lbl_med')?.checked ?? true;
+  const showSmallLbl = document.getElementById('lbl_small')?.checked ?? true;
+
+  const showCapitalLbl = document.getElementById('lbl_capital')?.checked ?? true;
+  const showCityLbl = document.getElementById('lbl_city')?.checked ?? true;
+  const showTownLbl = document.getElementById('lbl_town')?.checked ?? true;
+  const showVillageLbl = document.getElementById('lbl_village')?.checked ?? true;
+  const showHamletLbl = document.getElementById('lbl_hamlet')?.checked ?? true;
+  const showPortLbl = document.getElementById('lbl_port')?.checked ?? true;
+  const showFortLbl = document.getElementById('lbl_fort')?.checked ?? true;
+  const showSpireLbl = document.getElementById('lbl_spire')?.checked ?? true;
+  const showMineLbl = document.getElementById('lbl_mine')?.checked ?? true;
+  const showRuinsLbl = document.getElementById('lbl_ruins')?.checked ?? true;
+
+  let out = "";
+
+  out += `<style>
+    .map-text { font-family: 'Cinzel', 'Palatino Linotype', 'Georgia', serif; text-anchor: middle; dominant-baseline: central; paint-order: stroke fill; stroke-linejoin: round; stroke-linecap: round; stroke-miterlimit: 2; user-select: none; }
+  </style>`;
+
+  // 1. Zone Titles (Individually Toggleable)
+  if (showGrandLbl) {
+    out += `<g id="svg-grand-titles">`;
+    for (let grand of grandZones) {
+      let cx = grand.capital.x * STEP + STEP/2;
+      let cy = grand.capital.y * STEP + STEP/2;
+      let color = grand.color.nameColor || "#ffffff";
+      out += `<text class="map-text" x="${cx}" y="${cy + 68}" font-size="54" font-weight="700" letter-spacing="4px" fill="${color}" stroke="#000000" stroke-width="8">${escapeXml(String(grand.name).toUpperCase())}</text>`;
+    }
+    out += `</g>`;
+  }
+
+  if (showMedLbl) {
+    out += `<g id="svg-med-titles">`;
+    for (let med of medZones) {
+      let cx = med.capital.x * STEP + STEP/2;
+      let cy = med.capital.y * STEP + STEP/2;
+      let color = med.color.nameColor || "#ffeaa7";
+      out += `<text class="map-text" x="${cx}" y="${cy + 52}" font-size="38" font-weight="700" font-style="italic" fill="${color}" stroke="#000000" stroke-width="6">${escapeXml(med.name)}</text>`;
+    }
+    out += `</g>`;
+  }
+
+  if (showSmallLbl) {
+    out += `<g id="svg-small-titles">`;
+    for (let small of smallZones) {
+      let cx = small.capital.x * STEP + STEP/2;
+      let cy = small.capital.y * STEP + STEP/2;
+      let color = small.color.nameColor || "#ffffff";
+      out += `<text class="map-text" x="${cx}" y="${cy + 40}" font-size="28" font-weight="700" fill="${color}" stroke="#000000" stroke-width="5">${escapeXml(small.name)}</text>`;
+    }
+    out += `</g>`;
+  }
+
+  // 2. Settlement & POI Labels (Individually Toggleable per Type)
+  out += `<g id="svg-poi-labels">`;
+
+  // Capitals
+  if (showCapitalLbl) {
+    for (let cap of capitals) {
+      let px = cap.px || (cap.x * STEP + STEP/2);
+      let py = cap.py || (cap.y * STEP + STEP/2);
+      out += `<text class="map-text" x="${px}" y="${py - 22}" font-size="24" font-weight="700" fill="#ffffff" stroke="#000000" stroke-width="4.5">${escapeXml(cap.name)}</text>`;
+    }
+  }
+
+  // Settlements and Special POIs
+  if (showPois) {
+    for (let poi of pois) {
+      let px = poi.px || (poi.x * STEP + STEP/2);
+      let py = poi.py || (poi.y * STEP + STEP/2);
+      let t = poi.type || poi.tier || "village";
+
+      let shouldShow = false;
+      let fontSize = 13.5, fontWeight = "500", yOffset = 13, strokeW = 2.8, fill = "#e0e0e0";
+
+      if (t === "city") {
+        shouldShow = showCityLbl;
+        fontSize = 20; fontWeight = "700"; yOffset = 18; strokeW = 4.0; fill = "#ffffff";
+      } else if (t === "town") {
+        shouldShow = showTownLbl;
+        fontSize = 17; fontWeight = "700"; yOffset = 15; strokeW = 3.5; fill = "#ffffff";
+      } else if (t === "village") {
+        shouldShow = showVillageLbl;
+        fontSize = 13.5; fontWeight = "500"; yOffset = 13; strokeW = 2.8; fill = "#e0e0e0";
+      } else if (t === "hamlet") {
+        shouldShow = showHamletLbl;
+        fontSize = 12; fontWeight = "400"; yOffset = 11; strokeW = 2.4; fill = "#cccccc";
+      } else if (t === "port") {
+        shouldShow = showPortLbl;
+        fontSize = 15; fontWeight = "600"; yOffset = 14; strokeW = 3.2; fill = "#e8f4f8";
+      } else if (t === "fort") {
+        shouldShow = showFortLbl;
+        fontSize = 15; fontWeight = "600"; yOffset = 14; strokeW = 3.2; fill = "#e8f4f8";
+      } else if (t === "spire") {
+        shouldShow = showSpireLbl;
+        fontSize = 13; fontWeight = "500"; yOffset = 12; strokeW = 2.6; fill = "#dcdde1";
+      } else if (t === "mine") {
+        shouldShow = showMineLbl;
+        fontSize = 12.5; fontWeight = "500"; yOffset = 12; strokeW = 2.5; fill = "#f5cd79";
+      } else if (t === "ruins") {
+        shouldShow = showRuinsLbl;
+        fontSize = 12; fontWeight = "400"; yOffset = 11; strokeW = 2.4; fill = "#bdc581";
+      }
+
+      if (shouldShow) {
+        out += `<text class="map-text" x="${px}" y="${py - yOffset}" font-size="${fontSize}" font-weight="${fontWeight}" fill="${fill}" stroke="#000000" stroke-width="${strokeW}">${escapeXml(poi.name)}</text>`;
+      }
+    }
+  }
+  out += `</g>`;
+
+  // 3. Map Legend
+  if (showLegend) {
+    let lx = 50, ly = height - 760, lw = 620, lh = 710;
+    out += `<g id="svg-legend">`;
+    out += `<rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="10" fill="rgba(12, 12, 16, 0.94)" stroke="rgba(212, 175, 55, 0.85)" stroke-width="3.5"/>`;
+    out += `<text x="${lx + 30}" y="${ly + 46}" font-family="Cinzel, Georgia, serif" font-size="26" font-weight="700" fill="#d4af37" text-anchor="start" dominant-baseline="central">MAP LEGEND &amp; HIERARCHY</text>`;
+    out += `<line x1="${lx + 30}" y1="${ly + 66}" x2="${lx + lw - 30}" y2="${ly + 66}" stroke="rgba(212, 175, 55, 0.4)" stroke-width="1.5"/>`;
+
+    let entries = [
+      { type: "capital_icon", text: "Capital City (Grand Realm Seat)" },
+      { type: "city_icon", text: "Major City (Duchy / State Seat)" },
+      { type: "town_icon", text: "Walled Town (Barony Seat)" },
+      { type: "village_icon", text: "Village (Rural Center)" },
+      { type: "hamlet_icon", text: "Hamlet (Crossroads)" },
+      { type: "port_icon", text: "Coastal Port / Naval Harbor" },
+      { type: "fort_icon", text: "Border Citadel / Fortress" },
+      { type: "spire_icon", text: "Arcane Spire / Wizard Tower" },
+      { type: "mine_icon", text: "Mine / Quarry Excavation" },
+      { type: "ruins_icon", text: "Ancient Ruins / Sanctum" },
+      { type: "mountain_icon", text: "Mountain Peak / Range" },
+      { type: "highway_line", text: "Major Trade Highway" },
+      { type: "road_line", text: "Minor Rural Road / Byway" },
+      { type: "water_line", text: "Water Route (Port-to-Port)" },
+      { type: "border_line", text: "Grand Realm Sovereign Border" }
+    ];
+
+    let startY = ly + 96;
+    let stepY = 36;
+    for (let i = 0; i < entries.length; i++) {
+      let ey = startY + i * stepY;
+      let e = entries[i];
+      let iconX = lx + 45;
+
+      if (e.type === "capital_icon") {
+        let pts = getStarPoints(iconX, ey, 5, 12, 5.5);
+        out += `<polygon points="${pts}" fill="#f1c40f" stroke="#000000" stroke-width="1.5"/>`;
+      } else if (e.type === "city_icon") {
+        out += `<circle cx="${iconX}" cy="${ey}" r="11" fill="#9b59b6" stroke="#000000" stroke-width="2"/><circle cx="${iconX}" cy="${ey}" r="5" fill="#ffffff"/>`;
+      } else if (e.type === "town_icon") {
+        out += `<circle cx="${iconX}" cy="${ey}" r="9" fill="#3498db" stroke="#000000" stroke-width="2"/><circle cx="${iconX}" cy="${ey}" r="3.5" fill="#ffffff"/>`;
+      } else if (e.type === "village_icon") {
+        out += `<circle cx="${iconX}" cy="${ey}" r="7" fill="#e67e22" stroke="#000000" stroke-width="2"/>`;
+      } else if (e.type === "hamlet_icon") {
+        out += `<circle cx="${iconX}" cy="${ey}" r="5" fill="#bdc3c7" stroke="#000000" stroke-width="1.8"/>`;
+      } else if (e.type === "port_icon") {
+        out += `<circle cx="${iconX}" cy="${ey}" r="10" fill="#00cec9" stroke="#000000" stroke-width="2"/><path d="M ${iconX-5} ${ey} L ${iconX+5} ${ey} M ${iconX} ${ey-5} L ${iconX} ${ey+5}" stroke="#ffffff" stroke-width="2"/>`;
+      } else if (e.type === "fort_icon") {
+        out += `<rect x="${iconX-9}" y="${ey-9}" width="18" height="18" fill="#e74c3c" stroke="#000000" stroke-width="2"/><rect x="${iconX-3.5}" y="${ey-3.5}" width="7" height="7" fill="#ffffff"/>`;
+      } else if (e.type === "spire_icon") {
+        let pts = getStarPoints(iconX, ey, 4, 12, 4.5);
+        out += `<polygon points="${pts}" fill="#9b59b6" stroke="#000000" stroke-width="1.8"/>`;
+      } else if (e.type === "mine_icon") {
+        out += `<polygon points="${iconX-10},${ey-8} ${iconX+10},${ey-8} ${iconX},${ey+10}" fill="#f39c12" stroke="#000000" stroke-width="2"/>`;
+      } else if (e.type === "ruins_icon") {
+        out += `<polygon points="${iconX},${ey-11} ${iconX+11},${ey} ${iconX},${ey+11} ${iconX-11},${ey}" fill="#95a5a6" stroke="#000000" stroke-width="2"/>`;
+      } else if (e.type === "mountain_icon") {
+        out += `<polygon points="${iconX},${ey-12} ${iconX-12},${ey+9} ${iconX+12},${ey+9}" fill="#7f8c8d" stroke="#1a252f" stroke-width="1.5"/><polygon points="${iconX},${ey-12} ${iconX+12},${ey+9} ${iconX},${ey+9}" fill="#4a5568"/>`;
+      } else if (e.type === "highway_line") {
+        out += `<line x1="${iconX-18}" y1="${ey}" x2="${iconX+18}" y2="${ey}" stroke="${palette.highway || '#7a3e1d'}" stroke-width="3.5" stroke-dasharray="10,5"/>`;
+      } else if (e.type === "road_line") {
+        out += `<line x1="${iconX-18}" y1="${ey}" x2="${iconX+18}" y2="${ey}" stroke="${palette.ruralRoad || '#a67c52'}" stroke-width="2" stroke-dasharray="5,5"/>`;
+      } else if (e.type === "water_line") {
+        out += `<line x1="${iconX-18}" y1="${ey}" x2="${iconX+18}" y2="${ey}" stroke="${palette.waterRoute || '#00cec9'}" stroke-width="2.5" stroke-dasharray="8,8"/>`;
+      } else if (e.type === "border_line") {
+        out += `<line x1="${iconX-18}" y1="${ey}" x2="${iconX+18}" y2="${ey}" stroke="#e74c3c" stroke-width="4.5"/>`;
+      }
+
+      out += `<text x="${lx + 76}" y="${ey + 1}" font-family="Georgia, serif" font-size="18" fill="#e8e8e8" text-anchor="start" dominant-baseline="central">${e.text}</text>`;
+    }
+
+    let scY = startY + entries.length * stepY + 12;
+    out += `<line x1="${lx + 30}" y1="${scY + 15}" x2="${lx + 180}" y2="${scY + 15}" stroke="#d4af37" stroke-width="3.5"/>`;
+    out += `<line x1="${lx + 30}" y1="${scY + 7}" x2="${lx + 30}" y2="${scY + 23}" stroke="#d4af37" stroke-width="3.5"/>`;
+    out += `<line x1="${lx + 180}" y1="${scY + 7}" x2="${lx + 180}" y2="${scY + 23}" stroke="#d4af37" stroke-width="3.5"/>`;
+    out += `<text x="${lx + 30}" y="${scY}" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#d4af37" text-anchor="start">100 LEAGUES</text>`;
+
+    out += `</g>`;
+  }
+
+  return out;
+}
+
+// --- Map Renderer ---
+function renderMap() {
+  if (!worldData) return;
+
+  const canvas = document.getElementById('mapCanvas');
+  const ctx = canvas.getContext('2d');
+  const {
+    gw, gh, STEP, width, height,
+    elevation, isWater, hillshade,
+    grandState, medState, smallState,
+    grandZones, medZones, smallZones,
+    capitals, pois, riverPaths, mountainPeaks,
+    majorRoadPaths, minorRoadPaths, waterRoutePaths
+  } = worldData;
+
+  const styleName = document.getElementById('style').value;
+  const palette = PALETTES[styleName];
+  const showGrand = document.getElementById('showGrand').checked;
+  const showMed = document.getElementById('showMed').checked;
+  const showSmall = document.getElementById('showSmall').checked;
+  const showRoads = document.getElementById('showRoads').checked;
+  const showMountains = document.getElementById('showMountains').checked;
+  const showHillshade = document.getElementById('showHillshade').checked;
+  const showPois = document.getElementById('showPois').checked;
+
+  let activeShadingTier = "none";
+  if (showGrand) activeShadingTier = "grand";
+  else if (showMed) activeShadingTier = "med";
+  else if (showSmall) activeShadingTier = "small";
+
+  const imgData = ctx.createImageData(width, height);
+  const buf = new ArrayBuffer(imgData.data.length);
+  const buf8 = new Uint8ClampedArray(buf);
+  const data32 = new Uint32Array(buf);
+
+  const scaleX = gw / width;
+  const scaleY = gh / height;
+
+  for (let y = 0; y < height; y++) {
+    const gy = y * scaleY;
+    const y0 = Math.floor(gy);
+    const y1 = Math.min(gh - 1, y0 + 1);
+    const fy = gy - y0;
+    const iFy = 1.0 - fy;
+    const y0_offset = y0 * gw;
+    const y1_offset = y1 * gw;
+    const y_target_offset = y * width;
+
+    for (let x = 0; x < width; x++) {
+      const gx = x * scaleX;
+      const x0 = Math.floor(gx);
+      const x1 = Math.min(gw - 1, x0 + 1);
+      const fx = gx - x0;
+      const iFx = 1.0 - fx;
+
+      const w00 = iFx * iFy;
+      const w10 = fx * iFy;
+      const w01 = iFx * fy;
+      const w11 = fx * fy;
+
+      const e = w00 * elevation[y0_offset + x0] +
+                w10 * elevation[y0_offset + x1] +
+                w01 * elevation[y1_offset + x0] +
+                w11 * elevation[y1_offset + x1];
+
+      let col;
+      if (e < 0.25) col = palette.deepOcean;
+      else if (e < 0.38) col = palette.ocean;
+      else if (e < 0.40) col = palette.shallows;
+      else if (e < 0.44) col = palette.sand;
+      else if (e < 0.62) col = palette.grass;
+      else if (e < 0.74) col = palette.forest;
+      else if (e < 0.85) col = palette.hills;
+      else if (e < 0.93) col = palette.mountain;
+      else col = palette.snow;
+
+      let shade = 1.0;
+      if (showHillshade) {
+        shade = w00 * hillshade[y0_offset + x0] +
+                w10 * hillshade[y0_offset + x1] +
+                w01 * hillshade[y1_offset + x0] +
+                w11 * hillshade[y1_offset + x1];
+      }
+
+      let r = Math.min(255, Math.max(0, col[0] * shade));
+      let g = Math.min(255, Math.max(0, col[1] * shade));
+      let b = Math.min(255, Math.max(0, col[2] * shade));
+
+      const nearestGx = fx < 0.5 ? x0 : x1;
+      const nearestGy = fy < 0.5 ? y0 : y1;
+      const cellIdx = nearestGy * gw + nearestGx;
+
+      if (!isWater[cellIdx]) {
+        let zColor = null;
+        if (activeShadingTier === "grand" && grandState[cellIdx] >= 0) {
+          zColor = grandZones[grandState[cellIdx]].color;
+        } else if (activeShadingTier === "med" && medState[cellIdx] >= 0) {
+          zColor = medZones[medState[cellIdx]].color;
+        } else if (activeShadingTier === "small" && smallState[cellIdx] >= 0) {
+          zColor = smallZones[smallState[cellIdx]].color;
+        }
+
+        if (zColor) {
+          let alpha = zColor.alpha;
+          let invA = 1.0 - alpha;
+          r = (r * invA + zColor.fillR * alpha) | 0;
+          g = (g * invA + zColor.fillG * alpha) | 0;
+          b = (b * invA + zColor.fillB * alpha) | 0;
+        }
+      }
+
+      data32[y_target_offset + x] = (255 << 24) | (b << 16) | (g << 8) | r;
+    }
+  }
+  imgData.data.set(buf8);
+  ctx.putImageData(imgData, 0, 0);
+
+  // Vector Zone Outlines
+  drawSmoothVectorBorders(ctx, gw, gh, STEP, grandState, medState, smallState, isWater, grandZones, medZones, smallZones, showGrand, showMed, showSmall);
+
+  // Rivers
+  ctx.strokeStyle = palette.river;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  for (let path of riverPaths) {
+    if (path.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(path[0].px, path[0].py);
+
+    for (let i = 1; i < path.length; i++) {
+      let p = path[i];
+      let w = Math.min(12, Math.max(2, Math.sqrt(p.flow) * 0.15));
+      ctx.lineWidth = w;
+      ctx.lineTo(p.px, p.py);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(p.px, p.py);
+    }
+  }
+
+  // Hierarchical Roads & Water Routes
+  if (showRoads) {
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    ctx.strokeStyle = palette.ruralRoad || "#a67c52";
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([4, 4]);
+
+    for (let path of minorRoadPaths) {
+      if (path && path.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(path[0].px, path[0].py);
+        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].px, path[i].py);
+        ctx.stroke();
+      }
+    }
+
+    ctx.strokeStyle = palette.highway || "#7a3e1d";
+    ctx.lineWidth = 2.8;
+    ctx.setLineDash([8, 4]);
+
+    for (let path of majorRoadPaths) {
+      if (path && path.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(path[0].px, path[0].py);
+        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].px, path[i].py);
+        ctx.stroke();
+      }
+    }
+
+    ctx.strokeStyle = palette.waterRoute || "#00cec9";
+    ctx.lineWidth = 2.0;
+    ctx.setLineDash([6, 6]);
+
+    for (let path of waterRoutePaths) {
+      if (path && path.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(path[0].px, path[0].py);
+        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].px, path[i].py);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // Mountain Peaks
+  if (showMountains) {
+    for (let peak of mountainPeaks) {
+      drawMountainPeak(ctx, peak.px, peak.py, peak.elevation, 0.68);
+    }
+  }
+
+  // Capital Star Markers
+  for (let cap of capitals) {
+    let px = cap.px || (cap.x * STEP + STEP/2);
+    let py = cap.py || (cap.y * STEP + STEP/2);
+    drawStar(ctx, px, py, 5, 14, 6, "#f1c40f", "#000000");
+  }
+
+  // Settlement & POI Markers
+  if (showPois) {
+    for (let poi of pois) {
+      let px = poi.px || (poi.x * STEP + STEP/2);
+      let py = poi.py || (poi.y * STEP + STEP/2);
+      let effectiveType = poi.type || poi.tier || "village";
+      drawPoiShape(ctx, px, py, effectiveType);
+    }
+  }
+
+  // Mirror to Zoom Modal Canvas
+  const zoomCanvas = document.getElementById('zoomCanvas');
+  const zCtx = zoomCanvas.getContext('2d');
+  zCtx.drawImage(canvas, 0, 0);
+
+  // Update Scalable Vector SVG Overlays
+  const svgOverlayHtml = buildSvgOverlayContent();
+  document.getElementById('mapSvgOverlay').innerHTML = svgOverlayHtml;
+  document.getElementById('zoomSvgOverlay').innerHTML = svgOverlayHtml;
+  // Refresh sidebar directory list
+  populateSidebarList();
+}
+
+// --- Vector Zone Border Outlines ---
+function drawSmoothVectorBorders(ctx, gw, gh, STEP, grandState, medState, smallState, isWater, grandZones, medZones, smallZones, showGrand, showMed, showSmall) {
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  if (showSmall) {
+    ctx.lineWidth = 1.8;
+    for (let y = 0; y < gh - 1; y++) {
+      let yOffset = y * gw;
+      for (let x = 0; x < gw - 1; x++) {
+        let idx = yOffset + x;
+        let right = idx + 1;
+        let bottom = idx + gw;
+
+        if (isWater[idx] !== isWater[right] || (!isWater[idx] && smallState[idx] !== smallState[right])) {
+          let sIdx = !isWater[idx] ? idx : right;
+          if (smallState[sIdx] >= 0 && smallZones[smallState[sIdx]]) {
+            let sc = smallZones[smallState[sIdx]].color;
+            ctx.strokeStyle = `rgb(${sc.borderR}, ${sc.borderG}, ${sc.borderB})`;
+            ctx.beginPath();
+            ctx.moveTo((x + 1) * STEP, y * STEP);
+            ctx.lineTo((x + 1) * STEP, (y + 1) * STEP);
+            ctx.stroke();
+          }
+        }
+
+        if (isWater[idx] !== isWater[bottom] || (!isWater[idx] && smallState[idx] !== smallState[bottom])) {
+          let sIdx = !isWater[idx] ? idx : bottom;
+          if (smallState[sIdx] >= 0 && smallZones[smallState[sIdx]]) {
+            let sc = smallZones[smallState[sIdx]].color;
+            ctx.strokeStyle = `rgb(${sc.borderR}, ${sc.borderG}, ${sc.borderB})`;
+            ctx.beginPath();
+            ctx.moveTo(x * STEP, (y + 1) * STEP);
+            ctx.lineTo((x + 1) * STEP, (y + 1) * STEP);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  if (showMed) {
+    ctx.lineWidth = 2.6;
+    for (let y = 0; y < gh - 1; y++) {
+      let yOffset = y * gw;
+      for (let x = 0; x < gw - 1; x++) {
+        let idx = yOffset + x;
+        let right = idx + 1;
+        let bottom = idx + gw;
+
+        if (isWater[idx] !== isWater[right] || (!isWater[idx] && medState[idx] !== medState[right])) {
+          let mIdx = !isWater[idx] ? idx : right;
+          if (medState[mIdx] >= 0 && medZones[medState[mIdx]]) {
+            let mc = medZones[medState[mIdx]].color;
+            ctx.strokeStyle = `rgb(${mc.borderR}, ${mc.borderG}, ${mc.borderB})`;
+            ctx.beginPath();
+            ctx.moveTo((x + 1) * STEP, y * STEP);
+            ctx.lineTo((x + 1) * STEP, (y + 1) * STEP);
+            ctx.stroke();
+          }
+        }
+
+        if (isWater[idx] !== isWater[bottom] || (!isWater[idx] && medState[idx] !== medState[bottom])) {
+          let mIdx = !isWater[idx] ? idx : bottom;
+          if (medState[mIdx] >= 0 && medZones[medState[mIdx]]) {
+            let mc = medZones[medState[mIdx]].color;
+            ctx.strokeStyle = `rgb(${mc.borderR}, ${mc.borderG}, ${mc.borderB})`;
+            ctx.beginPath();
+            ctx.moveTo(x * STEP, (y + 1) * STEP);
+            ctx.lineTo((x + 1) * STEP, (y + 1) * STEP);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  if (showGrand) {
+    ctx.lineWidth = 4.0;
+    for (let y = 0; y < gh - 1; y++) {
+      let yOffset = y * gw;
+      for (let x = 0; x < gw - 1; x++) {
+        let idx = yOffset + x;
+        let right = idx + 1;
+        let bottom = idx + gw;
+
+        if (isWater[idx] !== isWater[right] || (!isWater[idx] && grandState[idx] !== grandState[right])) {
+          let gIdx = !isWater[idx] ? idx : right;
+          if (grandState[gIdx] >= 0 && grandZones[grandState[gIdx]]) {
+            let gc = grandZones[grandState[gIdx]].color;
+            ctx.strokeStyle = `rgb(${gc.borderR}, ${gc.borderG}, ${gc.borderB})`;
+            ctx.beginPath();
+            ctx.moveTo((x + 1) * STEP, y * STEP);
+            ctx.lineTo((x + 1) * STEP, (y + 1) * STEP);
+            ctx.stroke();
+          }
+        }
+
+        if (isWater[idx] !== isWater[bottom] || (!isWater[idx] && grandState[idx] !== grandState[bottom])) {
+          let gIdx = !isWater[idx] ? idx : bottom;
+          if (grandState[gIdx] >= 0 && grandZones[grandState[gIdx]]) {
+            let gc = grandZones[grandState[gIdx]].color;
+            ctx.strokeStyle = `rgb(${gc.borderR}, ${gc.borderG}, ${gc.borderB})`;
+            ctx.beginPath();
+            ctx.moveTo(x * STEP, (y + 1) * STEP);
+            ctx.lineTo((x + 1) * STEP, (y + 1) * STEP);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+// --- Land A* Pathfinder ---
+function findSmartRoad(startNode, endNode, elevation, isWater, hasRoad, gw, gh) {
+  const pScale = 4;
+  const pw = Math.floor(gw / pScale);
+  const ph = Math.floor(gh / pScale);
+
+  let sx = Math.min(pw - 1, Math.max(0, Math.floor(startNode.x / pScale)));
+  let sy = Math.min(ph - 1, Math.max(0, Math.floor(startNode.y / pScale)));
+  let ex = Math.min(pw - 1, Math.max(0, Math.floor(endNode.x / pScale)));
+  let ey = Math.min(ph - 1, Math.max(0, Math.floor(endNode.y / pScale)));
+
+  let gScore = new Float32Array(pw * ph);
+  gScore.fill(1e9);
+  let cameFromX = new Int16Array(pw * ph);
+  let cameFromY = new Int16Array(pw * ph);
+  cameFromX.fill(-1); cameFromY.fill(-1);
+
+  let openSet = new PriorityQueue();
+  gScore[sy * pw + sx] = 0;
+  openSet.push({x: sx, y: sy}, Math.hypot(sx - ex, sy - ey));
+
+  let found = false, iterations = 0;
+
+  while (!openSet.isEmpty() && iterations < 18000) {
+    iterations++;
+    let curr = openSet.pop();
+
+    if (curr.x === ex && curr.y === ey) {
+      found = true; break;
+    }
+
+    const neighbors = [
+      {x: curr.x+1, y: curr.y, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
+      {x: curr.x, y: curr.y+1, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
+      {x: curr.x+1, y: curr.y+1, d: 1.414}, {x: curr.x-1, y: curr.y-1, d: 1.414},
+      {x: curr.x+1, y: curr.y-1, d: 1.414}, {x: curr.x-1, y: curr.y+1, d: 1.414}
+    ];
+
+    for (let n of neighbors) {
+      if (n.x < 0 || n.x >= pw || n.y < 0 || n.y >= ph) continue;
+
+      let gx = Math.min(gw - 1, n.x * pScale);
+      let gy = Math.min(gh - 1, n.y * pScale);
+      let gIdx = gy * gw + gx;
+
+      let isBlockWater = isWater[gIdx] === 1;
+      if (isBlockWater) {
+        let hasLand = false;
+        for (let dy = 0; dy < pScale && !hasLand; dy++) {
+          for (let dx = 0; dx < pScale && !hasLand; dx++) {
+            let subIdx = Math.min(gh - 1, gy + dy) * gw + Math.min(gw - 1, gx + dx);
+            if (!isWater[subIdx]) hasLand = true;
+          }
+        }
+        if (hasLand) isBlockWater = false;
+      }
+
+      let cost = 1.0 * n.d;
+      if (isBlockWater) {
+        cost = 10000.0 * n.d;
+      } else if (elevation[gIdx] > 0.68) {
+        cost = 8.0 * n.d;
+      } else if (elevation[gIdx] > 0.58) {
+        cost = 2.2 * n.d;
+      }
+      if (hasRoad[gIdx]) cost *= 0.3;
+
+      let idx = n.y * pw + n.x;
+      let currIdx = curr.y * pw + curr.x;
+      let tentG = gScore[currIdx] + cost;
+
+      if (tentG < gScore[idx]) {
+        cameFromX[idx] = curr.x;
+        cameFromY[idx] = curr.y;
+        gScore[idx] = tentG;
+        openSet.push(n, tentG + Math.hypot(n.x - ex, n.y - ey));
+      }
+    }
+  }
+
+  if (found) {
+    let path = [];
+    let cx = ex, cy = ey;
+    while (cx !== -1 && cy !== -1) {
+      let gx = cx * pScale;
+      let gy = cy * pScale;
+      path.push({
+        x: gx,
+        y: gy,
+        px: gx * 2 + 1,
+        py: gy * 2 + 1
+      });
+      hasRoad[gy * gw + gx] = 1;
+      let idx = cy * pw + cx;
+      let px = cameFromX[idx];
+      let py = cameFromY[idx];
+      if (px === cx && py === cy) break;
+      cx = px; cy = py;
+    }
+    let rev = path.reverse();
+    rev[0] = { x: startNode.x, y: startNode.y, px: startNode.px || (startNode.x * 2 + 1), py: startNode.py || (startNode.y * 2 + 1) };
+    rev[rev.length - 1] = { x: endNode.x, y: endNode.y, px: endNode.px || (endNode.x * 2 + 1), py: endNode.py || (endNode.y * 2 + 1) };
+    return rev;
+  }
+
+  return null;
+}
+
+// --- Nautical Sea Pathfinder ---
+function findNauticalSeaRoute(portA, portB, isWater, gw, gh) {
+  const pScale = 4;
+  const pw = Math.floor(gw / pScale);
+  const ph = Math.floor(gh / pScale);
+
+  function findWaterNeighbor(gx, gy) {
+    let origIdx = Math.min(gh - 1, gy * pScale + 2) * gw + Math.min(gw - 1, gx * pScale + 2);
+    if (isWater[origIdx]) return { x: gx, y: gy };
+    for (let r = 1; r <= 3; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          let nx = gx + dx, ny = gy + dy;
+          if (nx >= 0 && nx < pw && ny >= 0 && ny < ph) {
+            let nIdx = Math.min(gh - 1, ny * pScale + 2) * gw + Math.min(gw - 1, nx * pScale + 2);
+            if (isWater[nIdx]) return { x: nx, y: ny };
+          }
+        }
+      }
+    }
+    return { x: gx, y: gy };
+  }
+
+  let sPoint = findWaterNeighbor(Math.floor(portA.x / pScale), Math.floor(portA.y / pScale));
+  let ePoint = findWaterNeighbor(Math.floor(portB.x / pScale), Math.floor(portB.y / pScale));
+
+  let sx = sPoint.x, sy = sPoint.y;
+  let ex = ePoint.x, ey = ePoint.y;
+
+  let gScore = new Float32Array(pw * ph);
+  gScore.fill(1e9);
+  let cameFromX = new Int16Array(pw * ph);
+  let cameFromY = new Int16Array(pw * ph);
+  cameFromX.fill(-1); cameFromY.fill(-1);
+
+  let openSet = new PriorityQueue();
+  gScore[sy * pw + sx] = 0;
+  openSet.push({x: sx, y: sy}, Math.hypot(sx - ex, sy - ey) * 1.08);
+
+  let found = false, iterations = 0;
+
+  while (!openSet.isEmpty() && iterations < 18000) {
+    iterations++;
+    let curr = openSet.pop();
+
+    if (curr.x === ex && curr.y === ey) {
+      found = true; break;
+    }
+
+    const neighbors = [
+      {x: curr.x+1, y: curr.y, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
+      {x: curr.x, y: curr.y+1, d: 1.0}, {x: curr.x-1, y: curr.y, d: 1.0},
+      {x: curr.x+1, y: curr.y+1, d: 1.414}, {x: curr.x-1, y: curr.y-1, d: 1.414},
+      {x: curr.x+1, y: curr.y-1, d: 1.414}, {x: curr.x-1, y: curr.y+1, d: 1.414}
+    ];
+
+    for (let n of neighbors) {
+      if (n.x < 0 || n.x >= pw || n.y < 0 || n.y >= ph) continue;
+
+      let gx = Math.min(gw - 1, n.x * pScale + 2);
+      let gy = Math.min(gh - 1, n.y * pScale + 2);
+      let gIdx = gy * gw + gx;
+
+      let cost = isWater[gIdx] ? (1.0 * n.d) : (4000.0 * n.d);
+
+      let idx = n.y * pw + n.x;
+      let currIdx = curr.y * pw + curr.x;
+      let tentG = gScore[currIdx] + cost;
+
+      if (tentG < gScore[idx]) {
+        cameFromX[idx] = curr.x;
+        cameFromY[idx] = curr.y;
+        gScore[idx] = tentG;
+        openSet.push(n, tentG + Math.hypot(n.x - ex, n.y - ey) * 1.08);
+      }
+    }
+  }
+
+  if (found) {
+    let path = [];
+    let cx = ex, cy = ey;
+    while (cx !== -1 && cy !== -1) {
+      let gx = cx * pScale;
+      let gy = cy * pScale;
+      path.push({
+        x: gx,
+        y: gy,
+        px: gx * 2 + 1,
+        py: gy * 2 + 1
+      });
+      let idx = cy * pw + cx;
+      let px = cameFromX[idx];
+      let py = cameFromY[idx];
+      if (px === cx && py === cy) break;
+      cx = px; cy = py;
+    }
+    let rev = path.reverse();
+    rev.unshift({ x: portA.x, y: portA.y, px: portA.px || (portA.x * 2 + 1), py: portA.py || (portA.y * 2 + 1) });
+    rev.push({ x: portB.x, y: portB.y, px: portB.px || (portB.x * 2 + 1), py: portB.py || (portB.y * 2 + 1) });
+    return rev;
+  }
+
+  return null;
+}
+
+function drawMountainPeak(ctx, px, py, elevation, threshold) {
+  ctx.save();
+  let delta = Math.max(0, elevation - threshold);
+  let h = 22 + delta * 80;
+  let w = 18 + delta * 60;
+
+  ctx.beginPath();
+  ctx.moveTo(px, py - h);
+  ctx.lineTo(px - w/2, py + h/3);
+  ctx.lineTo(px + w/2, py + h/3);
+  ctx.closePath();
+  ctx.fillStyle = "#7f8c8d";
+  ctx.fill();
+  ctx.strokeStyle = "#1a252f";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(px, py - h);
+  ctx.lineTo(px + w/2, py + h/3);
+  ctx.lineTo(px, py + h/3);
+  ctx.closePath();
+  ctx.fillStyle = "#4a5568";
+  ctx.fill();
+
+  if (elevation > 0.82) {
+    let snowH = h * 0.35;
+    let snowW = w * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(px, py - h);
+    ctx.lineTo(px - snowW/2, py - h + snowH);
+    ctx.lineTo(px + snowW/2, py - h + snowH);
+    ctx.closePath();
+    ctx.fillStyle = "#f8f9fa";
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawPoiShape(ctx, px, py, type) {
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#000000";
+
+  if (type === "city") {
+    ctx.fillStyle = "#9b59b6";
+    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (type === "town") {
+    ctx.fillStyle = "#3498db";
+    ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2); ctx.fill();
+  } else if (type === "village") {
+    ctx.fillStyle = "#e67e22";
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (type === "hamlet") {
+    ctx.fillStyle = "#bdc3c7";
+    ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (type === "port") {
+    ctx.fillStyle = "#00cec9";
+    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke();
+  } else if (type === "fort") {
+    ctx.fillStyle = "#e74c3c";
+    ctx.fillRect(-8, -8, 16, 16);
+    ctx.strokeRect(-8, -8, 16, 16);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(-3, -3, 6, 6);
+  } else if (type === "spire") {
+    drawStar(ctx, 0, 0, 4, 10, 4, "#9b59b6", "#000000");
+  } else if (type === "mine") {
+    ctx.fillStyle = "#f39c12";
+    ctx.beginPath();
+    ctx.moveTo(-8, -7); ctx.lineTo(8, -7); ctx.lineTo(0, 8);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (type === "ruins") {
+    ctx.fillStyle = "#95a5a6";
+    ctx.beginPath();
+    ctx.moveTo(0, -9); ctx.lineTo(9, 0); ctx.lineTo(0, 9); ctx.lineTo(-9, 0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, fill, stroke) {
+  let rot = Math.PI / 2 * 3, x = cx, y = cy, step = Math.PI / spikes;
+  ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius);
+  for (let i = 0; i < spikes; i++) {
+    x = cx + Math.cos(rot) * outerRadius; y = cy + Math.sin(rot) * outerRadius;
+    ctx.lineTo(x, y); rot += step;
+    x = cx + Math.cos(rot) * innerRadius; y = cy + Math.sin(rot) * innerRadius;
+    ctx.lineTo(x, y); rot += step;
+  }
+  ctx.lineTo(cx, cy - outerRadius); ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+// --- Vector SVG Standalone Export ---
+function exportSVG() {
+  if (!worldData) return;
+  const {
+    width, height, STEP, gw, gh,
+    isWater, grandState, medState, smallState,
+    grandZones, medZones, smallZones,
+    riverPaths, mountainPeaks,
+    majorRoadPaths, minorRoadPaths, waterRoutePaths
+  } = worldData;
+
+  const styleName = document.getElementById('style').value;
+  const palette = PALETTES[styleName];
+  const showGrand = document.getElementById('showGrand').checked;
+  const showMed = document.getElementById('showMed').checked;
+  const showSmall = document.getElementById('showSmall').checked;
+  const showRoads = document.getElementById('showRoads').checked;
+  const showMountains = document.getElementById('showMountains').checked;
+
+  const canvas = document.getElementById('mapCanvas');
+  const rasterTerrainUrl = canvas.toDataURL("image/png");
+
+  let svg = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n`;
+  svg += `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n`;
+  svg += `  <image width="${width}" height="${height}" xlink:href="${rasterTerrainUrl}"/>\n`;
+
+  // Zone Borders
+  svg += `  <g id="zone-borders" stroke-linecap="round" stroke-linejoin="round">\n`;
+  if (showSmall) {
+    for (let y = 0; y < gh - 1; y++) {
+      let yOffset = y * gw;
+      for (let x = 0; x < gw - 1; x++) {
+        let idx = yOffset + x;
+        let right = idx + 1;
+        let bottom = idx + gw;
+
+        if (isWater[idx] !== isWater[right] || (!isWater[idx] && smallState[idx] !== smallState[right])) {
+          let sIdx = !isWater[idx] ? idx : right;
+          if (smallState[sIdx] >= 0 && smallZones[smallState[sIdx]]) {
+            let sc = smallZones[smallState[sIdx]].color;
+            svg += `    <line x1="${(x + 1) * STEP}" y1="${y * STEP}" x2="${(x + 1) * STEP}" y2="${(y + 1) * STEP}" stroke="rgb(${sc.borderR},${sc.borderG},${sc.borderB})" stroke-width="1.8"/>\n`;
+          }
+        }
+        if (isWater[idx] !== isWater[bottom] || (!isWater[idx] && smallState[idx] !== smallState[bottom])) {
+          let sIdx = !isWater[idx] ? idx : bottom;
+          if (smallState[sIdx] >= 0 && smallZones[smallState[sIdx]]) {
+            let sc = smallZones[smallState[sIdx]].color;
+            svg += `    <line x1="${x * STEP}" y1="${(y + 1) * STEP}" x2="${(x + 1) * STEP}" y2="${(y + 1) * STEP}" stroke="rgb(${sc.borderR},${sc.borderG},${sc.borderB})" stroke-width="1.8"/>\n`;
+          }
+        }
+      }
+    }
+  }
+
+  if (showMed) {
+    for (let y = 0; y < gh - 1; y++) {
+      let yOffset = y * gw;
+      for (let x = 0; x < gw - 1; x++) {
+        let idx = yOffset + x;
+        let right = idx + 1;
+        let bottom = idx + gw;
+
+        if (isWater[idx] !== isWater[right] || (!isWater[idx] && medState[idx] !== medState[right])) {
+          let mIdx = !isWater[idx] ? idx : right;
+          if (medState[mIdx] >= 0 && medZones[medState[mIdx]]) {
+            let mc = medZones[medState[mIdx]].color;
+            svg += `    <line x1="${(x + 1) * STEP}" y1="${y * STEP}" x2="${(x + 1) * STEP}" y2="${(y + 1) * STEP}" stroke="rgb(${mc.borderR},${mc.borderG},${mc.borderB})" stroke-width="2.6"/>\n`;
+          }
+        }
+        if (isWater[idx] !== isWater[bottom] || (!isWater[idx] && medState[idx] !== medState[bottom])) {
+          let mIdx = !isWater[idx] ? idx : bottom;
+          if (medState[mIdx] >= 0 && medZones[medState[mIdx]]) {
+            let mc = medZones[medState[mIdx]].color;
+            svg += `    <line x1="${x * STEP}" y1="${(y + 1) * STEP}" x2="${(x + 1) * STEP}" y2="${(y + 1) * STEP}" stroke="rgb(${mc.borderR},${mc.borderG},${mc.borderB})" stroke-width="2.6"/>\n`;
+          }
+        }
+      }
+    }
+  }
+
+  if (showGrand) {
+    for (let y = 0; y < gh - 1; y++) {
+      let yOffset = y * gw;
+      for (let x = 0; x < gw - 1; x++) {
+        let idx = yOffset + x;
+        let right = idx + 1;
+        let bottom = idx + gw;
+
+        if (isWater[idx] !== isWater[right] || (!isWater[idx] && grandState[idx] !== grandState[right])) {
+          let gIdx = !isWater[idx] ? idx : right;
+          if (grandState[gIdx] >= 0 && grandZones[grandState[gIdx]]) {
+            let gc = grandZones[grandState[gIdx]].color;
+            svg += `    <line x1="${(x + 1) * STEP}" y1="${y * STEP}" x2="${(x + 1) * STEP}" y2="${(y + 1) * STEP}" stroke="rgb(${gc.borderR},${gc.borderG},${gc.borderB})" stroke-width="4.0"/>\n`;
+          }
+        }
+        if (isWater[idx] !== isWater[bottom] || (!isWater[idx] && grandState[idx] !== grandState[bottom])) {
+          let gIdx = !isWater[idx] ? idx : bottom;
+          if (grandState[gIdx] >= 0 && grandZones[grandState[gIdx]]) {
+            let gc = grandZones[grandState[gIdx]].color;
+            svg += `    <line x1="${x * STEP}" y1="${(y + 1) * STEP}" x2="${(x + 1) * STEP}" y2="${(y + 1) * STEP}" stroke="rgb(${gc.borderR},${gc.borderG},${gc.borderB})" stroke-width="4.0"/>\n`;
+          }
+        }
+      }
+    }
+  }
+  svg += `  </g>\n`;
+
+  // Rivers
+  svg += `  <g id="rivers" stroke-linecap="round" stroke-linejoin="round">\n`;
+  for (let path of riverPaths) {
+    if (path.length < 2) continue;
+    let d = `M ${path[0].px} ${path[0].py}`;
+    for (let i = 1; i < path.length; i++) d += ` L ${path[i].px} ${path[i].py}`;
+    let w = Math.min(12, Math.max(2, Math.sqrt(path[path.length - 1].flow) * 0.15));
+    svg += `    <path d="${d}" fill="none" stroke="${palette.river}" stroke-width="${w}"/>\n`;
+  }
+  svg += `  </g>\n`;
+
+  // Roads & Sea Routes
+  if (showRoads) {
+    svg += `  <g id="rural-roads" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4,4">\n`;
+    for (let path of minorRoadPaths) {
+      if (path.length < 2) continue;
+      let d = `M ${path[0].px} ${path[0].py}`;
+      for (let i = 1; i < path.length; i++) d += ` L ${path[i].px} ${path[i].py}`;
+      svg += `    <path d="${d}" fill="none" stroke="${palette.ruralRoad || '#a67c52'}" stroke-width="1.4"/>\n`;
+    }
+    svg += `  </g>\n`;
+
+    svg += `  <g id="highways" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8,4">\n`;
+    for (let path of majorRoadPaths) {
+      if (path.length < 2) continue;
+      let d = `M ${path[0].px} ${path[0].py}`;
+      for (let i = 1; i < path.length; i++) d += ` L ${path[i].px} ${path[i].py}`;
+      svg += `    <path d="${d}" fill="none" stroke="${palette.highway || '#7a3e1d'}" stroke-width="2.8"/>\n`;
+    }
+    svg += `  </g>\n`;
+
+    svg += `  <g id="water-routes" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,6">\n`;
+    for (let path of waterRoutePaths) {
+      if (path.length < 2) continue;
+      let d = `M ${path[0].px} ${path[0].py}`;
+      for (let i = 1; i < path.length; i++) d += ` L ${path[i].px} ${path[i].py}`;
+      svg += `    <path d="${d}" fill="none" stroke="${palette.waterRoute || '#00cec9'}" stroke-width="2.0"/>\n`;
+    }
+    svg += `  </g>\n`;
+  }
+
+  // Mountains
+  if (showMountains && mountainPeaks.length > 0) {
+    svg += `  <g id="mountains">\n`;
+    for (let peak of mountainPeaks) {
+      let delta = Math.max(0, peak.elevation - 0.68);
+      let h = 22 + delta * 80, w = 18 + delta * 60;
+      let px = peak.px, py = peak.py;
+      svg += `    <polygon points="${px},${py - h} ${px - w/2},${py + h/3} ${px + w/2},${py + h/3}" fill="#7f8c8d" stroke="#1a252f" stroke-width="1.5"/>\n`;
+      svg += `    <polygon points="${px},${py - h} ${px + w/2},${py + h/3} ${px},${py + h/3}" fill="#4a5568"/>\n`;
+      if (peak.elevation > 0.82) {
+        let snowH = h * 0.35, snowW = w * 0.35;
+        svg += `    <polygon points="${px},${py - h} ${px - snowW/2},${py - h + snowH} ${px + snowW/2},${py - h + snowH}" fill="#f8f9fa"/>\n`;
+      }
+    }
+    svg += `  </g>\n`;
+  }
+
+  // Vector Typography & Legend
+  svg += buildSvgOverlayContent();
+  svg += `</svg>`;
+
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `realm_map_${document.getElementById('seed').value}.svg`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- Silky Smooth Main Map Pan & Zoom Controller ---
+let mainZoomScale = 1;
+let mainPanX = 0, mainPanY = 0;
+let isMainDragging = false, mainStartX = 0, mainStartY = 0;
+let mainRafId = null;
+
+function setupMainMapZoom() {
+  const viewport = document.getElementById('mainMapViewport');
+  const wrapper = document.getElementById('mainCanvasWrapper');
+  const badge = document.getElementById('mainZoomBadge');
+  const inBtn = document.getElementById('mainZoomInBtn');
+  const outBtn = document.getElementById('mainZoomOutBtn');
+  const resetBtn = document.getElementById('mainZoomResetBtn');
+  const tooltip = document.getElementById('mapTooltip');
+
+  function requestTransformUpdate() {
+    if (mainRafId) return;
+    mainRafId = requestAnimationFrame(() => {
+      wrapper.style.transform = `translate3d(${mainPanX}px, ${mainPanY}px, 0) scale(${mainZoomScale})`;
+      badge.innerText = `${Math.round(mainZoomScale * 100)}%`;
+      mainRafId = null;
+    });
+  }
+
+  function resetMainZoom() {
+    mainZoomScale = 1;
+    mainPanX = 0;
+    mainPanY = 0;
+    requestTransformUpdate();
+    tooltip.style.display = 'none';
+  }
+
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    let delta = e.deltaY < 0 ? 1.15 : 0.85;
+    mainZoomScale = Math.max(0.5, Math.min(25, mainZoomScale * delta));
+    requestTransformUpdate();
+  }, { passive: false });
+
+  viewport.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.map-hud')) return;
+    isMainDragging = true;
+    mainStartX = e.clientX - mainPanX;
+    mainStartY = e.clientY - mainPanY;
+    tooltip.style.display = 'none';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (isMainDragging) {
+      mainPanX = e.clientX - mainStartX;
+      mainPanY = e.clientY - mainStartY;
+      requestTransformUpdate();
+      return;
+    }
+
+    if (!worldData || !worldData.allNodes) return;
+
+    // Fast coordinate math without layout thrashing
+    const vRect = viewport.getBoundingClientRect();
+    if (e.clientX < vRect.left || e.clientX > vRect.right || e.clientY < vRect.top || e.clientY > vRect.bottom) {
+      tooltip.style.display = 'none';
+      return;
+    }
+
+    const wrapperW = wrapper.clientWidth;
+    const wrapperH = wrapper.clientHeight;
+    const dx = e.clientX - (vRect.left + vRect.width / 2);
+    const dy = e.clientY - (vRect.top + vRect.height / 2);
+
+    const relX = (dx - mainPanX) / mainZoomScale;
+    const relY = (dy - mainPanY) / mainZoomScale;
+
+    const canvasX = (relX / wrapperW + 0.5) * 5120;
+    const canvasY = (relY / wrapperH + 0.5) * 2880;
+
+    let best = null, bestDist = 65;
+    const targets = worldData.allNodes;
+
+    for (let i = 0; i < targets.length; i++) {
+      let target = targets[i];
+      let d = Math.hypot(target.px - canvasX, target.py - canvasY);
+      if (d < bestDist) {
+        bestDist = d;
+        best = target;
+      }
+    }
+
+    if (best) {
+      tooltip.style.left = `${e.clientX - vRect.left}px`;
+      tooltip.style.top = `${e.clientY - vRect.top}px`;
+      document.getElementById('ttTitle').innerText = best.name;
+      
+      let typeTitles = {
+        capital: "Imperial / Royal Capital (Grand Realm)",
+        city: "Major City (Duchy / State Seat)",
+        town: "Walled Town (Barony / County Seat)",
+        village: "Village (Rural Center)",
+        hamlet: "Crossroads Hamlet",
+        port: "Coastal Harbor / Naval Seaport",
+        fort: "Border Citadel / Fortress",
+        spire: "Arcane High Spire",
+        mine: "Quarry / Mineral Excavation",
+        ruins: "Ancient Ruins / Fallen Sanctum"
+      };
+      
+      document.getElementById('ttType').innerText = typeTitles[best.type || best.tier] || "Settlement";
+      document.getElementById('ttRealm').innerText = getResolvedRealmString ? getResolvedRealmString(best) : "Wilderness";
+      tooltip.style.display = 'block';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  });
+
+  window.addEventListener('mouseup', () => { isMainDragging = false; });
+  viewport.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+  inBtn.addEventListener('click', () => {
+    mainZoomScale = Math.min(25, mainZoomScale * 1.35);
+    requestTransformUpdate();
+  });
+
+  outBtn.addEventListener('click', () => {
+    mainZoomScale = Math.max(0.5, mainZoomScale * 0.75);
+    requestTransformUpdate();
+  });
+
+  resetBtn.addEventListener('click', resetMainZoom);
+}
+
+// --- Silky Smooth Modal Pan & Zoom Controller ---
+let zoomScale = 1;
+let panX = 0, panY = 0;
+let isDragging = false, startX = 0, startY = 0;
+let modalRafId = null;
+
+function setupZoomModal() {
+  const zoomBtn = document.getElementById('zoomBtn');
+  const zoomModal = document.getElementById('zoomModal');
+  const closeZoomBtn = document.getElementById('closeZoomBtn');
+  const resetZoomBtn = document.getElementById('resetZoomBtn');
+  const zoomViewport = document.getElementById('zoomViewport');
+  const zoomWrapper = document.getElementById('zoomCanvasWrapper');
+
+  function requestModalTransform() {
+    if (modalRafId) return;
+    modalRafId = requestAnimationFrame(() => {
+      zoomWrapper.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoomScale})`;
+      modalRafId = null;
+    });
+  }
+
+  function resetZoom() {
+    zoomScale = 1; panX = 0; panY = 0;
+    requestModalTransform();
+  }
+
+  zoomBtn.addEventListener('click', () => {
+    zoomModal.classList.add('active');
+    resetZoom();
+  });
+
+  closeZoomBtn.addEventListener('click', () => {
+    zoomModal.classList.remove('active');
+  });
+
+  resetZoomBtn.addEventListener('click', resetZoom);
+
+  zoomViewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    let delta = e.deltaY < 0 ? 1.15 : 0.85;
+    zoomScale = Math.max(0.5, Math.min(25, zoomScale * delta));
+    requestModalTransform();
+  }, { passive: false });
+
+  zoomViewport.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    requestModalTransform();
+  });
+
+  window.addEventListener('mouseup', () => { isDragging = false; });
+}
+
+function createRandomSeed() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  let res = '';
+  for (let i = 0; i < 7; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+  return res;
+}
+
+// --- Async Execution Wrapper ---
+function startAsyncGeneration() {
+  const overlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+
+  overlay.classList.add('active');
+  loadingText.innerText = "Simulating 5K World & Infrastructure...";
+
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      generateWorldMap();
+      overlay.classList.remove('active');
+    }, 16);
+  });
+}
+// --- Slide-in Directory Controller ---
+function getResolvedRealmString(target) {
+  if (!worldData) return "Wilderness";
+  let gx = Math.min(worldData.gw - 1, Math.max(0, Math.floor(target.x)));
+  let gy = Math.min(worldData.gh - 1, Math.max(0, Math.floor(target.y)));
+  let cellIdx = gy * worldData.gw + gx;
+  let gRealm = worldData.grandZones[worldData.grandState[cellIdx]];
+  let mRealm = worldData.medZones[worldData.medState[cellIdx]];
+  let sRealm = worldData.smallZones[worldData.smallState[cellIdx]];
+
+  let realmStr = "";
+  if (sRealm) realmStr += sRealm.name;
+  if (mRealm) realmStr += (realmStr ? " • " : "") + mRealm.name;
+  if (gRealm) realmStr += (realmStr ? " • " : "") + gRealm.name;
+  return realmStr || "Wilderness";
+}
+
+function focusLocationOnMap(target) {
+  if (!target || !worldData) return;
+  const wrapper = document.getElementById('mainCanvasWrapper');
+  const viewport = document.getElementById('mainMapViewport');
+  const tooltip = document.getElementById('mapTooltip');
+
+  // Zoom in on location
+  mainZoomScale = 4.5;
+
+  const wrapperW = wrapper.clientWidth;
+  const wrapperH = wrapper.clientHeight;
+
+  // Center the map precisely on the location
+  const relX = (target.px / 5120 - 0.5) * wrapperW;
+  const relY = (target.py / 2880 - 0.5) * wrapperH;
+
+  mainPanX = -relX * mainZoomScale;
+  mainPanY = -relY * mainZoomScale;
+
+  wrapper.style.transform = `translate(${mainPanX}px, ${mainPanY}px) scale(${mainZoomScale})`;
+  document.getElementById('mainZoomBadge').innerText = `${Math.round(mainZoomScale * 100)}%`;
+
+  // Display map tooltip on the focused location
+  const vRect = viewport.getBoundingClientRect();
+  const screenX = vRect.width / 2;
+  const screenY = vRect.height / 2;
+
+  tooltip.style.left = `${screenX}px`;
+  tooltip.style.top = `${screenY}px`;
+  document.getElementById('ttTitle').innerText = target.name;
+
+  let typeTitles = {
+    capital: "Imperial / Royal Capital (Grand Realm)",
+    city: "Major City (Duchy / State Seat)",
+    town: "Walled Town (Barony / County Seat)",
+    village: "Village (Rural Center)",
+    hamlet: "Crossroads Hamlet",
+    port: "Coastal Harbor / Naval Seaport",
+    fort: "Border Citadel / Fortress",
+    spire: "Arcane High Spire",
+    mine: "Quarry / Mineral Excavation",
+    ruins: "Ancient Ruins / Fallen Sanctum"
+  };
+
+  document.getElementById('ttType').innerText = typeTitles[target.type || target.tier] || "Settlement";
+  document.getElementById('ttRealm').innerText = getResolvedRealmString(target);
+  tooltip.style.display = 'block';
+}
+
+function populateSidebarList() {
+  if (!worldData) return;
+  const listElem = document.getElementById('sidebarList');
+  const countElem = document.getElementById('sidebarCount');
+  const searchTxt = (document.getElementById('sidebarSearch').value || "").toLowerCase().trim();
+  const typeFilter = document.getElementById('sidebarTypeFilter').value;
+  const sortType = document.getElementById('sidebarSort').value;
+
+  const allNodes = worldData.capitals.concat(worldData.pois);
+
+  const tierRanks = { capital: 0, city: 1, town: 2, port: 3, fort: 4, spire: 5, mine: 6, ruins: 7, village: 8, hamlet: 9 };
+  const badgeColors = {
+    capital: "#f1c40f", city: "#9b59b6", town: "#3498db", port: "#00cec9",
+    fort: "#e74c3c", spire: "#9b59b6", mine: "#f39c12", ruins: "#95a5a6",
+    village: "#e67e22", hamlet: "#bdc3c7"
+  };
+
+  let items = allNodes.map(node => {
+    let type = node.type || node.tier || "village";
+    return {
+      node,
+      name: node.name,
+      type: type,
+      realm: getResolvedRealmString(node),
+      rank: tierRanks[type] !== undefined ? tierRanks[type] : 99
+    };
+  });
+
+  // Filter by search & type
+  items = items.filter(item => {
+    if (typeFilter !== 'all' && item.type !== typeFilter) return false;
+    if (searchTxt) {
+      let matchesName = item.name.toLowerCase().includes(searchTxt);
+      let matchesRealm = item.realm.toLowerCase().includes(searchTxt);
+      let matchesType = item.type.toLowerCase().includes(searchTxt);
+      if (!matchesName && !matchesRealm && !matchesType) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  if (sortType === 'name_asc') {
+    items.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortType === 'name_desc') {
+    items.sort((a, b) => b.name.localeCompare(a.name));
+  } else if (sortType === 'realm') {
+    items.sort((a, b) => a.realm.localeCompare(b.realm) || a.name.localeCompare(b.name));
+  } else {
+    items.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
+  }
+
+  countElem.innerText = items.length;
+
+  if (items.length === 0) {
+    listElem.innerHTML = `<div style="text-align:center; padding: 25px; color: #888;">No matching locations found.</div>`;
+    return;
+  }
+
+  let html = "";
+  for (let i = 0; i < items.length; i++) {
+    let it = items[i];
+    let col = badgeColors[it.type] || "#ddd";
+    html += `
+      <div class="sidebar-item">
+        <div class="item-info">
+          <div class="item-name">${escapeXml(it.name)}</div>
+          <div class="item-type-badge" style="color:${col}">
+            <span>●</span> ${escapeXml(it.type.toUpperCase())}
+          </div>
+          <div class="item-realm">${escapeXml(it.realm)}</div>
+        </div>
+        <button class="locate-btn" data-idx="${i}">🎯 Locate</button>
+      </div>
+    `;
+  }
+  listElem.innerHTML = html;
+
+  // Bind click events on locate buttons
+  const buttons = listElem.querySelectorAll('.locate-btn');
+  buttons.forEach((btn, idx) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      focusLocationOnMap(items[idx].node);
+    });
+  });
+}
+
+// --- Event Listeners ---
+document.getElementById('generateBtn').addEventListener('click', startAsyncGeneration);
+
+document.getElementById('randomSeedBtn').addEventListener('click', () => {
+  document.getElementById('seed').value = createRandomSeed();
+  startAsyncGeneration();
+});
+
+// Full Map Regenerators
+document.getElementById('seed').addEventListener('change', startAsyncGeneration);
+document.getElementById('mapType').addEventListener('change', startAsyncGeneration);
+document.getElementById('realms').addEventListener('input', e => {
+  document.getElementById('realmsVal').innerText = e.target.value;
+  startAsyncGeneration();
+});
+document.getElementById('rivers').addEventListener('input', e => {
+  document.getElementById('riversVal').innerText = e.target.value;
+  startAsyncGeneration();
+});
+document.getElementById('poiDensity').addEventListener('input', e => {
+  document.getElementById('poiVal').innerText = e.target.value;
+  startAsyncGeneration();
+});
+
+// Instant Toggles
+document.getElementById('showGrand').addEventListener('change', renderMap);
+document.getElementById('showMed').addEventListener('change', renderMap);
+document.getElementById('showSmall').addEventListener('change', renderMap);
+document.getElementById('showRoads').addEventListener('change', renderMap);
+document.getElementById('showMountains').addEventListener('change', renderMap);
+document.getElementById('showHillshade').addEventListener('change', renderMap);
+document.getElementById('showPois').addEventListener('change', renderMap);
+
+document.getElementById('showLegend').addEventListener('change', renderMap);
+document.getElementById('style').addEventListener('change', renderMap);
+
+// High-Res PNG Download with Crisp Labels
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  if (!worldData) return;
+  const canvas = document.getElementById('mapCanvas');
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = 5120;
+  exportCanvas.height = 2880;
+  const expCtx = exportCanvas.getContext('2d');
+
+  expCtx.drawImage(canvas, 0, 0);
+
+  const svgElem = document.getElementById('mapSvgOverlay');
+  const svgData = new XMLSerializer().serializeToString(svgElem);
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+
+  img.onload = () => {
+    expCtx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const link = document.createElement('a');
+    link.download = `world_map_${document.getElementById('seed').value}.png`;
+    link.href = exportCanvas.toDataURL("image/png");
+    link.click();
+  };
+
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    const link = document.createElement('a');
+    link.download = `world_map_${document.getElementById('seed').value}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
+  img.src = url;
+});
+
+document.getElementById('downloadSvgBtn').addEventListener('click', exportSVG);
+// Sidebar Drawer Event Listeners
+const sidebar = document.getElementById('locationSidebar');
+document.getElementById('openSidebarBtn').addEventListener('click', () => {
+  sidebar.classList.add('active');
+  populateSidebarList();
+});
+
+document.getElementById('closeSidebarBtn').addEventListener('click', () => {
+  sidebar.classList.remove('active');
+});
+
+document.getElementById('sidebarSearch').addEventListener('input', populateSidebarList);
+document.getElementById('sidebarTypeFilter').addEventListener('change', populateSidebarList);
+document.getElementById('sidebarSort').addEventListener('change', populateSidebarList);
+window.onload = () => {
+  document.getElementById('seed').value = createRandomSeed();
+  setupMainMapZoom();
+  setupZoomModal();
+  startAsyncGeneration();
+};
+// --- Label Checklist Dropdown & Toggle Listeners ---
+const labelMenuBtn = document.getElementById('labelMenuBtn');
+const labelMenuDropdown = document.getElementById('labelMenuDropdown');
+
+if (labelMenuBtn && labelMenuDropdown) {
+  labelMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    labelMenuDropdown.classList.toggle('active');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!labelMenuDropdown.contains(e.target) && e.target !== labelMenuBtn) {
+      labelMenuDropdown.classList.remove('active');
+    }
+  });
+
+  // Instant re-rendering when any label checkbox is toggled
+  document.querySelectorAll('.lbl-toggle').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (worldData) {
+        const svgOverlayHtml = buildSvgOverlayContent();
+        document.getElementById('mapSvgOverlay').innerHTML = svgOverlayHtml;
+        document.getElementById('zoomSvgOverlay').innerHTML = svgOverlayHtml;
+      }
+    });
+  });
+
+  // Select All button
+  document.getElementById('lblSelectAll')?.addEventListener('click', () => {
+    document.querySelectorAll('.lbl-toggle').forEach(cb => cb.checked = true);
+    if (worldData) {
+      const svgOverlayHtml = buildSvgOverlayContent();
+      document.getElementById('mapSvgOverlay').innerHTML = svgOverlayHtml;
+      document.getElementById('zoomSvgOverlay').innerHTML = svgOverlayHtml;
+    }
+  });
+
+  // Deselect All button
+  document.getElementById('lblDeselectAll')?.addEventListener('click', () => {
+    document.querySelectorAll('.lbl-toggle').forEach(cb => cb.checked = false);
+    if (worldData) {
+      const svgOverlayHtml = buildSvgOverlayContent();
+      document.getElementById('mapSvgOverlay').innerHTML = svgOverlayHtml;
+      document.getElementById('zoomSvgOverlay').innerHTML = svgOverlayHtml;
+    }
+  });
+}
+</script>
+</body>
+</html>

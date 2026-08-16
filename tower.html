@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ascension Mode - Tactical Battle Simulator</title>
+<style>
+    /* General Styles */
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #3b2f28;
+        color: #e0d5c1;
+        font-family: 'Trajan Pro', serif;
+        text-align: center;
+    }
+
+    h1, h2, h3 {
+        color: #d8c7a7;
+        text-shadow: 2px 2px 4px #2b211a;
+        margin: 8px 0;
+    }
+
+    .top-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        padding: 8px 10px;
+        box-sizing: border-box;
+    }
+
+    /* Configuration Panel */
+    .config-panel {
+        background-color: #4a3d34;
+        border: 2px solid #6d5c4b;
+        border-radius: 10px;
+        padding: 12px 18px;
+        width: 98%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        margin-bottom: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: space-around;
+        align-items: center;
+        box-sizing: border-box;
+    }
+
+    .config-group {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        font-family: 'Bookman Old Style', serif;
+        font-size: 13px;
+    }
+
+    .config-group label {
+        color: #ffd166;
+        font-weight: bold;
+    }
+
+    .config-input, .config-select {
+        padding: 6px 10px;
+        background-color: #2b211a;
+        color: #e0d5c1;
+        border: 1px solid #6d5c4b;
+        border-radius: 4px;
+        font-family: 'Bookman Old Style', serif;
+        font-size: 13px;
+    }
+
+    /* Display Layout */
+    .display-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0 5px;
+        box-sizing: border-box;
+    }
+
+    .character-display {
+        flex: 1;
+        background-color: #4a3d34;
+        margin: 5px;
+        padding: 10px;
+        box-sizing: border-box;
+        border: 2px solid #6d5c4b;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        max-width: 48%;
+        overflow-y: auto;
+        height: 380px;
+    }
+
+    .floor-banner {
+        background: linear-gradient(90deg, #5a4c42 0%, #d97706 50%, #5a4c42 100%);
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 6px;
+        border-radius: 6px;
+        margin: 5px 0 10px 0;
+        text-shadow: 1px 1px 3px #000;
+        border: 1px solid #ffd166;
+    }
+
+    /* Stat Bars */
+    .bar-container {
+        margin: 4px 0;
+        text-align: center;
+    }
+
+    .bar-bg {
+        width: 100%;
+        background-color: #2b211a;
+        border-radius: 5px;
+        height: 14px;
+        overflow: hidden;
+        border: 1px solid #6d5c4b;
+    }
+
+    .bar-hp { height: 100%; background-color: #e84a5f; transition: width 0.3s ease-in-out; }
+    .bar-mp { height: 100%; background-color: #56cfe1; transition: width 0.3s ease-in-out; }
+    .bar-exp { height: 100%; background-color: #ffd166; transition: width 0.3s ease-in-out; }
+
+    .bar-container p { margin: 2px 0; font-size: 11px; color: #e0d5c1; }
+
+    /* Battle Log Styling */
+    .battle-log {
+        display: flex;
+        height: 32vh;
+        background-color: #4e4037;
+        margin: 8px 5px;
+        padding: 5px;
+        overflow-y: auto;
+        border: 2px solid #6d5c4b;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        font-size: 13px;
+        border-radius: 10px;
+        line-height: 1.4;
+    }
+
+    .battle-log-center {
+        flex: 1;
+        text-align: left;
+        background-color: #2b211a;
+        color: #d8c7a7;
+        padding: 10px;
+        border-radius: 5px;
+        overflow-y: auto;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Log Colors */
+    .log-phys { color: #ff9f43; }
+    .log-magic { color: #54a0ff; }
+    .log-hybrid { color: #c8d6e5; }
+    .log-crit { color: #feca57; font-weight: bold; }
+    .log-tech { color: #ff6b6b; font-weight: bold; }
+    .log-block { color: #1dd1a1; }
+    .log-dodge { color: #10ac84; }
+    .log-turn { color: #d8c7a7; font-weight: bold; border-bottom: 1px dashed #6d5c4b; margin-top: 6px; padding-bottom: 2px; }
+    .log-system { color: #f368e0; font-style: italic; }
+    .log-slow { color: #a4b0be; font-style: italic; }
+    .log-gain { color: #ffd166; font-weight: bold; }
+
+    /* Controls Bar */
+    .controls-bar {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 6px 14px;
+        background-color: #5a4c42;
+        color: #e0d5c1;
+        border: 2px solid #6d5c4b;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'Bookman Old Style', serif;
+        font-size: 13px;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .btn:hover { background-color: #7a665b; border-color: #9d8872; }
+    .btn-start { background-color: #2e7d32; }
+    .btn-start:hover { background-color: #388e3c; }
+    .btn-stop { background-color: #e84a5f; }
+    .btn-stop:hover { background-color: #ff6b6b; }
+    .btn-pause { background-color: #d97706; }
+    .btn-pause:hover { background-color: #f59e0b; }
+    .btn-nav { background-color: #2563eb; }
+    .btn-nav:hover { background-color: #3b82f6; }
+
+    /* Leaderboard Section */
+    .leaderboard-section {
+        margin: 20px 5px;
+        background-color: #4a3d34;
+        border: 2px solid #6d5c4b;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Bookman Old Style', serif;
+        margin-top: 10px;
+        background-color: #3b2f28;
+    }
+
+    .leaderboard-table th, .leaderboard-table td {
+        padding: 8px 12px;
+        border: 1px solid #6d5c4b;
+        font-size: 13px;
+    }
+
+    .leaderboard-table th {
+        background-color: #2b211a;
+        color: #ffd166;
+        cursor: pointer;
+    }
+
+    .leaderboard-table tr:hover {
+        background-color: #5a4c42;
+        cursor: pointer;
+    }
+
+    .leaderboard-emblem {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        border: 1px solid #ffd166;
+        object-fit: cover;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background-color: #4a3d34;
+        border: 2px solid #6d5c4b;
+        border-radius: 10px;
+        padding: 20px;
+        width: 80%;
+        max-width: 800px;
+        max-height: 85vh;
+        overflow-y: auto;
+        color: #e0d5c1;
+        text-align: left;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+
+    .close-btn {
+        float: right;
+        font-size: 20px;
+        font-weight: bold;
+        color: #ff6b6b;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<div class="top-section">
+    <h1>🏔️ Ascension Mode</h1>
+
+    <!-- Configuration Bar -->
+    <div class="config-panel">
+        <div class="config-group" style="flex: 2;">
+            <label for="ascenderDropdown">Select Ascender Fighter:</label>
+            <select id="ascenderDropdown" class="config-select" style="width: 100%;" onchange="previewAscender()">
+                <option value="">Choose your Ascender...</option>
+            </select>
+        </div>
+
+        <div class="config-group">
+            <label for="allowLevelUpToggle">Level Up System:</label>
+            <select id="allowLevelUpToggle" class="config-select">
+                <option value="true" selected>Enabled (EXP Scaled)</option>
+                <option value="false">Disabled (Base Stats Only)</option>
+            </select>
+        </div>
+
+        <div class="config-group">
+            <label for="healPercentInput">Post-Battle Healing %:</label>
+            <input type="number" id="healPercentInput" class="config-input" value="30" min="0" max="100" step="5" style="width: 80px;">
+        </div>
+
+        <div class="config-group">
+            <label for="expGrowthSelect">EXP Growth Multiplier:</label>
+            <select id="expGrowthSelect" class="config-select">
+                <option value="0.5">0.5x (Hard Grind)</option>
+                <option value="1.0" selected>1.0x (Standard)</option>
+                <option value="2.0">2.0x (Fast)</option>
+                <option value="5.0">5.0x (Hyper)</option>
+            </select>
+        </div>
+
+        <div class="config-group">
+            <label for="battleSpeedSelect">Battle Speed:</label>
+            <select id="battleSpeedSelect" class="config-select">
+                <option value="500">Fast (0.5s)</option>
+                <option value="200" selected>Very Fast (0.2s)</option>
+                <option value="50">Ultra Fast (0.05s)</option>
+                <option value="0">⚡ Instant</option>
+                <option value="1200">Normal (1.2s)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+        <button id="startAscensionBtn" class="btn btn-start" onclick="startAscensionRun()">⚡ Begin Ascension</button>
+        <button id="pauseAscensionBtn" class="btn btn-pause" style="display: none;" onclick="togglePauseRun()">Pause</button>
+        <button id="stopAscensionBtn" class="btn btn-stop" style="display: none;" onclick="stopAscensionRun()">Abandon Run</button>
+        <button class="btn btn-nav" onclick="window.location.href='index.html'">Generator</button>
+        <button class="btn btn-nav" onclick="window.location.href='battle_simulator.html'">Battle Simulator</button>
+        <button class="btn btn-nav" onclick="window.location.href='moving_characters.html'">Arena Mode</button>
+    </div>
+
+    <!-- Live Displays -->
+    <div class="display-container" style="margin-top: 10px;">
+        <!-- Ascender Display -->
+        <div class="character-display" id="ascenderDisplayPanel">
+            <h3>🗡️ Ascender Status</h3>
+            <div id="ascenderStatusContent">Select an Ascender to view stats...</div>
+        </div>
+
+        <!-- Opponent Display -->
+        <div class="character-display" id="opponentDisplayPanel">
+            <div id="floorBanner" class="floor-banner">Floor 0 - Waiting for Run</div>
+            <div id="opponentStatusContent">Opponent details will appear here...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Battle Log -->
+<div class="battle-log">
+    <div class="battle-log-center" id="battleLogCenter">
+        <p class="log-system">Select an Ascender fighter and click 'Begin Ascension' to start fighting through all generated fighters in order of potential!</p>
+    </div>
+</div>
+
+<!-- Leaderboard Section -->
+<div class="leaderboard-section">
+    <h2>🏆 Ascension Leaderboard (Personal Bests)</h2>
+    <p style="font-size: 11px; color: #d8c7a7;">Only each fighter's highest overall record is shown below. Click any row to view full run history details!</p>
+    
+    <table class="leaderboard-table">
+        <thead>
+            <tr>
+                <th onclick="sortLeaderboard('rank')">Rank</th>
+                <th>Emblem</th>
+                <th onclick="sortLeaderboard('name')">Fighter Name</th>
+                <th onclick="sortLeaderboard('class')">Race / Class</th>
+                <th onclick="sortLeaderboard('floor')">Highest Floor ▲▼</th>
+                <th onclick="sortLeaderboard('damage')">Total Damage ▲▼</th>
+                <th onclick="sortLeaderboard('level')">Final Level ▲▼</th>
+                <th onclick="sortLeaderboard('score')">Personal Best Score ▲▼</th>
+            </tr>
+        </thead>
+        <tbody id="leaderboardTbody">
+            <tr><td colspan="8">Loading leaderboard data...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- History Detail Modal -->
+<div id="historyModal" class="modal-overlay">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeHistoryModal()">&times;</span>
+        <h2 id="modalFighterName">Fighter History</h2>
+        <div id="modalFighterDetails"></div>
+        <hr style="border-color: #6d5c4b; margin: 15px 0;">
+        <h3>Run Attempts History</h3>
+        <table class="leaderboard-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Floor</th>
+                    <th>Kills</th>
+                    <th>Damage</th>
+                    <th>Level</th>
+                    <th>Level-Up Config</th>
+                    <th>Heal %</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody id="modalHistoryTbody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// =========================================================
+// INDEXED DB DATABASE SETUP (VER 3)
+// =========================================================
+const DB_NAME = "characterDatabase";
+const DB_VERSION = 3;
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains("characters")) {
+                db.createObjectStore("characters", { keyPath: "key" });
+            }
+            if (!db.objectStoreNames.contains("ascensionLeaderboard")) {
+                const lbStore = db.createObjectStore("ascensionLeaderboard", { keyPath: "id", autoIncrement: true });
+                lbStore.createIndex("characterKey", "characterKey", { unique: false });
+                lbStore.createIndex("score", "score", { unique: false });
+            }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
+// =========================================================
+// COMBAT CONFIGURATION & CLASS DATA REUSED FROM BATTLE SIM
+// =========================================================
+const BALANCING_CONFIG = {
+    FATIGUE_START_TURN: 12,
+    HEAL_DECAY_PER_TURN: 0.08,
+    MIN_HEAL_EFFICIENCY: 0.0,
+    ARMOR_DECAY_START_TURN: 10,
+    ARMOR_DECAY_PER_TURN: 0.02,
+    MIN_ARMOR_EFFICIENCY: 0.20,
+    BASE_DAMAGE_PENETRATION_PCT: 0.15
+};
+
+function getHealEfficiency(turn) {
+    if (turn < BALANCING_CONFIG.FATIGUE_START_TURN) return 1.0;
+    let turnsPassed = turn - BALANCING_CONFIG.FATIGUE_START_TURN;
+    return Math.max(BALANCING_CONFIG.MIN_HEAL_EFFICIENCY, 1.0 - (turnsPassed * BALANCING_CONFIG.HEAL_DECAY_PER_TURN));
+}
+
+function getArmorEfficiency(turn) {
+    if (turn < BALANCING_CONFIG.ARMOR_DECAY_START_TURN) return 1.0;
+    let turnsPassed = turn - BALANCING_CONFIG.ARMOR_DECAY_START_TURN;
+    return Math.max(BALANCING_CONFIG.MIN_ARMOR_EFFICIENCY, 1.0 - (turnsPassed * BALANCING_CONFIG.ARMOR_DECAY_PER_TURN));
+}
+
+const tierRankMap = { "EX": 9, "SSS": 8, "SS": 7, "S": 6, "A": 5, "B": 4, "C": 3, "D": 2, "E": 1, "F": 0 };
+
+function getTierInfo(potentialStr) {
+    const match = String(potentialStr).match(/\((EX|SSS|SS|S|A|B|C|D|E|F)\)/i);
+    const letter = match ? match[1].toUpperCase() : "F";
+    const rank = tierRankMap[letter] !== undefined ? tierRankMap[letter] : 0;
+    const numMatch = String(potentialStr).match(/(\d+)/);
+    const totalPoints = numMatch ? parseInt(numMatch[1], 10) : 0;
+    return { letter, rank, totalPoints };
+}
+
+const combatClassMapping = {
+    Juggernaut: { coreStat: "strength", subStat: "constitution", damageType: "pure physical" },
+    BladeDancer: { coreStat: "strength", subStat: "dexterity", damageType: "hybrid A" },
+    Chieftain: { coreStat: "strength", subStat: "intelligence", damageType: "hybrid A" },
+    IronWill: { coreStat: "strength", subStat: "resolve", damageType: "pure physical" },
+    Berserker: { coreStat: "strength", subStat: "perception", damageType: "pure physical" },
+    Titan: { coreStat: "constitution", subStat: "strength", damageType: "pure physical" },
+    StalwartDefender: { coreStat: "constitution", subStat: "resolve", damageType: "pure physical" },
+    Mercenery: { coreStat: "constitution", subStat: "dexterity", damageType: "pure physical" },
+    Bladecaster: { coreStat: "dexterity", subStat: "intelligence", damageType: "hybrid A" },
+    MartialArtist: { coreStat: "dexterity", subStat: "resolve", damageType: "hybrid A" },
+    Sentinel: { coreStat: "constitution", subStat: "perception", damageType: "pure physical" },
+    SavageSwifter: { coreStat: "dexterity", subStat: "strength", damageType: "pure physical" },
+    Swiftblade: { coreStat: "dexterity", subStat: "constitution", damageType: "pure physical" },
+    AuraWarrior: { coreStat: "resolve", subStat: "strength", damageType: "hybrid A" },
+    Assassin: { coreStat: "dexterity", subStat: "perception", damageType: "hybrid A" },
+    Tactician: { coreStat: "intelligence", subStat: "strength", damageType: "hybrid A" },
+    Colossus: { coreStat: "strength", subStat: "strength", damageType: "pure physical" },
+    FleshFortress: { coreStat: "constitution", subStat: "constitution", damageType: "pure physical" },
+    Tempest: { coreStat: "dexterity", subStat: "dexterity", damageType: "pure physical" },
+    IronAura: { coreStat: "resolve", subStat: "constitution", damageType: "hybrid A" },
+    PhantomBlade: { coreStat: "resolve", subStat: "dexterity", damageType: "hybrid B" },
+    Deadeye: { coreStat: "perception", subStat: "dexterity", damageType: "pure physical" },
+    Scout: { coreStat: "perception", subStat: "resolve", damageType: "pure physical" },
+    Trickshot: { coreStat: "perception", subStat: "intelligence", damageType: "hybrid A" },
+    Powershot: { coreStat: "perception", subStat: "strength", damageType: "pure physical" },
+    Vanguard: { coreStat: "perception", subStat: "constitution", damageType: "pure physical" },
+    ArcaneArcher: { coreStat: "intelligence", subStat: "dexterity", damageType: "hybrid B" },
+    GodEye: { coreStat: "perception", subStat: "perception", damageType: "pure physical" },
+    Sorcerer: { coreStat: "resolve", subStat: "intelligence", damageType: "pure magic" },
+    Spiritist: { coreStat: "resolve", subStat: "perception", damageType: "pure magic" },
+    Mage: { coreStat: "intelligence", subStat: "resolve", damageType: "pure magic" },
+    Diviner: { coreStat: "intelligence", subStat: "perception", damageType: "pure magic" },
+    ManaWeaver: { coreStat: "intelligence", subStat: "intelligence", damageType: "pure magic" },
+    MentalFortress: { coreStat: "resolve", subStat: "resolve", damageType: "hybrid B" },
+    BattlePriest: { coreStat: "constitution", subStat: "intelligence", damageType: "hybrid B" },
+    Sage: { coreStat: "intelligence", subStat: "constitution", damageType: "hybrid B" },
+};
+
+const classTechniqueSpecs = {
+    Juggernaut: { name: "Earthshaker Slam", cooldown: 4, type: "tank_strike", dmgMult: 1.5, armorPen: 0.5, physResBuff: 1.3, buffTurns: 2 },
+    Titan: { name: "Colossal Impact", cooldown: 4, type: "tank_strike", dmgMult: 1.6, armorPen: 0.5, physResBuff: 1.3, buffTurns: 2 },
+    Colossus: { name: "Titanic Might", cooldown: 4, type: "tank_strike", dmgMult: 1.6, armorPen: 0.4, physResBuff: 1.4, buffTurns: 2 },
+    IronWill: { name: "Unbreakable Resolve", cooldown: 4, type: "tank_strike", dmgMult: 1.4, armorPen: 0.3, physResBuff: 1.5, buffTurns: 2 },
+    Berserker: { name: "Frenzied Onslaught", cooldown: 4, type: "berserk_strike", dmgMult: 1.8, critMultBonus: 0.35 },
+    BladeDancer: { name: "Silver Mirage Flurry", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.2 },
+    Swiftblade: { name: "Flashstep Slash", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.15 },
+    Tempest: { name: "Cyclone Fury", cooldown: 4, type: "extra_hits", bonusHits: 2, dmgMult: 1.25 },
+    SavageSwifter: { name: "Predatory Pounce", cooldown: 3, type: "extra_hits", bonusHits: 1, dmgMult: 1.25 },
+    Assassin: { name: "Fatal Shadowstrike", cooldown: 6, type: "assassin_strike", dmgMult: 2.0, ignoreDefenses: true, critChanceBonus: 30 },
+    PhantomBlade: { name: "Ethereal Execution", cooldown: 5, type: "assassin_strike", dmgMult: 1.9, ignoreDefenses: true, critChanceBonus: 25 },
+    StalwartDefender: { name: "Unyielding Bastion", cooldown: 5, type: "ultimate_def", resBoost: 2.0, healPct: 0.15 },
+    FleshFortress: { name: "Ironclad Citadel", cooldown: 5, type: "ultimate_def", resBoost: 2.2, healPct: 0.25 },
+    Sentinel: { name: "Watchful Guardian", cooldown: 5, type: "ultimate_def", resBoost: 1.8, healPct: 0.20 },
+    Sorcerer: { name: "Arcane Cataclysm", cooldown: 4, type: "magic_burst", dmgMult: 1.7, magPen: 0.5, mpRegen: 20 },
+    ManaWeaver: { name: "Singularity Burst", cooldown: 4, type: "magic_burst", dmgMult: 1.8, magPen: 0.5, mpRegen: 25 },
+    Mage: { name: "Eldritch Overload", cooldown: 4, type: "magic_burst", dmgMult: 1.6, magPen: 0.4, mpRegen: 15 },
+    Spiritist: { name: "Soul Siphon", cooldown: 4, type: "utility_magic", dmgMult: 1.4, mpDrain: 20, healPct: 0.10 },
+    Diviner: { name: "Prophetic Foresight", cooldown: 4, type: "utility_magic", dmgMult: 1.3, evadeBuff: 25, buffTurns: 2 },
+    Sage: { name: "Runic Reflection", cooldown: 4, type: "utility_magic", dmgMult: 1.4, healPct: 0.15 },
+    MentalFortress: { name: "Psychic Barrier", cooldown: 4, type: "ultimate_def", resBoost: 1.8, healPct: 0.10 },
+    Deadeye: { name: "Heartseeker Shot", cooldown: 4, type: "ranged_precision", dmgMult: 1.7, guaranteeCrit: true, ignoreEvasion: true },
+    ArcaneArcher: { name: "Enchanted Volley", cooldown: 4, type: "ranged_precision", dmgMult: 1.6, guaranteeCrit: true, ignoreEvasion: true },
+    Powershot: { name: "Titanpiercer Shot", cooldown: 4, type: "ranged_precision", dmgMult: 1.8, guaranteeCrit: true, armorPen: 0.5 },
+    Scout: { name: "Sniper Vigilance", cooldown: 3, type: "ranged_precision", dmgMult: 1.5, guaranteeCrit: true, ignoreEvasion: true },
+    Trickshot: { name: "Ricochet Ambush", cooldown: 4, type: "ranged_precision", dmgMult: 1.6, guaranteeCrit: true, ignoreEvasion: true },
+    Vanguard: { name: "Aegis Barrage", cooldown: 4, type: "tank_strike", dmgMult: 1.4, physResBuff: 1.3, buffTurns: 2 },
+    GodEye: { name: "Clairvoyant Strike", cooldown: 4, type: "ranged_precision", dmgMult: 1.8, guaranteeCrit: true, ignoreEvasion: true },
+    BattlePriest: { name: "Divine Retribution", cooldown: 4, type: "hybrid_drain", dmgMult: 1.6, lifestealPct: 0.5 },
+    AuraWarrior: { name: "Aura Cleave", cooldown: 4, type: "hybrid_drain", dmgMult: 1.5, lifestealPct: 0.4 },
+    IronAura: { name: "Aegis Smite", cooldown: 4, type: "hybrid_drain", dmgMult: 1.4, lifestealPct: 0.4, physResBuff: 1.3, buffTurns: 2 },
+    Tactician: { name: "Strategic Gambit", cooldown: 3, type: "tactical", dmgMult: 1.4, evadeBuff: 15, critBuff: 15, buffTurns: 2 },
+    Chieftain: { name: "Runehammer Wrath", cooldown: 4, type: "tactical", dmgMult: 1.5, physResBuff: 1.2, buffTurns: 2 },
+    MartialArtist: { name: "Dragon Palm", cooldown: 3, type: "tactical", dmgMult: 1.4, evadeBuff: 20, buffTurns: 2 },
+    Bladecaster: { name: "Mindshard Surge", cooldown: 4, type: "tactical", dmgMult: 1.5, mpRegen: 15 },
+    Mercenery: { name: "Dirty Fighting", cooldown: 3, type: "tactical", dmgMult: 1.4, armorPen: 0.3 }
+};
+
+function extractRegex(text, regex, defaultValue = "") {
+    const match = text.match(regex);
+    return match ? match[1].trim() : defaultValue;
+}
+
+function parseStatsFromStatusText(statusText) {
+    const stats = { strength: 10, constitution: 10, dexterity: 10, intelligence: 10, resolve: 10, perception: 10 };
+    const regex = /(Strength|Constitution|Dexterity|Intelligence|Resolve|Perception):\s*(\d+)/gi;
+    let match;
+    while ((match = regex.exec(statusText)) !== null) {
+        const statName = match[1].toLowerCase();
+        stats[statName] = parseInt(match[2], 10);
+    }
+    return stats;
+}
+
+function parseCharacterDetails(characterData) {
+    const text = characterData.statusText || "";
+    return {
+        race: extractRegex(text, /Race:\s*([^\n\r]+)/i, characterData.race || "Human"),
+        mainHand: extractRegex(text, /Main Hand:\s*([^\n\r\t]+)/i, "Fists"),
+        offHand: extractRegex(text, /Offhand:\s*([^\n\r\t]+)/i, "fists"),
+        technique: extractRegex(text, /Combat Technique:\s*([^\n\r\t]+)/i, "Basic Mastery")
+    };
+}
+
+function initializeCharacter(characterData) {
+    const stats = parseStatsFromStatusText(characterData.statusText);
+    const details = parseCharacterDetails(characterData);
+    const combatClassInfo = combatClassMapping[characterData.combatClass] || { damageType: "pure physical" };
+
+    const char = {
+        key: characterData.key,
+        name: `${characterData.firstName || "Unknown"} ${characterData.lastName || "Character"}`,
+        pixelArtImage: characterData.pixelArtImage,
+        combatClass: characterData.combatClass || "Juggernaut",
+        potential: characterData.potential || "40 (F)",
+        tierInfo: getTierInfo(characterData.potential || "40 (F)"),
+        stats,
+        details,
+        damageType: combatClassInfo.damageType,
+        defenseBoostDuration: 0,
+        boostApplied: false,
+        appliedResBoost: 1.0,
+        berserkActive: false,
+        techniqueCooldown: 0,
+        techniqueSpec: classTechniqueSpecs[characterData.combatClass] || { name: details.technique || "Basic Strike", cooldown: 4, type: "tactical", dmgMult: 1.4 },
+        activeBuffs: { physResMult: 1.0, evasionBonus: 0, critBonus: 0, duration: 0 },
+        
+        // Ascension Run Props
+        level: 1,
+        exp: 0,
+        expNeeded: 150
+    };
+
+    recalculateStats(char);
+    char.hp = char.maxHp;
+    char.mp = char.maxMp;
+    return char;
+}
+
+function recalculateStats(char) {
+    const stats = char.stats;
+    let maxHp = stats.constitution <= 25 ? stats.constitution * 10 : 250 + (stats.constitution - 25) * 5;
+    let maxMp = (stats.intelligence + stats.resolve) * 5;
+    let physRes = stats.constitution * 0.4;
+    let magRes = stats.resolve * 0.8;
+    let physDmg = stats.strength * 1.5 + stats.dexterity * 0.5;
+    let magDmg = stats.intelligence * 1.5 + stats.resolve * 0.5;
+    let attackSpeed = stats.dexterity * 0.8;
+    let evasion = stats.dexterity * 0.8 + stats.perception * 0.4;
+    let critChance = stats.perception * 1.2;
+    let blockChance = 0;
+    let parryChance = 0;
+    let critMult = 1.5 + (stats.perception / 100);
+
+    const mainHand = char.details.mainHand.toLowerCase();
+    const offHand = char.details.offHand.toLowerCase();
+
+    if (offHand.includes("shield")) {
+        blockChance = 25; physRes += 6;
+        if (offHand.includes("tower")) { blockChance = 35; physRes += 10; evasion -= 5; }
+    }
+    if (mainHand.includes("katana") || mainHand.includes("rapier") || mainHand.includes("dagger")) parryChance = 5;
+    if (mainHand.includes("greatsword") || mainHand.includes("battleaxe") || mainHand.includes("scythe") || mainHand.includes("longsword")) {
+        physDmg *= 1.2; critMult += 0.25; attackSpeed *= 0.9;
+    }
+    if (mainHand.includes("staff") || mainHand.includes("wand") || mainHand.includes("orb") || mainHand.includes("grimoire")) magDmg *= 1.2;
+
+    let hybridADamage = 0, hybridBDamage = 0;
+    if (char.damageType === "pure physical") { magDmg = 0; maxMp = 0; }
+    else if (char.damageType === "pure magic") { physDmg = 0; magDmg = (stats.intelligence * 2) + (stats.resolve * 0.8); }
+    else if (char.damageType === "hybrid A") hybridADamage = (physDmg * 0.8) + (magDmg * 0.2);
+    else if (char.damageType === "hybrid B") hybridBDamage = (magDmg * 0.8) + (physDmg * 0.2);
+
+    char.maxHp = Math.round(maxHp);
+    char.maxMp = Math.round(maxMp);
+    char.physRes = Math.round(physRes);
+    char.magRes = Math.round(magRes);
+    char.physDmg = Math.round(physDmg);
+    char.magDmg = Math.round(magDmg);
+    char.hybridADamage = Math.round(hybridADamage);
+    char.hybridBDamage = Math.round(hybridBDamage);
+    char.attackSpeed = Math.round(attackSpeed * 10) / 10;
+    char.evasion = Math.round(evasion * 10) / 10;
+    char.critChance = Math.round(critChance * 10) / 10;
+    char.critMult = Math.round(critMult * 100) / 100;
+    char.blockChance = blockChance;
+    char.parryChance = parryChance;
+}
+
+function calculateAttackChain(attackSpeed) {
+    let hits = 0;
+    if (attackSpeed < 8) {
+        if (Math.random() < Math.max(0, attackSpeed / 8)) hits++;
+        else return 0;
+    } else { hits++; }
+
+    if (attackSpeed >= 8) { if (Math.random() < (attackSpeed >= 16 ? 0.75 : ((attackSpeed - 8) / 8) * 0.75)) hits++; else return hits; }
+    if (attackSpeed >= 16) { if (Math.random() < (attackSpeed >= 26 ? 0.80 : ((attackSpeed - 16) / 10) * 0.80)) hits++; else return hits; }
+    if (attackSpeed >= 26) { if (Math.random() < (attackSpeed >= 40 ? 0.82 : ((attackSpeed - 26) / 14) * 0.82)) hits++; else return hits; }
+    if (attackSpeed >= 40) { if (Math.random() < (attackSpeed >= 60 ? 0.88 : ((attackSpeed - 40) / 20) * 0.88)) hits++; else return hits; }
+    if (attackSpeed >= 60) { if (Math.random() < (attackSpeed >= 92 ? 1.00 : ((attackSpeed - 60) / 32) * 1.00)) hits++; else return hits; }
+    return hits;
+}
+
+function applyDefenseBoost(char, multiplier = 1.5, duration = 2) {
+    if (char.boostApplied && char.appliedResBoost > 0) {
+        char.physRes /= char.appliedResBoost; char.magRes /= char.appliedResBoost;
+    }
+    char.appliedResBoost = multiplier;
+    char.physRes *= multiplier; char.magRes *= multiplier;
+    char.defenseBoostDuration = duration; char.boostApplied = true;
+}
+
+// =========================================================
+// ASCENSION RUN STATE & CORE ENGINE
+// =========================================================
+let allLoadedCharacters = [];
+let ascenderChar = null;
+let currentOpponent = null;
+let opponentsQueue = [];
+let currentFloorIndex = 0;
+
+let runActive = false;
+let runPaused = false;
+let battleInterval = null;
+let currentTurn = 1;
+
+// Run Stat Accumulators
+let totalDamageDealtInRun = 0;
+let totalKillsInRun = 0;
+
+async function loadDatabaseData() {
+    const db = await openDB();
+    const tx = db.transaction(["characters"], "readonly");
+    const store = tx.objectStore("characters");
+    const cursorReq = store.openCursor();
+
+    allLoadedCharacters = [];
+    cursorReq.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+            allLoadedCharacters.push(cursor.value);
+            cursor.continue();
+        } else {
+            populateAscenderDropdown();
+            renderLeaderboard();
+        }
+    };
+}
+
+function populateAscenderDropdown() {
+    const drop = document.getElementById("ascenderDropdown");
+    drop.innerHTML = '<option value="">Choose your Ascender...</option>';
+    
+    // Sort dropdown alphabetically
+    const sorted = [...allLoadedCharacters].sort((a,b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
+    sorted.forEach(c => {
+        drop.innerHTML += `<option value="${c.key}">${c.firstName} ${c.lastName} (${c.combatClass || 'No Class'}) - ${c.potential}</option>`;
+    });
+}
+
+function previewAscender() {
+    const key = document.getElementById("ascenderDropdown").value;
+    const content = document.getElementById("ascenderStatusContent");
+    if (!key) {
+        content.innerHTML = "Select an Ascender to view stats...";
+        return;
+    }
+    const raw = allLoadedCharacters.find(c => c.key === key);
+    if (raw) {
+        const dummy = initializeCharacter(raw);
+        renderCharacterPanel(dummy, "ascenderStatusContent", false);
+    }
+}
+
+function renderCharacterPanel(char, containerId, isAscenderLive = false) {
+    const container = document.getElementById(containerId);
+    const hpPct = Math.max(0, (char.hp / char.maxHp) * 100);
+    const mpPct = char.maxMp > 0 ? Math.max(0, (char.mp / char.maxMp) * 100) : 0;
+    const expPct = isAscenderLive ? Math.min(100, (char.exp / char.expNeeded) * 100) : 0;
+
+    let effPhysArmor = char.physRes * char.activeBuffs.physResMult;
+    let effMagArmor = char.magRes;
+
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+            <img src="${char.pixelArtImage}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #6d5c4b;">
+            <div style="text-align: left;">
+                <strong style="font-size: 15px; color: #ffd166;">${char.name}</strong>
+                <div style="font-size: 11px; color: #d8c7a7;">${char.details.race} | ${char.combatClass} | Tier: ${char.potential}</div>
+                ${isAscenderLive ? `<div style="font-size: 12px; color: #1dd1a1; font-weight: bold;">Level ${char.level}</div>` : ''}
+            </div>
+        </div>
+
+        <div class="bar-container">
+            <div class="bar-bg"><div class="bar-hp" style="width: ${hpPct}%"></div></div>
+            <p>HP: ${char.hp.toFixed(1)} / ${char.maxHp}</p>
+        </div>
+        ${char.maxMp > 0 ? `
+        <div class="bar-container">
+            <div class="bar-bg"><div class="bar-mp" style="width: ${mpPct}%"></div></div>
+            <p>MP: ${char.mp.toFixed(1)} / ${char.maxMp}</p>
+        </div>` : ''}
+        ${isAscenderLive ? `
+        <div class="bar-container">
+            <div class="bar-bg"><div class="bar-exp" style="width: ${expPct}%"></div></div>
+            <p>EXP: ${char.exp} / ${char.expNeeded}</p>
+        </div>` : ''}
+
+        <div style="font-size: 11px; text-align: left; line-height: 1.4; margin-top: 5px;">
+            <p style="margin: 2px 0;"><strong>Phys Dmg:</strong> ${char.physDmg} | <strong>Mag Dmg:</strong> ${char.magDmg} | <strong>AS:</strong> ${char.attackSpeed}</p>
+            <p style="margin: 2px 0;"><strong>Phys Armor:</strong> ${effPhysArmor.toFixed(1)} | <strong>Mag Armor:</strong> ${effMagArmor.toFixed(1)}</p>
+            <p style="margin: 2px 0;"><strong>Evasion:</strong> ${(char.evasion + char.activeBuffs.evasionBonus).toFixed(1)}% | <strong>Crit:</strong> ${(char.critChance + char.activeBuffs.critBonus).toFixed(1)}%</p>
+        </div>
+    `;
+}
+
+// =========================================================
+// RUN CONTROLS & ASCENSION ENGINE
+// =========================================================
+function logMessage(msg) {
+    const battleLog = document.getElementById("battleLogCenter");
+    const isNearBottom = (battleLog.scrollHeight - battleLog.scrollTop - battleLog.clientHeight) < 45;
+    const p = document.createElement('p');
+    p.innerHTML = msg;
+    p.style.margin = "3px 0";
+    battleLog.appendChild(p);
+    if (isNearBottom) battleLog.scrollTop = battleLog.scrollHeight;
+}
+
+function startAscensionRun() {
+    const key = document.getElementById("ascenderDropdown").value;
+    if (!key) { alert("Please select an Ascender fighter!"); return; }
+
+    const rawAscender = allLoadedCharacters.find(c => c.key === key);
+    if (!rawAscender) return;
+
+    // Filter and sort opponents by potential total points & tier rank
+    opponentsQueue = allLoadedCharacters
+        .filter(c => c.key !== key)
+        .map(c => initializeCharacter(c))
+        .sort((a, b) => {
+            if (a.tierInfo.rank !== b.tierInfo.rank) return a.tierInfo.rank - b.tierInfo.rank;
+            return a.tierInfo.totalPoints - b.tierInfo.totalPoints;
+        });
+
+    if (opponentsQueue.length === 0) {
+        alert("Not enough opponents! Please generate more characters in the Generator first.");
+        return;
+    }
+
+    ascenderChar = initializeCharacter(rawAscender);
+    currentFloorIndex = 0;
+    totalDamageDealtInRun = 0;
+    totalKillsInRun = 0;
+    runActive = true;
+    runPaused = false;
+
+    document.getElementById("startAscensionBtn").style.display = "none";
+    document.getElementById("pauseAscensionBtn").style.display = "inline-block";
+    document.getElementById("stopAscensionBtn").style.display = "inline-block";
+    document.getElementById("battleLogCenter").innerHTML = '';
+
+    logMessage(`<span class="log-system">🏰 Ascension Run Started! ${ascenderChar.name} prepares to fight through ${opponentsQueue.length} foes!</span>`);
+
+    setupNextFloor();
+}
+
+function setupNextFloor() {
+    if (currentFloorIndex >= opponentsQueue.length) {
+        logMessage(`<br><h2 class="log-crit">👑 ASCENSION COMPLETE! ${ascenderChar.name} DEFEATED ALL ${opponentsQueue.length} OPPONENTS!</h2>`);
+        finishRun(true);
+        return;
+    }
+
+    currentOpponent = opponentsQueue[currentFloorIndex];
+    currentTurn = 1;
+
+    // Refresh Opponent Status
+    currentOpponent.hp = currentOpponent.maxHp;
+    currentOpponent.mp = currentOpponent.maxMp;
+
+    document.getElementById("floorBanner").innerText = `🔥 FLOOR ${currentFloorIndex + 1} / ${opponentsQueue.length} - vs ${currentOpponent.name}`;
+
+    renderCharacterPanel(ascenderChar, "ascenderStatusContent", true);
+    renderCharacterPanel(currentOpponent, "opponentStatusContent", false);
+
+    logMessage(`<div class="log-turn">=== FLOOR ${currentFloorIndex + 1}: vs ${currentOpponent.name} (${currentOpponent.combatClass} | Tier ${currentOpponent.potential}) ===</div>`);
+
+    const speedVal = parseInt(document.getElementById("battleSpeedSelect").value, 10);
+
+    if (speedVal === 0) {
+        // Instant battle loop for current floor
+        while (ascenderChar.hp > 0 && currentOpponent.hp > 0) {
+            executeTurnRound();
+        }
+    } else {
+        clearInterval(battleInterval);
+        battleInterval = setInterval(() => {
+            if (runPaused) return;
+            executeTurnRound();
+        }, speedVal);
+    }
+}
+
+function executeTurnRound() {
+    if (!runActive || ascenderChar.hp <= 0 || currentOpponent.hp <= 0) return;
+
+    // Determine turn order based on speed
+    let attacker = (currentTurn % 2 === 1) ? ascenderChar : currentOpponent;
+    let defender = (currentTurn % 2 === 1) ? currentOpponent : ascenderChar;
+
+    takeSingleCombatTurn(attacker, defender);
+
+    // Check Floor End
+    if (defender.hp <= 0) {
+        clearInterval(battleInterval);
+
+        if (defender === currentOpponent) {
+            // Victory on current floor!
+            totalKillsInRun++;
+            logMessage(`<span class="log-crit">💥 ${currentOpponent.name} has been defeated on Floor ${currentFloorIndex + 1}!</span>`);
+
+            handlePostBattleVictory();
+            currentFloorIndex++;
+
+            const speedVal = parseInt(document.getElementById("battleSpeedSelect").value, 10);
+            if (speedVal === 0) {
+                setupNextFloor();
+            } else {
+                setTimeout(setupNextFloor, 800);
+            }
+        } else {
+            // Ascender Defeated! Run Ends
+            logMessage(`<br><h2 class="log-tech">💀 ${ascenderChar.name} HAS BEEN DEFEATED ON FLOOR ${currentFloorIndex + 1}!</h2>`);
+            finishRun(false);
+        }
+    }
+
+    currentTurn++;
+}
+
+function takeSingleCombatTurn(attacker, defender) {
+    if (attacker.techniqueCooldown > 0) attacker.techniqueCooldown--;
+    if (attacker.activeBuffs.duration > 0) {
+        attacker.activeBuffs.duration--;
+        if (attacker.activeBuffs.duration === 0) {
+            attacker.activeBuffs.physResMult = 1.0;
+            attacker.activeBuffs.evasionBonus = 0;
+            attacker.activeBuffs.critBonus = 0;
+        }
+    }
+
+    if (attacker.damageType === 'pure magic' || attacker.damageType.startsWith('hybrid')) {
+        attacker.mp = Math.min(attacker.maxMp, attacker.mp + attacker.stats.resolve * 0.1);
+    }
+
+    let hitsThisTurn = calculateAttackChain(attacker.attackSpeed);
+    if (hitsThisTurn === 0) return;
+
+    let primaryMpCost = attacker.damageType === 'pure magic' ? 25 : (attacker.damageType === 'hybrid A' ? 15 : 20);
+    if (attacker.damageType !== 'pure physical' && attacker.mp < primaryMpCost) {
+        let mpRecovered = attacker.stats.resolve * 6;
+        attacker.mp = Math.min(attacker.maxMp, attacker.mp + mpRecovered);
+        applyDefenseBoost(attacker, 1.5, 2);
+        renderCharacterPanel(ascenderChar, "ascenderStatusContent", true);
+        renderCharacterPanel(currentOpponent, "opponentStatusContent", false);
+        return;
+    }
+
+    let isTechniqueTurn = false;
+    let techSpec = attacker.techniqueSpec;
+
+    if (attacker.techniqueCooldown === 0) {
+        isTechniqueTurn = true;
+        attacker.techniqueCooldown = techSpec.cooldown;
+        if (techSpec.type === "extra_hits") hitsThisTurn += techSpec.bonusHits || 1;
+        else if (techSpec.type === "ultimate_def") {
+            applyDefenseBoost(attacker, techSpec.resBoost || 1.5, 2);
+            let healAmt = attacker.maxHp * (techSpec.healPct || 0.12) * getHealEfficiency(currentTurn);
+            attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+        }
+    }
+
+    for (let i = 0; i < hitsThisTurn; i++) {
+        if (defender.hp <= 0) break;
+
+        let attackType = 'physical';
+        let baseDamage = attacker.physDmg;
+        let mpCost = 0;
+
+        if (attacker.damageType === 'pure magic') { attackType = 'magic'; baseDamage = attacker.magDmg; mpCost = 25; }
+        else if (attacker.damageType === 'hybrid A') { attackType = 'hybridA'; baseDamage = attacker.hybridADamage; mpCost = 15; }
+        else if (attacker.damageType === 'hybrid B') { attackType = 'hybridB'; baseDamage = attacker.hybridBDamage; mpCost = 20; }
+
+        if (attacker.damageType !== 'pure physical' && attacker.mp < mpCost) {
+            attackType = 'physical'; baseDamage = attacker.physDmg; mpCost = 0;
+        } else {
+            attacker.mp -= mpCost;
+        }
+
+        let effectiveEvasion = defender.evasion + defender.activeBuffs.evasionBonus;
+        let isDodge = Math.random() < (effectiveEvasion - attacker.stats.perception * 0.2) / 100;
+        let isParry = !isDodge && Math.random() < (defender.parryChance / 100);
+        let isBlock = !isDodge && !isParry && Math.random() < (defender.blockChance / 100);
+
+        if (isDodge || isParry) continue;
+
+        let isCrit = Math.random() < ((attacker.critChance + attacker.activeBuffs.critBonus) / 100);
+        let finalDmg = baseDamage * Math.max(0.6, (1 - (i * 0.10)));
+
+        if (isCrit) finalDmg *= attacker.critMult;
+        if (isTechniqueTurn && techSpec.dmgMult) finalDmg *= techSpec.dmgMult;
+
+        let armorEff = getArmorEfficiency(currentTurn);
+        let effPhysRes = (defender.physRes * defender.activeBuffs.physResMult) * armorEff;
+        let effMagRes = defender.magRes * armorEff;
+        let mitigation = attackType === 'magic' ? effMagRes : effPhysRes;
+
+        finalDmg = Math.max(baseDamage * BALANCING_CONFIG.BASE_DAMAGE_PENETRATION_PCT, finalDmg - mitigation);
+
+        if (isBlock) finalDmg *= 0.3;
+
+        defender.hp -= finalDmg;
+
+        if (attacker === ascenderChar) {
+            totalDamageDealtInRun += finalDmg;
+        }
+    }
+
+    renderCharacterPanel(ascenderChar, "ascenderStatusContent", true);
+    renderCharacterPanel(currentOpponent, "opponentStatusContent", false);
+}
+
+function handlePostBattleVictory() {
+    const allowLevelUp = document.getElementById("allowLevelUpToggle").value === "true";
+    const healPct = parseFloat(document.getElementById("healPercentInput").value) || 0;
+    const expMult = parseFloat(document.getElementById("expGrowthSelect").value) || 1.0;
+
+    // Calculate EXP gained based on Stat Difference
+    const ascenderStatSum = Object.values(ascenderChar.stats).reduce((a, b) => a + b, 0);
+    const opponentStatSum = Object.values(currentOpponent.stats).reduce((a, b) => a + b, 0);
+    const statDiff = opponentStatSum - ascenderStatSum;
+
+    let baseExp = 120 + Math.max(0, statDiff * 15);
+    let gainedExp = Math.round(baseExp * expMult);
+
+    if (allowLevelUp) {
+        ascenderChar.exp += gainedExp;
+        logMessage(`<span class="log-gain">✨ Earned +${gainedExp} EXP!</span>`);
+
+        while (ascenderChar.exp >= ascenderChar.expNeeded) {
+            ascenderChar.exp -= ascenderChar.expNeeded;
+            ascenderChar.level++;
+            ascenderChar.expNeeded = Math.round(ascenderChar.level * 150 * expMult);
+
+            // Level Up Stat Boosts (+1 to all core stats)
+            for (let stat in ascenderChar.stats) {
+                ascenderChar.stats[stat] += 1;
+            }
+            recalculateStats(ascenderChar);
+            logMessage(`<span class="log-crit">🎉 LEVEL UP! ${ascenderChar.name} reached Level ${ascenderChar.level}! Base stats increased!</span>`);
+        }
+    }
+
+    // Apply Post-Battle Healing %
+    if (healPct > 0) {
+        let hpHeal = Math.round(ascenderChar.maxHp * (healPct / 100));
+        let mpHeal = Math.round(ascenderChar.maxMp * (healPct / 100));
+        ascenderChar.hp = Math.min(ascenderChar.maxHp, ascenderChar.hp + hpHeal);
+        ascenderChar.mp = Math.min(ascenderChar.maxMp, ascenderChar.mp + mpHeal);
+        logMessage(`<span class="log-block">❤️ Recovered +${hpHeal} HP and +${mpHeal} MP post-battle (${healPct}% heal).</span>`);
+    }
+
+    renderCharacterPanel(ascenderChar, "ascenderStatusContent", true);
+}
+
+async function finishRun(completedAll = false) {
+    runActive = false;
+    clearInterval(battleInterval);
+
+    document.getElementById("startAscensionBtn").style.display = "inline-block";
+    document.getElementById("pauseAscensionBtn").style.display = "none";
+    document.getElementById("stopAscensionBtn").style.display = "none";
+
+    const allowLevelUp = document.getElementById("allowLevelUpToggle").value === "true";
+    const healPct = parseFloat(document.getElementById("healPercentInput").value) || 0;
+
+    // Calculate Overall Score
+    const finalFloorReached = completedAll ? opponentsQueue.length : currentFloorIndex;
+    const score = Math.round((finalFloorReached * 1000) + (totalKillsInRun * 500) + (totalDamageDealtInRun * 0.1) + (ascenderChar.level * 300));
+
+    // Save Run Record to IndexedDB
+    const record = {
+        characterKey: ascenderChar.key,
+        firstName: ascenderChar.name.split(" ")[0],
+        lastName: ascenderChar.name.split(" ").slice(1).join(" "),
+        race: ascenderChar.details.race,
+        combatClass: ascenderChar.combatClass,
+        pixelArtImage: ascenderChar.pixelArtImage,
+        potential: ascenderChar.potential,
+        floor: finalFloorReached,
+        kills: totalKillsInRun,
+        damageDealt: Math.round(totalDamageDealtInRun),
+        level: ascenderChar.level,
+        allowLevelUp,
+        healPct,
+        score,
+        timestamp: Date.now()
+    };
+
+    const db = await openDB();
+    const tx = db.transaction(["ascensionLeaderboard"], "readwrite");
+    tx.objectStore("ascensionLeaderboard").add(record);
+    tx.oncomplete = () => {
+        logMessage(`<span class="log-system">💾 Ascension run score (${score} pts) saved to database!</span>`);
+        renderLeaderboard();
+    };
+}
+
+function togglePauseRun() {
+    runPaused = !runPaused;
+    const btn = document.getElementById("pauseAscensionBtn");
+    btn.innerText = runPaused ? "▶️ Resume" : "Pause";
+    logMessage(`<span class="log-system">${runPaused ? '⏸️ Ascension Run Paused.' : '▶️ Ascension Run Resumed.'}</span>`);
+}
+
+function stopAscensionRun() {
+    if (confirm("Are you sure you want to abandon this Ascension run? Current progress will be recorded.")) {
+        logMessage(`<span class="log-system">🚫 Ascension Run Abandoned manually.</span>`);
+        finishRun(false);
+    }
+}
+
+// =========================================================
+// LEADERBOARD & DEDUPLICATION SYSTEM
+// =========================================================
+let currentLeaderboardSortKey = "score";
+let leaderboardSortAsc = false;
+
+async function renderLeaderboard() {
+    const db = await openDB();
+    const tx = db.transaction(["ascensionLeaderboard"], "readonly");
+    const store = tx.objectStore("ascensionLeaderboard");
+    const cursorReq = store.openCursor();
+
+    const allRecords = [];
+    cursorReq.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+            allRecords.push(cursor.value);
+            cursor.continue();
+        } else {
+            displayLeaderboardTable(allRecords);
+        }
+    };
+}
+
+function displayLeaderboardTable(allRecords) {
+    const tbody = document.getElementById("leaderboardTbody");
+    tbody.innerHTML = "";
+
+    if (allRecords.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8">No Ascension records found yet. Run an Ascension challenge to set a record!</td></tr>`;
+        return;
+    }
+
+    // Group runs by characterKey to strictly enforce PERSONAL BEST deduplication
+    const personalBests = {};
+    allRecords.forEach(rec => {
+        if (!personalBests[rec.characterKey] || rec.score > personalBests[rec.characterKey].score) {
+            personalBests[rec.characterKey] = rec;
+        }
+    });
+
+    let bestList = Object.values(personalBests);
+
+    // Sort Personal Bests
+    bestList.sort((a, b) => {
+        let valA = a[currentLeaderboardSortKey];
+        let valB = b[currentLeaderboardSortKey];
+        if (typeof valA === "string") return leaderboardSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        return leaderboardSortAsc ? valA - valB : valB - valA;
+    });
+
+    bestList.forEach((rec, idx) => {
+        const tr = document.createElement("tr");
+        tr.onclick = () => openHistoryModal(rec.characterKey, allRecords);
+        tr.innerHTML = `
+            <td><strong>#${idx + 1}</strong></td>
+            <td><img src="${rec.pixelArtImage}" class="leaderboard-emblem"></td>
+            <td style="color: #ffd166; font-weight: bold;">${rec.firstName} ${rec.lastName}</td>
+            <td>${rec.race} | ${rec.combatClass}</td>
+            <td><strong>Floor ${rec.floor}</strong></td>
+            <td>${rec.damageDealt.toLocaleString()}</td>
+            <td>Lvl ${rec.level}</td>
+            <td style="color: #1dd1a1; font-weight: bold;">${rec.score.toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function sortLeaderboard(key) {
+    if (currentLeaderboardSortKey === key) {
+        leaderboardSortAsc = !leaderboardSortAsc;
+    } else {
+        currentLeaderboardSortKey = key;
+        leaderboardSortAsc = false;
+    }
+    renderLeaderboard();
+}
+
+// =========================================================
+// RUN HISTORY MODAL FOR INDIVIDUAL FIGHTER
+// =========================================================
+function openHistoryModal(characterKey, allRecords) {
+    const characterRuns = allRecords.filter(r => r.characterKey === characterKey);
+    if (characterRuns.length === 0) return;
+
+    characterRuns.sort((a, b) => b.score - a.score); // Highest score first
+    const topRec = characterRuns[0];
+
+    document.getElementById("modalFighterName").innerText = `📜 Ascension History: ${topRec.firstName} ${topRec.lastName}`;
+    document.getElementById("modalFighterDetails").innerHTML = `
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom: 10px;">
+            <img src="${topRec.pixelArtImage}" style="width:60px; height:60px; border-radius:50%; border:2px solid #ffd166;">
+            <div>
+                <p style="margin:2px 0;"><strong>Race/Class:</strong> ${topRec.race} | ${topRec.combatClass}</p>
+                <p style="margin:2px 0;"><strong>Potential Tier:</strong> ${topRec.potential}</p>
+                <p style="margin:2px 0;"><strong>Total Ascension Attempts:</strong> ${characterRuns.length}</p>
+            </div>
+        </div>
+    `;
+
+    const modalTbody = document.getElementById("modalHistoryTbody");
+    modalTbody.innerHTML = "";
+
+    characterRuns.forEach(r => {
+        const dateStr = new Date(r.timestamp).toLocaleDateString() + ' ' + new Date(r.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        modalTbody.innerHTML += `
+            <tr>
+                <td>${dateStr}</td>
+                <td>Floor ${r.floor}</td>
+                <td>${r.kills} Defeated</td>
+                <td>${r.damageDealt.toLocaleString()}</td>
+                <td>Lvl ${r.level}</td>
+                <td>${r.allowLevelUp ? 'Enabled' : 'Disabled'}</td>
+                <td>${r.healPct}%</td>
+                <td style="color: #1dd1a1; font-weight: bold;">${r.score.toLocaleString()}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById("historyModal").style.display = "flex";
+}
+
+function closeHistoryModal() {
+    document.getElementById("historyModal").style.display = "none";
+}
+
+// Close modal when clicking outside
+window.onclick = function(e) {
+    const modal = document.getElementById("historyModal");
+    if (e.target === modal) closeHistoryModal();
+};
+
+// Initialize Database on load
+window.onload = function() {
+    loadDatabaseData();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ishnamel's Custom Character Maker</title>
+    <link rel="icon" href="emblem_placeholder.png" type="image/png">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #3b2f28;
+            color: #e0d5c1;
+            font-family: 'Bookman Old Style', serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            background-color: #2b211a;
+            border-bottom: 2px solid #6d5c4b;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            height: 60px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .top-nav h1 {
+            margin: 0;
+            font-size: 20px;
+            font-family: 'Old English Text MT', serif;
+            color: #d8c7a7;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            background-color: #5a4c42;
+            color: #e0d5c1;
+            border: 2px solid #6d5c4b;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-family: 'Bookman Old Style', serif;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #7a665b;
+            border-color: #9d8872;
+        }
+
+        .btn-sm {
+            padding: 2px 6px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+
+        .btn-primary { background-color: #15803d; }
+        .btn-primary:hover { background-color: #16a34a; }
+        .btn-blue { background-color: #1d4ed8; }
+        .btn-blue:hover { background-color: #2563eb; }
+        .btn-purple { background-color: #7c3aed; }
+        .btn-purple:hover { background-color: #8b5cf6; }
+
+        /* Main 2-Panel Layout */
+        .maker-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+        }
+
+        /* Left Form Area (Scrollable) */
+        .form-panel {
+            width: 52%;
+            padding: 15px 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+            background-color: #3b2f28;
+            border-right: 2px solid #6d5c4b;
+            height: 100%;
+        }
+
+        /* Right Preview Area (Locked / Non-Scrolling) */
+        .preview-panel {
+            width: 48%;
+            padding: 15px;
+            box-sizing: border-box;
+            background-color: #4a3d34;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            overflow: hidden;
+            position: sticky;
+            top: 0;
+        }
+
+        /* Form Sections */
+        .form-section {
+            background-color: #4a3d34;
+            border: 2px solid #6d5c4b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dashed #6d5c4b;
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            color: #d8c7a7;
+            font-family: 'Old English Text MT', serif;
+            font-size: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            margin-bottom: 3px;
+            color: #e0d5c1;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="number"], select {
+            background-color: #2b211a;
+            color: #e0d5c1;
+            border: 1px solid #6d5c4b;
+            padding: 6px;
+            font-size: 12px;
+            border-radius: 4px;
+            font-family: 'Bookman Old Style', serif;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        input[type="range"] {
+            accent-color: #9d8872;
+            cursor: pointer;
+        }
+
+        .stat-input-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-badge {
+            background-color: #2b211a;
+            color: #ffd166;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #6d5c4b;
+            font-weight: bold;
+            font-size: 11px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        /* Live Preview Status Sheet (Non-Scrolling, Compact) */
+        .status-card {
+            width: 100%;
+            background-color: #3b2f28;
+            border: 2px solid #6d5c4b;
+            border-radius: 8px;
+            padding: 12px 15px;
+            box-shadow: inset 2px 2px 6px #2b211a;
+            font-size: 11.5px;
+            line-height: 1.25;
+            white-space: pre-wrap;
+            font-family: 'Bookman Old Style', serif;
+            box-sizing: border-box;
+            text-align: left;
+            flex: 1;
+            overflow: hidden; /* Fits without scrolling */
+        }
+
+        .preview-emblem {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            border: 3px solid #ffd166;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            margin-bottom: 8px;
+            object-fit: cover;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .fit-option {
+            background-color: #1e3a8a !important;
+            color: #ffd166 !important;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 950px) {
+            body { overflow: auto; height: auto; }
+            .maker-container { flex-direction: column; height: auto; }
+            .form-panel, .preview-panel { width: 100%; height: auto; position: static; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Header -->
+    <div class="top-nav">
+        <h1>Ishnamel's Custom Character Studio</h1>
+        <div class="nav-buttons">
+            <button class="btn btn-purple" onclick="randomizeAll()">🎲 Randomize All</button>
+            <button class="btn" onclick="window.location.href='index.html'">Generator</button>
+            <button class="btn" onclick="window.location.href='battle_simulator.html'">Battle Sim</button>
+            <button class="btn" onclick="window.location.href='moving_characters.html'">Arena Royale</button>
+        </div>
+    </div>
+
+    <!-- Main Studio Layout -->
+    <div class="maker-container">
+        
+        <!-- Form Panel (Left - Scrollable) -->
+        <div class="form-panel">
+            
+            <!-- Quick Presets -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>Quick Presets</h3>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button class="btn" onclick="applyPreset('warrior')">🛡️ Warrior Tank</button>
+                    <button class="btn" onclick="applyPreset('assassin')">🗡️ Speed Assassin</button>
+                    <button class="btn" onclick="applyPreset('mage')">🔮 Archmage</button>
+                    <button class="btn" onclick="applyPreset('archer')">🏹 Deadeye Archer</button>
+                </div>
+            </div>
+
+            <!-- Basic Identity -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>Character Identity</h3>
+                    <button class="btn btn-sm" onclick="randomizeSection('identity')">🎲 Section</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>First Name: <button class="btn btn-sm" onclick="randomizeDetail('firstName')">🎲</button></label>
+                        <input type="text" id="firstName" value="Arthur" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name: <button class="btn btn-sm" onclick="randomizeDetail('lastName')">🎲</button></label>
+                        <input type="text" id="lastName" value="Pendelton" oninput="updatePreview()">
+                    </div>
+                </div>
+                <div class="form-grid" style="margin-top:8px;">
+                    <div class="form-group">
+                        <label>Race: <button class="btn btn-sm" onclick="randomizeDetail('race')">🎲</button></label>
+                        <select id="raceSelect" onchange="onRaceChange()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Race Trait: <button class="btn btn-sm" onclick="randomizeDetail('trait')">🎲</button></label>
+                        <select id="raceTraitsSelect" onchange="updatePreview()"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attributes -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>Attributes & Potential</h3>
+                    <button class="btn btn-sm" onclick="randomizeSection('attributes')">🎲 Section</button>
+                </div>
+                <p style="font-size:11px; margin-top:-4px; margin-bottom:8px; color:#d8c7a7;">Total Potential: <strong id="potentialText">60 (E)</strong></p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Strength: <button class="btn btn-sm" onclick="randomizeDetail('str')">🎲</button></label>
+                        <div class="stat-input-row">
+                            <input type="number" id="strInput" value="10" min="1" max="30" oninput="onStatChange()">
+                            <span class="stat-badge" id="strRating">E</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Constitution: <button class="btn btn-sm" onclick="randomizeDetail('con')">🎲</button></label>
+                        <div class="stat-input-row">
+                            <input type="number" id="conInput" value="10" min="1" max="30" oninput="onStatChange()">
+                            <span class="stat-badge" id="conRating">E</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dexterity: <button class="btn btn-sm" onclick="randomizeDetail('dex')">🎲</button></label>
+                        <div class="stat-input-row">
+                            <input type="number" id="dexInput" value="10" min="1" max="30" oninput="onStatChange()">
+                            <span class="stat-badge" id="dexRating">E</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Intelligence: <button class="btn btn-sm" onclick="randomizeDetail('int')">🎲</button></label>
+                        <div class="stat-input-row">
+                            <input type="number" id="intInput" value="10" min="1" max="30" oninput="onStatChange()">
+                            <span class="stat-badge" id="intRating">E</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Resolve: <button class="btn btn-sm" onclick="randomizeDetail('res')">🎲</button></label>
+                        <div class="stat-input-row">
+                            <input type="number" id="resInput" value="10" min="1" max="30" oninput="onStatChange()">
+                            <span class="stat-badge" id="resRating">E</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Perception: <button class="btn btn-sm" onclick="randomizeDetail('per')">🎲</button></label>
+                        <div class="stat-input-row">
+                            <input type="number" id="perInput" value="10" min="1" max="30" oninput="onStatChange()">
+                            <span class="stat-badge" id="perRating">E</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appearance & Physical Characteristics -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>Physical Traits</h3>
+                    <button class="btn btn-sm" onclick="randomizeSection('physical')">🎲 Section</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Blood Type: <button class="btn btn-sm" onclick="randomizeDetail('bloodType')">🎲</button></label>
+                        <select id="bloodType" onchange="updatePreview()">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="AB">AB</option>
+                            <option value="O">O</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Skin Color: <button class="btn btn-sm" onclick="randomizeDetail('skin')">🎲</button></label>
+                        <input type="text" id="skinColor" value="Fair" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Left Eye: <button class="btn btn-sm" onclick="randomizeDetail('leftEye')">🎲</button></label>
+                        <input type="text" id="leftEye" value="Brown" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Right Eye: <button class="btn btn-sm" onclick="randomizeDetail('rightEye')">🎲</button></label>
+                        <input type="text" id="rightEye" value="Brown" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Hair Color: <button class="btn btn-sm" onclick="randomizeDetail('hairColor')">🎲</button></label>
+                        <input type="text" id="hairColor" value="Black" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Hair Style: <button class="btn btn-sm" onclick="randomizeDetail('hairStyle')">🎲</button></label>
+                        <input type="text" id="hairStyle" value="Short" oninput="updatePreview()">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-top:8px;">
+                    <div class="form-group">
+                        <label>Height (Ft/In): <button class="btn btn-sm" onclick="randomizeDetail('height')">🎲</button></label>
+                        <div style="display:flex; gap:4px;">
+                            <input type="number" id="heightFeet" value="5" min="1" max="9" oninput="calculateBMI()">
+                            <input type="number" id="heightInches" value="10" min="0" max="11" oninput="calculateBMI()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Weight (kg): <button class="btn btn-sm" onclick="randomizeDetail('weight')">🎲</button></label>
+                        <input type="number" id="weightKg" value="75" min="20" max="300" oninput="calculateBMI()">
+                    </div>
+                </div>
+                <div class="form-grid" style="margin-top:8px;">
+                    <div class="form-group">
+                        <label>BMI Category:</label>
+                        <input type="text" id="bmiCategory" value="Normal weight" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Body Build: <button class="btn btn-sm" onclick="randomizeDetail('build')">🎲</button></label>
+                        <select id="bodyBuildSelect" onchange="updatePreview()"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combat & Equipment -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>Combat & Equipment</h3>
+                    <button class="btn btn-sm" onclick="randomizeSection('combat')">🎲 Section</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Combat Class: <button class="btn btn-sm" onclick="randomizeDetail('class')">🎲</button></label>
+                        <select id="combatClassSelect" onchange="onClassChange()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Combat Style: <button class="btn btn-sm" onclick="randomizeDetail('style')">🎲</button></label>
+                        <select id="combatStyleSelect" onchange="updatePreview()">
+                            <option value="Melee">Melee</option>
+                            <option value="Ranged">Ranged</option>
+                            <option value="Magic">Magic</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:8px;">
+                    <label>Combat Technique: <button class="btn btn-sm" onclick="randomizeDetail('technique')">🎲</button></label>
+                    <select id="techniqueSelect" onchange="updatePreview()"></select>
+                </div>
+                <div class="form-grid" style="margin-top:8px;">
+                    <div class="form-group">
+                        <label>Main Hand: <button class="btn btn-sm" onclick="randomizeDetail('mainHand')">🎲</button></label>
+                        <input type="text" id="mainHandInput" value="Steel Sword" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Offhand: <button class="btn btn-sm" onclick="randomizeDetail('offHand')">🎲</button></label>
+                        <input type="text" id="offHandInput" value="Iron Shield" oninput="updatePreview()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Condition & Environment -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>Conditions & Environment</h3>
+                    <button class="btn btn-sm" onclick="randomizeSection('environment')">🎲 Section</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Pain: <button class="btn btn-sm" onclick="randomizeDetail('pain')">🎲</button></label>
+                        <select id="painSelect" onchange="updatePreview()">
+                            <option value="0">0</option>
+                            <option value="Light">Light</option>
+                            <option value="Moderate">Moderate</option>
+                            <option value="Severe">Severe</option>
+                            <option value="Intense">Intense</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Thirst: <button class="btn btn-sm" onclick="randomizeDetail('thirst')">🎲</button></label>
+                        <select id="thirstSelect" onchange="updatePreview()">
+                            <option value="Hydrated">Hydrated</option>
+                            <option value="Mild">Mild</option>
+                            <option value="Very thirsty">Very thirsty</option>
+                            <option value="Dehydrated">Dehydrated</option>
+                            <option value="Parched">Parched</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rest: <button class="btn btn-sm" onclick="randomizeDetail('rest')">🎲</button></label>
+                        <select id="restSelect" onchange="updatePreview()">
+                            <option value="Awake">Awake</option>
+                            <option value="Rested">Rested</option>
+                            <option value="Sleepy">Sleepy</option>
+                            <option value="Fatigued">Fatigued</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Hunger: <button class="btn btn-sm" onclick="randomizeDetail('hunger')">🎲</button></label>
+                        <select id="hungerSelect" onchange="updatePreview()">
+                            <option value="Satiated">Satiated</option>
+                            <option value="Full">Full</option>
+                            <option value="Hungry">Hungry</option>
+                            <option value="Starving">Starving</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-grid" style="margin-top:8px;">
+                    <div class="form-group">
+                        <label>Place: <button class="btn btn-sm" onclick="randomizeDetail('place')">🎲</button></label>
+                        <input type="text" id="placeInput" value="Ironhold Keep" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Weather: <button class="btn btn-sm" onclick="randomizeDetail('weather')">🎲</button></label>
+                        <select id="weatherSelect" onchange="updatePreview()">
+                            <option value="Clear">Clear</option>
+                            <option value="Rainy">Rainy</option>
+                            <option value="Foggy">Foggy</option>
+                            <option value="Windy">Windy</option>
+                            <option value="Stormy">Stormy</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pixel Art Emblem Studio Controls -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3>Pixel Art Emblem Settings</h3>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Pixel Width: <span id="pWidthVal">20</span></label>
+                        <input type="range" id="pWidthSlider" min="10" max="30" value="20" oninput="updateEmblem()">
+                    </div>
+                    <div class="form-group">
+                        <label>Pixel Height: <span id="pHeightVal">20</span></label>
+                        <input type="range" id="pHeightSlider" min="10" max="30" value="20" oninput="updateEmblem()">
+                    </div>
+                    <div class="form-group">
+                        <label>Pixel Size: <span id="pSizeVal">15</span></label>
+                        <input type="range" id="pSizeSlider" min="5" max="30" value="15" oninput="updateEmblem()">
+                    </div>
+                    <div class="form-group">
+                        <label>Colors: <span id="pColorVal">4</span></label>
+                        <input type="range" id="pColorSlider" min="2" max="8" value="4" oninput="updateEmblem()">
+                    </div>
+                </div>
+                <button class="btn" style="width:100%; margin-top:8px;" onclick="randomizeEmblemSeed()">🎲 Regenerate Emblem Art</button>
+            </div>
+
+        </div>
+
+        <!-- Preview Panel (Right - Sticky & Locked) -->
+        <div class="preview-panel">
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="saveCharacterToDB()">💾 Save to Database</button>
+                <button class="btn btn-blue" onclick="exportPDF()">📄 Download PDF</button>
+                <button class="btn" onclick="exportJSON()">📥 Export JSON</button>
+                <button class="btn" onclick="triggerImportJSON()">📤 Import JSON</button>
+                <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="importJSON(event)">
+            </div>
+
+            <img id="emblemPreviewImg" class="preview-emblem" src="" alt="Emblem">
+            <div id="statusSheetPreview" class="status-card"></div>
+        </div>
+
+    </div>
+
+    <!-- External Perlin / PDF Scripts -->
+    <script src="perlin.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// --- Lists & Dictionaries ---
+const firstNamesList = ['Arthur', 'Elena', 'Gawain', 'Roland', 'Kaelen', 'Lyra', 'Drakon', 'Soren', 'Valerius', 'Freya', 'Thorne', 'Alistair', 'Nyah', 'Caius', 'Rowena', 'Eamon', 'Cassian', 'Isolde', 'Zephyr', 'Talia'];
+const lastNamesList = ['Pendelton', 'Blackwood', 'Silvermoon', 'Ironheart', 'Ravenshade', 'Vanguard', 'Stormbringer', 'Dawnfall', 'Frostborn', 'Shadowfen', 'Emberstone', 'Wyrmsbane', 'Goldvale'];
+const placesList = ['Ironhold Keep', 'Eldergrove Sanctuary', 'Frostpeak Citadel', 'Shadowfen Marsh', 'Dragonspire Peaks', 'Silvermoon Vale', 'Dawnfall Abbey', 'Sunfire Bastion', 'Ravenspire Tower', 'Whispering Pines'];
+
+const raceTraitsMap = {
+    Human: ["Balanced Aptitude"],
+    Elf: ["Long ears", "Pointed ears", "Slightly curved ears"],
+    Dwarf: ["Braided beard", "Short beard", "Full beard", "Goatee"],
+    Orc: ["Small tusks", "Large tusks", "Curved tusks"],
+    Halfling: ["Short feet", "Large hairy feet"],
+    Goliath: ["Tribal tattoos", "Lithoderms"],
+    Changeling: ["Indistinct Face", "Shifting Eyes"],
+    Goblin: ["Bat-like ears", "Pointed ears"],
+    Kobold: ["Lizard scales", "Dragon scales", "Reptilian tail"],
+    Animalfolk: ["Wolf features", "Cat features", "Bear features"]
+};
+
+const bodyBuildMap = {
+    "Underweight": ["Slim", "Lean", "Petite", "Bony"],
+    "Normal weight": ["Average", "Athletic", "Slim", "Fit", "Toned", "Defined", "Balanced"],
+    "Overweight": ["Muscle-Fat", "Heavy", "Round", "Full-Figured", "Chubby", "Built Body", "Powerlifter"],
+    "Obese": ["Heavy", "Soft Fat", "Bulky", "Stocky", "Full-bodied", "Large", "Big-Boned", "Overweight"]
+};
+
+const classTechniquesMap = {
+    Juggernaut: ["Earthshaker Slam", "Immovable Stance", "Iron Fist Discipline", "Mountain Breaker Art"],
+    Titan: ["Colossal Impact", "Immovable Giant Art", "Stonebreaker Discipline"],
+    Colossus: ["Titanic Might", "Behemoth's Wrath Form", "Crushing Strength Stance"],
+    IronWill: ["Unbreakable Resolve", "Resolute Fury Art", "Steelheart Form"],
+    Berserker: ["Frenzied Onslaught", "Wild Fury Discipline", "Bloodraged Form"],
+    BladeDancer: ["Silver Mirage Flurry", "Gale Slash Art", "Quicksteel Form"],
+    Swiftblade: ["Flashstep Slash", "Razorwind Form", "Swiftsurge Stance"],
+    Tempest: ["Cyclone Fury", "Tempest Dance Stance", "Windblade Art"],
+    SavageSwifter: ["Predatory Pounce", "Cat's Leap Form", "Quickstrike Acrobatics"],
+    Assassin: ["Fatal Shadowstrike", "Lethal Precision Discipline", "Nightstalker Discipline"],
+    PhantomBlade: ["Ethereal Execution", "Ghostblade Form", "Shade Step Art"],
+    StalwartDefender: ["Unyielding Bastion", "Shieldbearer Discipline", "Fortress Resolve Form"],
+    FleshFortress: ["Ironclad Citadel", "Stubborn Resolve Art", "Indomitable Form"],
+    Sentinel: ["Watchful Guardian", "Fortress Vigilance Discipline", "Ironwatch Art"],
+    Sorcerer: ["Arcane Cataclysm", "Mystical Empowerment Art", "Mana Surge Discipline"],
+    ManaWeaver: ["Singularity Burst", "Supreme Arcana Stance", "Cosmic Arcana Discipline"],
+    Mage: ["Eldritch Overload", "Arcane Mastery Stance", "Energy Channel Discipline"],
+    Spiritist: ["Soul Siphon", "Phantom Sense Discipline", "Spirit Channel Form"],
+    Diviner: ["Prophetic Foresight", "Clairvoyant Focus Art", "Mystic Vision Stance"],
+    Sage: ["Runic Reflection", "Arcane Shield Discipline", "Mindflow Technique"],
+    MentalFortress: ["Psychic Barrier", "Mindshield Stance", "Unbreakable Focus Art"],
+    Deadeye: ["Heartseeker Shot", "Pinpoint Precision Art", "Eagle's Focus Stance"],
+    ArcaneArcher: ["Enchanted Volley", "Mystic Arrow Stance", "Eldritch Precision Art"],
+    Powershot: ["Titanpiercer Shot", "Heavy Shot Form", "Bullseye Strike Discipline"],
+    Scout: ["Sniper Vigilance", "Swift Tracker Discipline", "Pathfinder Form"],
+    Trickshot: ["Ricochet Ambush", "Arcane Trick Discipline", "Clever Ricochet Discipline"],
+    Vanguard: ["Aegis Barrage", "Steady Deflection Form", "Guardian's Shot Form"],
+    GodEye: ["Clairvoyant Strike", "Omniscient Shot Art", "Divine Focus Discipline"],
+    BattlePriest: ["Divine Retribution", "Sacred Healing Stance", "Holy Resilience Art"],
+    AuraWarrior: ["Aura Cleave", "Ki Flow Combat Art", "Heavenly Blade Form"],
+    IronAura: ["Aegis Smite", "Shield of Aegis Stance", "Unbreakable Ward Form"],
+    Tactician: ["Strategic Gambit", "Tactical Fury Form", "Strategist's Strike Art"],
+    Chieftain: ["Runehammer Wrath", "Arcane Fury Stance", "Stormcaller Art"],
+    MartialArtist: ["Dragon Palm", "Crimson Lotus Form", "Serpent's Flow Stance"],
+    Bladecaster: ["Mindshard Surge", "Shadowcaster Form", "Eldritch Edge Stance"],
+    Mercenery: ["Dirty Fighting", "Agile Endurance Art", "Escape Artist Stance"]
+};
+
+const meleeWeapons = ['Greatsword', 'Steel Sword', 'Battleaxe', 'Katana', 'Spear', 'Mace', 'Scythe', 'Rapier', 'Flail', 'Claymore', 'Halberd'];
+const rangedWeapons = ['Longbow', 'Crossbow', 'Deadeye Bow', 'Throwing Knives', 'Chakram'];
+const magicWeapons = ['Arcane Staff', 'Wand of Fire', 'Vortex Orb', 'Grimoire of Frost', 'Lightbringer Staff'];
+const offhandItems = ['Iron Shield', 'Tower Shield', 'Dagger', 'Vortex Orb', 'nothing'];
+
+let emblemSeed = Math.floor(Math.random() * 1e6);
+
+// --- Stat Ratings ---
+function getStatRating(val) {
+    if (val >= 22) return "S";
+    if (val >= 20) return "A";
+    if (val >= 18) return "B";
+    if (val >= 16) return "C";
+    if (val >= 14) return "D";
+    if (val >= 10) return "E";
+    return "F";
+}
+
+function getPotentialRating(total) {
+    if (total >= 200) return "EX";
+    if (total >= 180) return "SSS";
+    if (total >= 150) return "SS";
+    if (total >= 120) return "S";
+    if (total >= 100) return "A";
+    if (total >= 80) return "B";
+    if (total >= 75) return "C";
+    if (total >= 70) return "D";
+    if (total >= 65) return "E";
+    return "F";
+}
+
+// --- Class Stat-Fit Highlighting Logic ---
+function getBestFitClass() {
+    const stats = [
+        { name: 'strength', val: parseInt(document.getElementById('strInput').value) || 0 },
+        { name: 'constitution', val: parseInt(document.getElementById('conInput').value) || 0 },
+        { name: 'dexterity', val: parseInt(document.getElementById('dexInput').value) || 0 },
+        { name: 'intelligence', val: parseInt(document.getElementById('intInput').value) || 0 },
+        { name: 'resolve', val: parseInt(document.getElementById('resInput').value) || 0 },
+        { name: 'perception', val: parseInt(document.getElementById('perInput').value) || 0 }
+    ];
+    stats.sort((a, b) => b.val - a.val);
+
+    const h = stats[0].name;
+    const s = stats[1].name;
+
+    if (h === 'strength' && s === 'constitution') return 'Juggernaut';
+    if (h === 'strength' && s === 'dexterity') return 'BladeDancer';
+    if (h === 'strength' && s === 'intelligence') return 'Chieftain';
+    if (h === 'strength' && s === 'resolve') return 'IronWill';
+    if (h === 'strength' && s === 'perception') return 'Berserker';
+    if (h === 'constitution' && s === 'strength') return 'Titan';
+    if (h === 'constitution' && s === 'resolve') return 'StalwartDefender';
+    if (h === 'constitution' && s === 'dexterity') return 'Mercenery';
+    if (h === 'constitution' && s === 'perception') return 'Sentinel';
+    if (h === 'dexterity' && s === 'intelligence') return 'Bladecaster';
+    if (h === 'dexterity' && s === 'resolve') return 'MartialArtist';
+    if (h === 'dexterity' && s === 'strength') return 'SavageSwifter';
+    if (h === 'dexterity' && s === 'constitution') return 'Swiftblade';
+    if (h === 'dexterity' && s === 'perception') return 'Assassin';
+    if (h === 'intelligence' && s === 'strength') return 'Tactician';
+    if (h === 'intelligence' && s === 'dexterity') return 'ArcaneArcher';
+    if (h === 'intelligence' && s === 'resolve') return 'Mage';
+    if (h === 'intelligence' && s === 'perception') return 'Diviner';
+    if (h === 'intelligence' && s === 'intelligence') return 'ManaWeaver';
+    if (h === 'constitution' && s === 'intelligence') return 'BattlePriest';
+    if (h === 'intelligence' && s === 'constitution') return 'Sage';
+    if (h === 'resolve' && s === 'intelligence') return 'Sorcerer';
+    if (h === 'resolve' && s === 'perception') return 'Spiritist';
+    if (h === 'resolve' && s === 'strength') return 'AuraWarrior';
+    if (h === 'resolve' && s === 'constitution') return 'IronAura';
+    if (h === 'resolve' && s === 'dexterity') return 'PhantomBlade';
+    if (h === 'resolve' && s === 'resolve') return 'MentalFortress';
+    if (h === 'perception' && s === 'dexterity') return 'Deadeye';
+    if (h === 'perception' && s === 'resolve') return 'Scout';
+    if (h === 'perception' && s === 'intelligence') return 'Trickshot';
+    if (h === 'perception' && s === 'strength') return 'Powershot';
+    if (h === 'perception' && s === 'constitution') return 'Vanguard';
+    if (h === 'perception' && s === 'perception') return 'GodEye';
+    if (h === 'strength' && s === 'strength') return 'Colossus';
+    if (h === 'constitution' && s === 'constitution') return 'FleshFortress';
+    if (h === 'dexterity' && s === 'dexterity') return 'Tempest';
+
+    return 'Juggernaut';
+}
+
+function populateRaceDropdown() {
+    const select = document.getElementById('raceSelect');
+    select.innerHTML = '';
+    Object.keys(raceTraitsMap).forEach(r => {
+        select.innerHTML += `<option value="${r}">${r}</option>`;
+    });
+}
+
+function populateClassDropdown() {
+    const select = document.getElementById('combatClassSelect');
+    const currentVal = select.value;
+    const bestFit = getBestFitClass();
+
+    select.innerHTML = '';
+    Object.keys(classTechniquesMap).forEach(cls => {
+        const isFit = cls === bestFit;
+        const label = isFit ? `⭐ ${cls} (Best Fit)` : cls;
+        select.innerHTML += `<option value="${cls}" ${isFit ? 'class="fit-option"' : ''}>${label}</option>`;
+    });
+
+    if (currentVal && Object.keys(classTechniquesMap).includes(currentVal)) {
+        select.value = currentVal;
+    } else {
+        select.value = bestFit;
+    }
+}
+
+// --- Initialization & Page Load Trigger ---
+window.onload = function() {
+    populateRaceDropdown();
+    randomizeAll(); // Triggers Randomize All on page load as a placeholder
+};
+
+function onRaceChange() {
+    const race = document.getElementById('raceSelect').value;
+    const traits = raceTraitsMap[race] || ["None"];
+    const select = document.getElementById('raceTraitsSelect');
+    select.innerHTML = '';
+    traits.forEach(t => select.innerHTML += `<option value="${t}">${t}</option>`);
+    updatePreview();
+}
+
+function onClassChange() {
+    const cls = document.getElementById('combatClassSelect').value;
+    const techs = classTechniquesMap[cls] || ["Basic Strike"];
+    const select = document.getElementById('techniqueSelect');
+    select.innerHTML = '';
+    techs.forEach(t => select.innerHTML += `<option value="${t}">${t}</option>`);
+    updatePreview();
+}
+
+function onStatChange() {
+    populateClassDropdown();
+    updatePreview();
+}
+
+function calculateBMI() {
+    const feet = parseInt(document.getElementById('heightFeet').value) || 5;
+    const inches = parseInt(document.getElementById('heightInches').value) || 0;
+    const weight = parseFloat(document.getElementById('weightKg').value) || 60;
+
+    const heightM = (feet * 0.3048) + (inches * 0.0254);
+    const bmi = weight / (heightM * heightM);
+
+    let cat = "Normal weight";
+    if (bmi < 18.5) cat = "Underweight";
+    else if (bmi < 24.9) cat = "Normal weight";
+    else if (bmi < 29.9) cat = "Overweight";
+    else cat = "Obese";
+
+    document.getElementById('bmiCategory').value = `${cat} (BMI: ${bmi.toFixed(1)})`;
+
+    const builds = bodyBuildMap[cat] || ["Average"];
+    const buildSelect = document.getElementById('bodyBuildSelect');
+    const currentVal = buildSelect.value;
+    buildSelect.innerHTML = '';
+    builds.forEach(b => buildSelect.innerHTML += `<option value="${b}">${b}</option>`);
+    if (builds.includes(currentVal)) buildSelect.value = currentVal;
+
+    updatePreview();
+}
+
+function randomizeEmblemSeed() {
+    emblemSeed = Math.floor(Math.random() * 1e6);
+    updateEmblem();
+}
+
+// --- Pixel Art Generator ---
+function seededRandom(s) {
+    let x = Math.sin(s) * 10000;
+    return x - Math.floor(x);
+}
+
+function generateSymmetricalPixelArt(seed, w, h, size, colorCount) {
+    const canvas = document.createElement("canvas");
+    canvas.width = w * size;
+    canvas.height = h * size;
+    const ctx = canvas.getContext("2d");
+
+    const colors = [];
+    for (let i = 0; i < colorCount; i++) {
+        const val = seededRandom(seed + i + 1);
+        const hue = Math.floor(val * 360);
+        colors.push(`hsl(${hue}, 70%, 55%)`);
+    }
+    colors.push("black");
+
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            if (x === 0 || y === 0 || x === w - 1 || y === h - 1) {
+                ctx.fillStyle = "black";
+                ctx.fillRect(x * size, y * size, size, size);
+                ctx.fillRect((w - x - 1) * size, y * size, size, size);
+                continue;
+            }
+            const sr = seededRandom(seed + y * w + x);
+            const colIndex = Math.floor(sr * colors.length);
+            ctx.fillStyle = colors[colIndex];
+            ctx.fillRect(x * size, y * size, size, size);
+            ctx.fillRect((w - x - 1) * size, y * size, size, size);
+        }
+    }
+    return canvas.toDataURL();
+}
+
+function updateEmblem() {
+    const w = parseInt(document.getElementById('pWidthSlider').value);
+    const h = parseInt(document.getElementById('pHeightSlider').value);
+    const size = parseInt(document.getElementById('pSizeSlider').value);
+    const colors = parseInt(document.getElementById('pColorSlider').value);
+
+    document.getElementById('pWidthVal').innerText = w;
+    document.getElementById('pHeightVal').innerText = h;
+    document.getElementById('pSizeVal').innerText = size;
+    document.getElementById('pColorVal').innerText = colors;
+
+    const dataUrl = generateSymmetricalPixelArt(emblemSeed, w, h, size, colors);
+    document.getElementById('emblemPreviewImg').src = dataUrl;
+}
+
+// --- Live Status Sheet Update (Fit Layout) ---
+function updatePreview() {
+    const str = parseInt(document.getElementById('strInput').value) || 0;
+    const con = parseInt(document.getElementById('conInput').value) || 0;
+    const dex = parseInt(document.getElementById('dexInput').value) || 0;
+    const int = parseInt(document.getElementById('intInput').value) || 0;
+    const res = parseInt(document.getElementById('resInput').value) || 0;
+    const per = parseInt(document.getElementById('perInput').value) || 0;
+
+    document.getElementById('strRating').innerText = getStatRating(str);
+    document.getElementById('conRating').innerText = getStatRating(con);
+    document.getElementById('dexRating').innerText = getStatRating(dex);
+    document.getElementById('intRating').innerText = getStatRating(int);
+    document.getElementById('resRating').innerText = getStatRating(res);
+    document.getElementById('perRating').innerText = getStatRating(per);
+
+    const total = str + con + dex + int + res + per;
+    const potRating = getPotentialRating(total);
+    document.getElementById('potentialText').innerText = `${total} (${potRating})`;
+
+    const fname = document.getElementById('firstName').value || "Arthur";
+    const lname = document.getElementById('lastName').value || "Pendelton";
+    const race = document.getElementById('raceSelect').value;
+    const trait = document.getElementById('raceTraitsSelect').value;
+    const feet = document.getElementById('heightFeet').value;
+    const inches = document.getElementById('heightInches').value;
+    const weight = document.getElementById('weightKg').value;
+    const build = document.getElementById('bodyBuildSelect').value || "Average";
+
+    const statusText = `${fname} ${lname}
+Race: ${race}
+
+\tPotential: Total: ${total} (${potRating})
+        Attributes
+        Strength: ${str} (${getStatRating(str)}) \t\tConstitution: ${con} (${getStatRating(con)})  
+        Dexterity: ${dex} (${getStatRating(dex)}) \t\tIntelligence: ${int} (${getStatRating(int)})
+\t\tResolve: ${res} (${getStatRating(res)}) \t\tPerception: ${per} (${getStatRating(per)})
+\t\t
+        Physical Appearance
+        Blood Type: ${document.getElementById('bloodType').value}        Skin Color: ${document.getElementById('skinColor').value}
+        Left Eye Color: ${document.getElementById('leftEye').value}        Right Eye Color: ${document.getElementById('rightEye').value}
+        Hair Color: ${document.getElementById('hairColor').value}        Hair Style: ${document.getElementById('hairStyle').value}
+\t\tRace Traits: ${trait}
+\t\t
+\t\tPhysical Characteristics
+\t\tHeight: ${feet} feet ${inches} inches\t\tWeight: ${weight} kg 
+\t\tBody Build: ${build}
+        
+\t\tCondition
+        Pain: ${document.getElementById('painSelect').value}        Thirst: ${document.getElementById('thirstSelect').value}
+        Rest: ${document.getElementById('restSelect').value}        Hunger: ${document.getElementById('hungerSelect').value}
+
+        Environment
+        Heat: Comfortable        
+        Place: ${document.getElementById('placeInput').value}       Lighting: Bright
+        Weather: ${document.getElementById('weatherSelect').value}     Moon: Full moon
+        Date: Spring, day 61        Time: 08:00:00
+        Wind: Calm        Temperature: C-50 F
+
+        Combat
+        Combat Class: ${document.getElementById('combatClassSelect').value}\t\tCombat Technique: ${document.getElementById('techniqueSelect').value}
+        Main Hand: ${document.getElementById('mainHandInput').value}\t\tOffhand: ${document.getElementById('offHandInput').value}`;
+
+    document.getElementById('statusSheetPreview').innerText = statusText;
+    updateEmblem();
+}
+
+// --- Granular Randomizers ---
+function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function getRandomNum(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+function randomizeDetail(type) {
+    if (type === 'firstName') document.getElementById('firstName').value = getRandom(firstNamesList);
+    if (type === 'lastName') document.getElementById('lastName').value = getRandom(lastNamesList);
+    if (type === 'race') {
+        const races = Object.keys(raceTraitsMap);
+        document.getElementById('raceSelect').value = getRandom(races);
+        onRaceChange();
+    }
+    if (type === 'trait') {
+        const select = document.getElementById('raceTraitsSelect');
+        if (select.options.length > 0) select.selectedIndex = getRandomNum(0, select.options.length - 1);
+    }
+
+    if (['str','con','dex','int','res','per'].includes(type)) {
+        document.getElementById(`${type}Input`).value = getRandomNum(7, 22);
+        onStatChange();
+    }
+
+    if (type === 'bloodType') document.getElementById('bloodType').value = getRandom(['A', 'B', 'AB', 'O']);
+    if (type === 'skin') document.getElementById('skinColor').value = getRandom(['Fair', 'Light', 'Medium', 'Olive', 'Tan', 'Brown', 'Dark Brown', 'Ebony']);
+    if (type === 'leftEye') document.getElementById('leftEye').value = getRandom(['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber']);
+    if (type === 'rightEye') document.getElementById('rightEye').value = getRandom(['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber']);
+    if (type === 'hairColor') document.getElementById('hairColor').value = getRandom(['Black', 'Brown', 'Blonde', 'Red', 'Gray', 'White', 'Silver']);
+    if (type === 'hairStyle') document.getElementById('hairStyle').value = getRandom(['Short', 'Medium', 'Long', 'Curly', 'Straight', 'Braids', 'Buzz Cut', 'Bald']);
+
+    if (type === 'height') {
+        document.getElementById('heightFeet').value = getRandomNum(4, 6);
+        document.getElementById('heightInches').value = getRandomNum(0, 11);
+        calculateBMI();
+    }
+    if (type === 'weight') {
+        document.getElementById('weightKg').value = getRandomNum(45, 110);
+        calculateBMI();
+    }
+    if (type === 'build') {
+        const select = document.getElementById('bodyBuildSelect');
+        if (select.options.length > 0) select.selectedIndex = getRandomNum(0, select.options.length - 1);
+    }
+
+    if (type === 'class') {
+        const classes = Object.keys(classTechniquesMap);
+        document.getElementById('combatClassSelect').value = getRandom(classes);
+        onClassChange();
+    }
+    if (type === 'style') document.getElementById('combatStyleSelect').value = getRandom(['Melee', 'Ranged', 'Magic']);
+    if (type === 'technique') {
+        const select = document.getElementById('techniqueSelect');
+        if (select.options.length > 0) select.selectedIndex = getRandomNum(0, select.options.length - 1);
+    }
+    if (type === 'mainHand') {
+        const style = document.getElementById('combatStyleSelect').value;
+        if (style === 'Ranged') document.getElementById('mainHandInput').value = getRandom(rangedWeapons);
+        else if (style === 'Magic') document.getElementById('mainHandInput').value = getRandom(magicWeapons);
+        else document.getElementById('mainHandInput').value = getRandom(meleeWeapons);
+    }
+    if (type === 'offHand') document.getElementById('offHandInput').value = getRandom(offhandItems);
+
+    if (type === 'pain') document.getElementById('painSelect').value = getRandom(['0', 'Light', 'Moderate', 'Severe']);
+    if (type === 'thirst') document.getElementById('thirstSelect').value = getRandom(['Hydrated', 'Mild', 'Very thirsty', 'Dehydrated']);
+    if (type === 'rest') document.getElementById('restSelect').value = getRandom(['Awake', 'Rested', 'Sleepy', 'Fatigued']);
+    if (type === 'hunger') document.getElementById('hungerSelect').value = getRandom(['Satiated', 'Full', 'Hungry', 'Starving']);
+
+    if (type === 'place') document.getElementById('placeInput').value = getRandom(placesList);
+    if (type === 'weather') document.getElementById('weatherSelect').value = getRandom(['Clear', 'Rainy', 'Foggy', 'Windy', 'Stormy']);
+
+    updatePreview();
+}
+
+function randomizeSection(section) {
+    if (section === 'identity') {
+        randomizeDetail('firstName');
+        randomizeDetail('lastName');
+        randomizeDetail('race');
+        randomizeDetail('trait');
+    } else if (section === 'attributes') {
+        ['str','con','dex','int','res','per'].forEach(s => document.getElementById(`${s}Input`).value = getRandomNum(7, 22));
+        onStatChange();
+    } else if (section === 'physical') {
+        randomizeDetail('bloodType');
+        randomizeDetail('skin');
+        randomizeDetail('leftEye');
+        randomizeDetail('rightEye');
+        randomizeDetail('hairColor');
+        randomizeDetail('hairStyle');
+        randomizeDetail('height');
+        randomizeDetail('weight');
+        randomizeDetail('build');
+    } else if (section === 'combat') {
+        randomizeDetail('class');
+        randomizeDetail('style');
+        randomizeDetail('technique');
+        randomizeDetail('mainHand');
+        randomizeDetail('offHand');
+    } else if (section === 'environment') {
+        randomizeDetail('pain');
+        randomizeDetail('thirst');
+        randomizeDetail('rest');
+        randomizeDetail('hunger');
+        randomizeDetail('place');
+        randomizeDetail('weather');
+    }
+}
+
+function randomizeAll() {
+    randomizeSection('identity');
+    randomizeSection('attributes');
+    randomizeSection('physical');
+    randomizeSection('combat');
+    randomizeSection('environment');
+    randomizeEmblemSeed();
+}
+
+// --- Presets ---
+function applyPreset(type) {
+    if (type === 'warrior') {
+        document.getElementById('strInput').value = 22;
+        document.getElementById('conInput').value = 20;
+        document.getElementById('dexInput').value = 12;
+        document.getElementById('intInput').value = 8;
+        document.getElementById('resInput').value = 12;
+        document.getElementById('perInput').value = 10;
+        document.getElementById('combatStyleSelect').value = 'Melee';
+        document.getElementById('mainHandInput').value = 'Greatsword';
+        document.getElementById('offHandInput').value = 'Tower Shield';
+    } else if (type === 'assassin') {
+        document.getElementById('strInput').value = 14;
+        document.getElementById('conInput').value = 10;
+        document.getElementById('dexInput').value = 24;
+        document.getElementById('intInput').value = 12;
+        document.getElementById('resInput').value = 10;
+        document.getElementById('perInput').value = 20;
+        document.getElementById('combatStyleSelect').value = 'Melee';
+        document.getElementById('mainHandInput').value = 'Katana';
+        document.getElementById('offHandInput').value = 'Dagger';
+    } else if (type === 'mage') {
+        document.getElementById('strInput').value = 8;
+        document.getElementById('conInput').value = 10;
+        document.getElementById('dexInput').value = 12;
+        document.getElementById('intInput').value = 24;
+        document.getElementById('resInput').value = 22;
+        document.getElementById('perInput').value = 14;
+        document.getElementById('combatStyleSelect').value = 'Magic';
+        document.getElementById('mainHandInput').value = 'Arcane Staff';
+        document.getElementById('offHandInput').value = 'Vortex Orb';
+    } else if (type === 'archer') {
+        document.getElementById('strInput').value = 12;
+        document.getElementById('conInput').value = 10;
+        document.getElementById('dexInput').value = 20;
+        document.getElementById('intInput').value = 10;
+        document.getElementById('resInput').value = 10;
+        document.getElementById('perInput').value = 24;
+        document.getElementById('combatStyleSelect').value = 'Ranged';
+        document.getElementById('mainHandInput').value = 'Longbow';
+        document.getElementById('offHandInput').value = 'nothing';
+    }
+    onStatChange();
+    onClassChange();
+}
+
+// --- Database Save & Exports ---
+function saveCharacterToDB() {
+    const firstName = document.getElementById('firstName').value || "Unknown";
+    const lastName = document.getElementById('lastName').value || "Hero";
+    const key = `${firstName}_${lastName}`.replace(/\s+/g, '_');
+    const race = document.getElementById('raceSelect').value;
+    const combatClass = document.getElementById('combatClassSelect').value;
+    const statusText = document.getElementById('statusSheetPreview').innerText;
+    const pixelArtImage = document.getElementById('emblemPreviewImg').src;
+    const potential = document.getElementById('potentialText').innerText;
+
+    const characterData = {
+        key,
+        firstName,
+        lastName,
+        race,
+        potential,
+        combatClass,
+        statusText,
+        pixelArtImage,
+        timestamp: Date.now()
+    };
+
+    const request = indexedDB.open("characterDatabase", 3);
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction(["characters"], "readwrite");
+        const objectStore = transaction.objectStore("characters");
+
+        objectStore.put(characterData);
+
+        transaction.oncomplete = function() {
+            alert(`Character '${firstName} ${lastName}' successfully saved to Database!`);
+        };
+    };
+    request.onerror = function(event) {
+        console.error("IndexedDB error:", event.target.error);
+    };
+}
+
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const fname = document.getElementById('firstName').value || "Hero";
+    const lname = document.getElementById('lastName').value || "";
+    const statusText = document.getElementById('statusSheetPreview').innerText;
+    const emblemUrl = document.getElementById('emblemPreviewImg').src;
+
+    doc.addImage(emblemUrl, 'PNG', 15, 12, 55, 55);
+    doc.setFontSize(10);
+    const splitText = doc.splitTextToSize(statusText, 180);
+    doc.text(splitText, 15, 75);
+
+    doc.save(`${fname}_${lname}_CustomStatus.pdf`);
+}
+
+function exportJSON() {
+    const fname = document.getElementById('firstName').value || "Hero";
+    const lname = document.getElementById('lastName').value || "";
+
+    const characterData = {
+        firstName: fname,
+        lastName: lname,
+        race: document.getElementById('raceSelect').value,
+        raceTrait: document.getElementById('raceTraitsSelect').value,
+        str: document.getElementById('strInput').value,
+        con: document.getElementById('conInput').value,
+        dex: document.getElementById('dexInput').value,
+        int: document.getElementById('intInput').value,
+        res: document.getElementById('resInput').value,
+        per: document.getElementById('perInput').value,
+        bloodType: document.getElementById('bloodType').value,
+        skinColor: document.getElementById('skinColor').value,
+        leftEye: document.getElementById('leftEye').value,
+        rightEye: document.getElementById('rightEye').value,
+        hairColor: document.getElementById('hairColor').value,
+        hairStyle: document.getElementById('hairStyle').value,
+        heightFeet: document.getElementById('heightFeet').value,
+        heightInches: document.getElementById('heightInches').value,
+        weightKg: document.getElementById('weightKg').value,
+        bodyBuild: document.getElementById('bodyBuildSelect').value,
+        combatClass: document.getElementById('combatClassSelect').value,
+        combatStyle: document.getElementById('combatStyleSelect').value,
+        technique: document.getElementById('techniqueSelect').value,
+        mainHand: document.getElementById('mainHandInput').value,
+        offHand: document.getElementById('offHandInput').value,
+        place: document.getElementById('placeInput').value,
+        weather: document.getElementById('weatherSelect').value,
+        emblemSeed: emblemSeed
+    };
+
+    const blob = new Blob([JSON.stringify(characterData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fname}_${lname}_CustomCharacter.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function triggerImportJSON() {
+    document.getElementById('jsonFileInput').click();
+}
+
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            document.getElementById('firstName').value = data.firstName || "Hero";
+            document.getElementById('lastName').value = data.lastName || "";
+            document.getElementById('raceSelect').value = data.race || "Human";
+            onRaceChange();
+            if (data.raceTrait) document.getElementById('raceTraitsSelect').value = data.raceTrait;
+
+            document.getElementById('strInput').value = data.str || 10;
+            document.getElementById('conInput').value = data.con || 10;
+            document.getElementById('dexInput').value = data.dex || 10;
+            document.getElementById('intInput').value = data.int || 10;
+            document.getElementById('resInput').value = data.res || 10;
+            document.getElementById('perInput').value = data.per || 10;
+
+            document.getElementById('bloodType').value = data.bloodType || "A";
+            document.getElementById('skinColor').value = data.skinColor || "Fair";
+            document.getElementById('leftEye').value = data.leftEye || "Brown";
+            document.getElementById('rightEye').value = data.rightEye || "Brown";
+            document.getElementById('hairColor').value = data.hairColor || "Black";
+            document.getElementById('hairStyle').value = data.hairStyle || "Short";
+
+            document.getElementById('heightFeet').value = data.heightFeet || 5;
+            document.getElementById('heightInches').value = data.heightInches || 10;
+            document.getElementById('weightKg').value = data.weightKg || 70;
+            calculateBMI();
+            if (data.bodyBuild) document.getElementById('bodyBuildSelect').value = data.bodyBuild;
+
+            document.getElementById('combatClassSelect').value = data.combatClass || "Juggernaut";
+            onClassChange();
+            if (data.combatStyle) document.getElementById('combatStyleSelect').value = data.combatStyle;
+            if (data.technique) document.getElementById('techniqueSelect').value = data.technique;
+
+            document.getElementById('mainHandInput').value = data.mainHand || "Fists";
+            document.getElementById('offHandInput').value = data.offHand || "Fists";
+            document.getElementById('placeInput').value = data.place || "Evac shelter";
+            if (data.weather) document.getElementById('weatherSelect').value = data.weather;
+
+            if (data.emblemSeed) emblemSeed = data.emblemSeed;
+
+            onStatChange();
+            alert("Character imported successfully!");
+        } catch (err) {
+            alert("Failed to parse JSON file.");
+        }
+    };
+    reader.readAsText(file);
+}
+</script>
+</body>
+</html>
