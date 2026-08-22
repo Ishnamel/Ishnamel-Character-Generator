@@ -1,0 +1,3280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5K UHD 3-Tier Zone & Settlement Generator with Live Battle Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet">
+<script src="battle_sim.js"></script>
+  <script src="world_names.js"></script>
+  <script src="world_gen.js"></script>
+  <script src="terrain_gl.js"></script>
+  <script src="map_editor.js"></script>
+  <script src="zone_editor.js"></script>
+   <script src="settlement_editor.js"></script>
+     <script src="route_editor.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cinzel', 'Georgia', serif;
+      background-color: #0c0c0e;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 15px;
+    }
+    h1 {
+      margin-bottom: 12px;
+      color: #d4af37;
+      font-size: 2.1rem;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 8px #000;
+    }
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      max-width: 1950px;
+      width: 100%;
+      background: #18181d;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 10px 32px rgba(0,0,0,0.85);
+      border: 1px solid #2a2a32;
+    }
+    .controls-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      background: #101013;
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      align-items: end;
+      font-family: 'Georgia', serif;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    label {
+      font-size: 0.8rem;
+      color: #c5a059;
+      font-weight: bold;
+    }
+    input, select, button {
+      padding: 8px 10px;
+      background: #1a1a1e;
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-family: 'Georgia', serif;
+    }
+    input:focus, select:focus { outline: none; border-color: #d4af37; }
+    button {
+      background: #d4af37;
+      color: #121214;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover { background: #f3ca52; transform: translateY(-1px); }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 6px;
+    }
+    .checkbox-group input { cursor: pointer; }
+    
+    .map-wrapper {
+      position: relative;
+      width: 100%;
+      height: 80vh;
+      background: #060608;
+      border-radius: 8px;
+      border: 2px solid #282832;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+    }
+    .map-wrapper:active { cursor: grabbing; }
+
+    .main-canvas-wrapper {
+      position: relative;
+      transform-origin: center center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: min(92vw, calc(78vh * 16 / 9));
+      height: min(78vh, calc(92vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      flex-shrink: 0;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.8);
+      border-radius: 4px;
+      will-change: transform;
+      backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #mapCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      pointer-events: none;
+      image-rendering: auto;
+    }
+
+    #actorCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      pointer-events: none;
+      image-rendering: auto;
+      z-index: 2;
+    }
+
+    #mapSvgOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 3;
+    }
+
+    .map-text {
+      font-family: 'Cinzel', 'Palatino Linotype', 'Georgia', serif;
+      text-anchor: middle;
+      dominant-baseline: central;
+      paint-order: stroke fill;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      stroke-miterlimit: 2;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .map-hud {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      display: flex;
+      gap: 8px;
+      background: rgba(18, 18, 22, 0.88);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid #d4af37;
+      z-index: 5;
+      align-items: center;
+      backdrop-filter: blur(4px);
+      font-family: 'Georgia', serif;
+    }
+    .map-hud span {
+      color: #d4af37;
+      font-size: 0.85rem;
+      font-weight: bold;
+      min-width: 55px;
+      text-align: center;
+    }
+    .map-hud button { padding: 4px 10px; font-size: 0.85rem; }
+
+    .map-tooltip {
+      position: absolute;
+      background: rgba(12, 12, 16, 0.95);
+      border: 1px solid #d4af37;
+      border-radius: 6px;
+      padding: 10px 16px;
+      color: #fff;
+      font-family: 'Georgia', serif;
+      pointer-events: none;
+      z-index: 50;
+      display: none;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.9);
+      transform: translate(-50%, -130%);
+      white-space: nowrap;
+      text-align: center;
+    }
+    .tt-emblem {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid #d4af37;
+      margin: 0 auto 6px auto;
+      display: none;
+      object-fit: cover;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .tt-title { font-size: 1.05rem; font-weight: bold; color: #f1c40f; margin-bottom: 2px; }
+    .tt-type { font-size: 0.82rem; color: #74b9ff; margin-bottom: 2px; }
+    .tt-realm { font-size: 0.75rem; color: #aaa; }
+    .tt-meta { font-size: 0.76rem; color: #fab1a0; margin-top: 2px; }
+    .tt-roster-hint { font-size: 0.75rem; color: #55efc4; margin-top: 4px; font-weight: bold; }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(10, 10, 14, 0.92);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .loading-overlay.active { opacity: 1; pointer-events: auto; }
+    .spinner {
+      width: 55px; height: 55px;
+      border: 4px solid rgba(212, 175, 55, 0.2);
+      border-top-color: #d4af37;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 1.2rem; color: #d4af37; font-weight: bold; text-shadow: 0 2px 4px #000; }
+
+    .encounter-banner {
+      position: fixed;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #1c1510, #2c1a16);
+      border: 2px solid #e74c3c;
+      box-shadow: 0 10px 35px rgba(231, 76, 60, 0.5);
+      border-radius: 8px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      z-index: 500;
+      transition: top 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      font-family: 'Georgia', serif;
+    }
+    .encounter-banner.active { top: 25px; }
+    .encounter-title { font-family: 'Cinzel', serif; color: #f1c40f; font-weight: bold; font-size: 1.05rem; }
+    .encounter-desc { font-size: 0.85rem; color: #e0d5c1; }
+
+    .zoom-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #050507;
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .zoom-modal.active { display: flex; }
+    .zoom-header {
+      position: absolute;
+      top: 15px; left: 20px; right: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 110; pointer-events: none;
+      font-family: 'Cinzel', 'Georgia', serif;
+    }
+    .zoom-controls-hud {
+      pointer-events: auto;
+      display: flex; gap: 10px; background: rgba(18, 18, 22, 0.85);
+      padding: 8px 15px; border-radius: 8px; border: 1px solid #d4af37;
+      font-family: 'Georgia', serif;
+    }
+    .zoom-viewport {
+      flex: 1; width: 100%; height: 100%;
+      display: flex; justify-content: center; align-items: center;
+      cursor: grab; user-select: none;
+      overflow: hidden;
+    }
+    .zoom-viewport:active { cursor: grabbing; }
+    .zoom-canvas-wrapper {
+      position: relative;
+      transform-origin: center center;
+      width: min(92vw, calc(86vh * 16 / 9));
+      height: min(86vh, calc(92vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      flex-shrink: 0;
+      box-shadow: 0 0 40px rgba(0,0,0,0.9);
+      border-radius: 6px;
+      will-change: transform;
+      backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #zoomCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border-radius: 6px; pointer-events: none;
+    }
+    #zoomActorCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border-radius: 6px; pointer-events: none;
+      z-index: 2;
+    }
+    #zoomSvgOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border-radius: 6px; pointer-events: none;
+      overflow: visible; z-index: 3;
+    }
+
+    .label-menu-container { position: relative; }
+    .label-dropdown-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      width: 310px;
+      background: #14141a;
+      border: 1px solid #d4af37;
+      border-radius: 8px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.95);
+      padding: 12px 14px;
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      gap: 7px;
+      font-family: 'Georgia', serif;
+    }
+    .label-dropdown-panel.active { display: flex; }
+    .dropdown-header {
+      display: flex; justify-content: space-between; align-items: center;
+      font-weight: bold; color: #d4af37; font-size: 0.85rem;
+      border-bottom: 1px solid #2e2e38; padding-bottom: 6px;
+    }
+    .dropdown-section-title {
+      font-size: 0.72rem; color: #74b9ff; text-transform: uppercase;
+      letter-spacing: 0.6px; font-weight: bold; margin-top: 4px;
+    }
+    .dropdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; }
+    .dropdown-grid label { display: flex; align-items: center; gap: 6px; color: #ddd; font-size: 0.8rem; cursor: pointer; font-weight: normal; }
+    .dropdown-grid input[type="checkbox"] { cursor: pointer; accent-color: #d4af37; }
+    .mini-btn {
+      padding: 2px 7px; font-size: 0.72rem; background: #2a2a35; color: #ddd;
+      border: 1px solid #444; border-radius: 3px; cursor: pointer;
+    }
+    .mini-btn:hover { background: #d4af37; color: #000; }
+
+    .location-sidebar {
+      position: fixed; top: 0; right: -460px;
+      width: 440px; max-width: 90vw; height: 100vh;
+      background: #121217; border-left: 2px solid #d4af37;
+      box-shadow: -8px 0 35px rgba(0,0,0,0.9);
+      z-index: 150; display: flex; flex-direction: column;
+      transition: right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      font-family: 'Georgia', serif;
+    }
+    .location-sidebar.active { right: 0; }
+    .sidebar-header {
+      padding: 16px 20px; background: #0a0a0d; border-bottom: 1px solid #2e2e38;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .sidebar-header h3 { color: #d4af37; font-size: 1.15rem; font-family: 'Cinzel', serif; letter-spacing: 1px; }
+    .close-sidebar-btn { background: transparent; border: none; color: #aaa; font-size: 1.6rem; cursor: pointer; line-height: 1; padding: 2px 8px; border-radius: 4px; }
+    .close-sidebar-btn:hover { color: #ff7675; background: rgba(255,255,255,0.05); transform: none; }
+    .sidebar-controls { padding: 12px 16px; background: #181820; border-bottom: 1px solid #2a2a35; display: flex; flex-direction: column; gap: 10px; }
+    .sidebar-search-input { width: 100%; padding: 8px 12px; background: #0e0e12; border: 1px solid #444; border-radius: 6px; color: #fff; font-size: 0.9rem; }
+    .sidebar-search-input:focus { outline: none; border-color: #d4af37; }
+    .sidebar-filter-row { display: flex; gap: 8px; }
+    .sidebar-filter-row select { flex: 1; padding: 6px 8px; background: #0e0e12; border: 1px solid #444; color: #ddd; border-radius: 5px; font-size: 0.8rem; }
+    .sidebar-list { flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .sidebar-item { background: #1a1a22; border: 1px solid #2e2e3c; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s, border-color 0.15s; }
+    .sidebar-item:hover { background: #23232e; border-color: #d4af37; }
+    .item-info { display: flex; flex-direction: column; gap: 2px; overflow: hidden; padding-right: 8px; }
+    .item-name { color: #fff; font-size: 0.95rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-type-badge { font-size: 0.75rem; display: flex; align-items: center; gap: 5px; }
+    .item-realm { font-size: 0.7rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .locate-btn { background: #27ae60; color: #fff; border: none; padding: 6px 12px; font-size: 0.78rem; border-radius: 5px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+    .locate-btn:hover { background: #2ecc71; }
+    .sidebar-avatar { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; margin-right: 10px; flex-shrink: 0; }
+
+    .character-status-sidebar {
+      position: fixed; top: 0; right: -580px; width: 550px; max-width: 95vw; height: 100vh;
+      background: #12100e; border-left: 2px solid #d4af37; box-shadow: -10px 0 45px rgba(0,0,0,0.95);
+      z-index: 220; display: flex; flex-direction: column; transition: right 0.35s cubic-bezier(0.18, 0.89, 0.32, 1);
+      font-family: 'Georgia', serif; color: #e0d5c1;
+    }
+    .character-status-sidebar.active { right: 0; }
+    .char-sidebar-header { padding: 16px 20px; background: #1b1612; border-bottom: 2px solid #d4af37; display: flex; justify-content: space-between; align-items: center; }
+    .char-sidebar-header h2 { font-family: 'Cinzel', serif; color: #f1c40f; font-size: 1.3rem; letter-spacing: 1px; text-shadow: 1px 1px 4px #000; }
+    .char-sidebar-body { flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; background: radial-gradient(circle at top, #241d17 0%, #12100e 100%); }
+    .char-emblem-container { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 15px; background: #2b211a; border: 2px solid #6d5c4b; border-radius: 8px; box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.5); }
+    .char-emblem-img { width: 140px; height: 140px; border-radius: 50%; border: 3px solid #d4af37; object-fit: cover; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); background: #000; }
+    .char-hero-title { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: bold; color: #ffd700; text-align: center; }
+    .char-badge-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .char-pill { background: #4a3d34; border: 1px solid #8c7355; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; color: #e0d5c1; font-weight: bold; }
+    .char-card-section { background: #201914; border: 1px solid #4d3a2b; border-radius: 6px; padding: 12px 14px; box-shadow: 0 3px 8px rgba(0,0,0,0.5); }
+    .char-card-title { font-family: 'Cinzel', serif; font-size: 0.95rem; color: #d4af37; margin-bottom: 8px; border-bottom: 1px solid #3d2e22; padding-bottom: 4px; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+    .char-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 0.86rem; }
+    .stat-label { font-size: 0.72rem; color: #c5a059; text-transform: uppercase; }
+    .char-status-text-pre { white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.82rem; color: #d8c7a7; background: #14100d; padding: 10px; border: 1px solid #3d2f24; border-radius: 4px; line-height: 1.45; max-height: 250px; overflow-y: auto; }
+
+    .location-info-sidebar {
+      position: fixed; top: 0; right: -520px; width: 480px; max-width: 95vw; height: 100vh;
+      background: #131318; border-left: 2px solid #d4af37; box-shadow: -10px 0 45px rgba(0,0,0,0.95);
+      z-index: 210; display: flex; flex-direction: column; transition: right 0.35s cubic-bezier(0.18, 0.89, 0.32, 1);
+      font-family: 'Georgia', serif; color: #e0e0e0;
+    }
+    .location-info-sidebar.active { right: 0; }
+    .loc-sidebar-header { padding: 16px 20px; background: #0d0d12; border-bottom: 2px solid #d4af37; display: flex; justify-content: space-between; align-items: center; }
+    .loc-sidebar-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+    .loc-hero-item { background: #1d1d26; border: 1px solid #38384a; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s; }
+    .loc-hero-item:hover { background: #272736; border-color: #d4af37; transform: translateX(-3px); }
+    .loc-hero-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; background: #000; flex-shrink: 0; }
+
+    .arena-modal {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(5, 5, 8, 0.95); backdrop-filter: blur(8px);
+      z-index: 600; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+    }
+    .arena-modal.active { display: flex; }
+    .arena-container { width: 95vw; max-width: 1350px; height: 90vh; background: #151318; border: 2px solid #d4af37; border-radius: 12px; box-shadow: 0 10px 45px rgba(0,0,0,0.9); display: flex; flex-direction: column; overflow: hidden; }
+    .arena-header { padding: 12px 20px; background: #0e0d11; border-bottom: 2px solid #d4af37; display: flex; justify-content: space-between; align-items: center; }
+    .arena-header h2 { font-family: 'Cinzel', serif; color: #f1c40f; font-size: 1.4rem; letter-spacing: 1px; }
+    .arena-controls { display: flex; gap: 10px; align-items: center; }
+    .arena-body { flex: 1; display: grid; grid-template-columns: 320px 1fr 320px; gap: 12px; padding: 16px; overflow: hidden; background: radial-gradient(circle at center, #201a24 0%, #100e13 100%); }
+    .arena-fighter-panel { background: #1a1720; border: 1px solid #4a3e5c; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; overflow-y: auto; color: #e0d5c1; }
+    .arena-log-panel { background: #0d0c10; border: 1px solid #332d3d; border-radius: 8px; padding: 16px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.88rem; line-height: 1.5; display: flex; flex-direction: column; }
+    .bar-container { margin: 6px 0; font-family: 'Georgia', serif; }
+    .bar-bg { width: 100%; background: #222; height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid #444; margin-bottom: 2px; }
+    .bar-hp { background: #e74c3c; height: 100%; transition: width 0.2s; }
+    .bar-mp { background: #3498db; height: 100%; transition: width 0.2s; }
+    .stat-display { font-size: 0.8rem; line-height: 1.45; font-family: 'Georgia', serif; }
+    .stat-display p { margin: 2px 0; }
+    
+    /* --- Slide-in Map Editor Sidebar (Left side dock) --- */
+    .map-editor-sidebar {
+      position: fixed;
+      top: 0;
+      left: -440px;
+      width: 410px;
+      max-width: 90vw;
+      height: 100vh;
+      background: #110e14;
+      border-right: 2px solid #d4af37;
+      box-shadow: 8px 0 35px rgba(0, 0, 0, 0.95);
+      z-index: 180;
+      display: flex;
+      flex-direction: column;
+      transition: left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      font-family: 'Georgia', serif;
+      color: #e0d5c1;
+    }
+    .map-editor-sidebar.active { left: 0; }
+    
+    .editor-header {
+      padding: 14px 18px;
+      background: #0a080d;
+      border-bottom: 2px solid #d4af37;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .editor-header h3 {
+      font-family: 'Cinzel', serif;
+      color: #f1c40f;
+      font-size: 1.2rem;
+      letter-spacing: 1px;
+    }
+    .editor-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: radial-gradient(circle at top, #1b1622 0%, #0d0b10 100%);
+    }
+    .editor-card {
+      background: #18141f;
+      border: 1px solid #3d3448;
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .editor-card-title {
+      font-family: 'Cinzel', serif;
+      font-size: 0.88rem;
+      color: #d4af37;
+      border-bottom: 1px solid #2e2638;
+      padding-bottom: 4px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+    }
+    .editor-grid-tools {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .editor-tool-btn {
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      border: 1px solid #3d3448;
+      border-radius: 6px;
+      background: #1a1622;
+      color: #e0d5c1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Georgia', serif;
+      transition: all 0.15s;
+    }
+    .editor-tool-btn:hover {
+      background: #282133;
+      border-color: #d4af37;
+      transform: translateY(-1px);
+    }
+    .editor-slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .editor-slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: #c5a059;
+      font-weight: bold;
+    }
+    .editor-slider-row input[type="range"] {
+      width: 100%;
+      accent-color: #d4af37;
+      cursor: pointer;
+    }
+    .editor-history-row {
+      display: flex;
+      gap: 8px;
+    }
+    .editor-history-row button {
+      flex: 1;
+      padding: 8px;
+      font-size: 0.82rem;
+    }
+    .editor-history-row button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>5K UHD 3-Tier Zone & Settlement Generator</h1>
+
+  <!-- Encounter Alert Toast Banner -->
+  <div id="encounterBanner" class="encounter-banner">
+    <div style="font-size: 2rem;">⚔️</div>
+    <div>
+      <div id="encTitle" class="encounter-title">Duel Encounter!</div>
+      <div id="encDesc" class="encounter-desc">Two warriors have crossed blades!</div>
+    </div>
+    <div style="display: flex; gap: 8px; margin-left: 12px;">
+      <button id="encWatchBtn" style="background:#e74c3c; color:#fff; padding:6px 14px;">⚔️ Watch Duel</button>
+      <button id="encDismissBtn" style="background:#444; color:#ccc; padding:6px 10px;">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="controls-bar">
+      <div class="control-group">
+        <label for="seed">World Seed:</label>
+        <div style="display: flex; gap: 5px; width: 100%; align-items: center;">
+          <input type="text" id="seed" value="Aethelgard" style="flex: 1; min-width: 0;">
+          
+          <button id="randomSeedBtn" style="flex-shrink: 0; width: 42px; text-align: center;">🎲</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="mapType">Land Formation:</label>
+        <select id="mapType">
+         <option value="continents">Continents</option>
+  <option value="archipelago">Archipelago</option>
+  <option value="pangaea">Pangaea</option>
+  <option value="twin_continents">Twin Continents (East &amp; West)</option>
+  <option value="giant_continent">One Giant Continent</option>
+  <option value="three_continents">Three Continents</option>
+  <option value="vertical_continent">Vertical Realm (Northern Mountain Wall)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="style">Visual Theme:</label>
+        <select id="style">
+          <option value="biomes">Realistic Biomes</option>
+          <option value="parchment">Parchment / Vintage</option>
+          <option value="dark">Dark Fantasy</option>
+        </select>
+      </div>
+    <div class="checkbox-group">
+        <input type="checkbox" id="isWildernessCb">
+        <label for="isWildernessCb" style="color: #55efc4; font-weight: bold;">🌲 Wilderness World</label>
+      </div>
+      <div class="control-group">
+        <label for="realms">Grand Zones: <span id="realmsVal">5</span></label>
+        <input type="range" id="realms" min="2" max="20" value="5">
+      </div>
+
+      <div class="control-group">
+        <label for="rivers">Major Rivers: <span id="riversVal">12</span></label>
+        <input type="range" id="rivers" min="0" max="50" value="12">
+      </div>
+
+      <div class="control-group">
+        <label for="poiDensity">Settlements &amp; POIs: <span id="poiVal">500</span></label>
+        <input type="range" id="poiDensity" min="20" max="1000" value="500">
+      </div>
+
+      <div class="control-group">
+        <label for="simSpeed">Move Speed: <span id="simSpeedVal">1.0x</span></label>
+        <input type="range" id="simSpeed" min="0.2" max="5.0" step="0.2" value="1.0">
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="autoDuels" checked>
+        <label for="autoDuels" style="color: #ff7675;">⚔️ Auto-Duels</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showGrand" checked>
+        <label for="showGrand">Grand Zones</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showMed">
+        <label for="showMed">Medium Zones</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showSmall">
+        <label for="showSmall">Small Zones</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showRoads" checked>
+        <label for="showRoads">Roads &amp; Routes</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showMountains" checked>
+        <label for="showMountains">Mountains</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showHillshade" checked>
+        <label for="showHillshade">3D Hillshade</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showPois" checked>
+        <label for="showPois">Settlements</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showWaterZones" checked>
+        <label for="showWaterZones" style="color: #74b9ff;">🌊 Water Zones</label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="showCharacters" checked>
+        <label for="showCharacters">Heroes &amp; Wanderers</label>
+      </div>
+
+      <div class="label-menu-container">
+        <button id="labelMenuBtn" type="button" style="background: #2c3e50; color: #fff; padding: 8px 12px; font-size: 0.85rem;">🏷️ Text Labels ▼</button>
+        <div id="labelMenuDropdown" class="label-dropdown-panel">
+          <div class="dropdown-header">
+            <span>Label Visibility</span>
+            <div style="display: flex; gap: 5px;">
+              <button id="lblSelectAll" type="button" class="mini-btn">All</button>
+              <button id="lblDeselectAll" type="button" class="mini-btn">None</button>
+            </div>
+          </div>
+          
+          <div class="dropdown-section-title">Realm &amp; Zone Titles</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_grand" checked> Grand Zones</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_med" > Medium Zones</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_small" > Small Zones</label>
+          </div>
+
+          <div class="dropdown-section-title">Major Settlements</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_capital" checked> Capitals</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_city" > Major Cities</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_town" > Walled Towns</label>
+          </div>
+
+          <div class="dropdown-section-title">Rural Settlements</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_village" > Villages</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_hamlet" > Hamlets</label>
+          </div>
+
+          <div class="dropdown-section-title">Bodies of Water &amp; Rivers</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_water" checked> Water Names</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_river" checked> River Names</label>
+          </div>
+
+          <div class="dropdown-section-title">Strategic &amp; Resource POIs</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_port" > Coastal Ports</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_fort" > Border Forts</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_spire" > Arcane Spires</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_mine" > Mines</label>
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_ruins" > Ancient Ruins</label>
+          </div>
+
+          <div class="dropdown-section-title">Wandering Heroes</div>
+          <div class="dropdown-grid">
+            <label><input type="checkbox" class="lbl-toggle" id="lbl_character" > Hero Names</label>
+          </div>
+        </div>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="showLegend" checked>
+        <label for="showLegend">Map Legend</label>
+      </div>
+
+      <button id="generateBtn" style="padding: 10px; font-size: 0.95rem;">Generate 5K Map</button>
+      <button id="populateCharsBtn" style="background: #e17055; color: white; padding: 10px; font-weight: bold;">👥 Populate Characters</button>
+      <button id="toggleSimBtn" style="background: #27ae60; color: white; padding: 10px; font-weight: bold;">▶ Move Characters</button>
+      <button id="openArenaBtn" style="background: #c0392b; color: white; padding: 10px; font-weight: bold;">⚔️ Open Battle Arena</button>
+      <button id="zoomBtn" style="background: #16a085; color: white; padding: 10px;">🔍 Fullscreen Zoom</button>
+      <button id="downloadBtn" style="background: #3a7bd5; color: white; padding: 10px;">Download PNG</button>
+      <button id="downloadSvgBtn" style="background: #8e44ad; color: white; padding: 10px;">Download SVG</button>
+      <button id="openSidebarBtn" style="background: #e67e22; color: white; padding: 10px;">📋 Location Directory</button>
+      <button id="toggleEditorBtn" style="background: #8e44ad; color: white; padding: 10px; font-weight: bold;">🛠️ Map Editor</button>
+    </div>
+
+    <div class="map-wrapper" id="mainMapViewport">
+      <div class="map-hud">
+        <span id="mainZoomBadge">100%</span>
+        <button id="mainZoomInBtn" title="Zoom In">+</button>
+        <button id="mainZoomOutBtn" title="Zoom Out">−</button>
+        <button id="mainZoomResetBtn" title="Reset View">⟲</button>
+      </div>
+
+      <div id="mapTooltip" class="map-tooltip">
+        <img id="ttEmblem" class="tt-emblem" src="" alt="Emblem" />
+        <div class="tt-title" id="ttTitle">Whiteford</div>
+        <div class="tt-type" id="ttType">Walled Town (Barony Seat)</div>
+        <div class="tt-realm" id="ttRealm">Grand Duchy of Eldglen</div>
+        <div class="tt-meta" id="ttMeta" style="display:none;"></div>
+        <div class="tt-roster-hint" id="ttRosterHint" style="display:none;"></div>
+      </div>
+
+      <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loadingText" class="loading-text">Generating 5K World...</div>
+      </div>
+
+      <div id="mainCanvasWrapper" class="main-canvas-wrapper">
+        <div id="mainCanvasWrapper" class="main-canvas-wrapper">
+  <!-- Layer 1: GPU WebGL Canvas -->
+  <canvas id="mapCanvas" width="5120" height="2880"></canvas>
+  <!-- Layer 2: 2D Features Canvas (Rivers, Roads, Markers) -->
+  <canvas id="featureCanvas" width="5120" height="2880" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1;"></canvas>
+  <!-- Layer 3: Actors -->
+  <canvas id="actorCanvas" width="5120" height="2880"></canvas>
+  <!-- Layer 4: SVG Typography -->
+  <svg id="mapSvgOverlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5120 2880" width="5120" height="2880"></svg>
+</div>
+        <canvas id="mapCanvas" width="5120" height="2880"></canvas>
+        <canvas id="actorCanvas" width="5120" height="2880"></canvas>
+        <svg id="mapSvgOverlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5120 2880" width="5120" height="2880"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Directory Sidebar -->
+  <div id="locationSidebar" class="location-sidebar">
+    <div class="sidebar-header">
+      <h3>Location Directory (<span id="sidebarCount">0</span>)</h3>
+      <button id="closeSidebarBtn" class="close-sidebar-btn">&times;</button>
+    </div>
+    <div class="sidebar-controls">
+      <input type="text" id="sidebarSearch" class="sidebar-search-input" placeholder="🔍 Search by name, character or realm..." />
+      <div class="sidebar-filter-row">
+       <select id="sidebarTypeFilter">
+          <option value="all">All Types</option>
+          <option value="character">Characters / Heroes</option>
+          <option value="water">Bodies of Water / Gulfs</option>
+          <option value="river">Major Rivers</option>
+          <option value="capital">Capitals</option>
+          <option value="city">Major Cities</option>
+          <option value="town">Walled Towns</option>
+          <option value="village">Villages</option>
+          <option value="hamlet">Hamlets</option>
+          <option value="port">Coastal Ports</option>
+          <option value="fort">Citadels / Forts</option>
+          <option value="spire">Arcane Spires</option>
+          <option value="mine">Mines</option>
+          <option value="ruins">Ruins</option>
+        </select>
+        <select id="sidebarSort">
+          <option value="tier">Sort: Importance</option>
+          <option value="name_asc">Sort: Name (A-Z)</option>
+          <option value="name_desc">Sort: Name (Z-A)</option>
+          <option value="realm">Sort: Realm</option>
+        </select>
+      </div>
+    </div>
+    <div id="sidebarList" class="sidebar-list"></div>
+  </div>
+
+  <!-- Character Status Sidebar -->
+  <div id="characterStatusSidebar" class="character-status-sidebar">
+    <div class="char-sidebar-header">
+      <h2 id="csHeroName">Character Status</h2>
+      <button id="closeCharStatusBtn" class="close-sidebar-btn">&times;</button>
+    </div>
+    <div class="char-sidebar-body">
+      <div class="char-emblem-container">
+        <img id="csEmblemImg" class="char-emblem-img" src="" alt="Hero Emblem" />
+        <div id="csFullName" class="char-hero-title">Hero</div>
+        <div class="char-badge-row">
+          <span id="csRaceBadge" class="char-pill">Human</span>
+          <span id="csClassBadge" class="char-pill" style="background:#5a3825; border-color:#d4af37;">Juggernaut</span>
+          <span id="csPotentialBadge" class="char-pill" style="background:#2c3e50; color:#f1c40f;">Potential: S</span>
+        </div>
+      </div>
+
+      <div class="char-card-section">
+        <div class="char-card-title">
+          <span>Current Station</span>
+          <div style="display: flex; gap: 6px;">
+            <button id="csLocateBtn" class="locate-btn" style="padding:2px 8px; font-size:0.75rem;">🎯 Locate</button>
+            <button id="csFollowBtn" class="locate-btn" style="padding:2px 8px; font-size:0.75rem; background:#8e44ad;">👁️ Follow</button>
+            <button id="csDuelBtn" class="locate-btn" style="padding:2px 8px; font-size:0.75rem; background:#c0392b;">⚔️ Duel</button>
+          </div>
+        </div>
+        <div id="csLocationDesc" style="font-size:0.9rem; color:#f39c12; font-weight:bold;">Stationed at Keep</div>
+        <div id="csRealmDesc" style="font-size:0.78rem; color:#aaa; margin-top:2px;">Grand Realm</div>
+      </div>
+
+      <div class="char-card-section">
+        <div class="char-card-title">Combat &amp; Arms</div>
+        <div class="char-grid-2">
+          <div><span class="stat-label">Combat Class:</span> <strong id="csCombatClassVal">Warrior</strong></div>
+          <div><span class="stat-label">Style:</span> <strong id="csCombatStyleVal">Melee</strong></div>
+          <div style="grid-column: span 2;"><span class="stat-label">Technique:</span> <strong id="csTechniqueVal">Iron Might</strong></div>
+        </div>
+      </div>
+
+      <div class="char-card-section">
+        <div class="char-card-title">Attributes &amp; Physical Sheet</div>
+        <pre id="csRawStatus" class="char-status-text-pre"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Info Sidebar -->
+  <div id="locationInfoSidebar" class="location-info-sidebar">
+    <div class="loc-sidebar-header">
+      <div>
+        <h3 id="locTitle" style="font-family:'Cinzel',serif; color:#f1c40f; font-size:1.2rem;">Location Overview</h3>
+        <div id="locTypeSubtitle" style="font-size:0.78rem; color:#74b9ff;">Settlement / Citadel</div>
+      </div>
+      <button id="closeLocInfoBtn" class="close-sidebar-btn">&times;</button>
+    </div>
+    <div class="loc-sidebar-body">
+      <div class="char-card-section">
+        <div class="char-card-title">Jurisdiction &amp; Territory</div>
+        <div id="locRealmHierarchy" style="font-size:0.85rem; line-height:1.5; color:#ddd;">Realm territory info</div>
+        <div style="margin-top:8px; display:flex; gap:10px;">
+          <button id="locZoomToBtn" class="locate-btn" style="padding:6px 12px;">🎯 Center on Map</button>
+        </div>
+      </div>
+
+      <div class="char-card-section">
+        <div class="char-card-title">
+          <span>Stationed Heroes &amp; Residents</span>
+          <span id="locHeroCount" style="color:#f1c40f; font-weight:bold;">0</span>
+        </div>
+        <div id="locHeroList" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Battle Arena Modal -->
+  <div id="battleArenaModal" class="arena-modal">
+    <div class="arena-container">
+      <div class="arena-header">
+        <h2>⚔️ Tactical Battle Arena &amp; Duels</h2>
+        <div class="arena-controls">
+          <select id="battleSpeedSelect">
+            <option value="1200">Speed: Normal (1.2s)</option>
+            <option value="500">Speed: Fast (0.5s)</option>
+            <option value="150">Speed: Turbo (0.15s)</option>
+            <option value="0">Instant Simulation</option>
+          </select>
+          <button id="pauseBattleButton" style="background:#e67e22; color:#fff; display:none;">Pause</button>
+          <button id="stopBattleButton" style="background:#c0392b; color:#fff; display:none;">Flee / Stop</button>
+          <button id="closeArenaBtn" style="background:#555; color:#fff;">Close Arena</button>
+        </div>
+      </div>
+
+      <div style="padding: 10px 16px; background: #121015; border-bottom: 1px solid #2a2230; display: flex; gap: 12px; align-items: center;">
+        <div style="flex: 1;">
+          <label style="font-size: 0.75rem; color:#aaa;">Fighter 1:</label>
+          <select id="characterOneDropdown" style="width: 100%;"></select>
+        </div>
+        <button id="startBattleButton" style="padding: 10px 18px; font-size: 0.95rem; background:#27ae60; color:#fff; align-self: flex-end;">⚔️ Commence Duel</button>
+        <div style="flex: 1;">
+          <label style="font-size: 0.75rem; color:#aaa;">Fighter 2:</label>
+          <select id="characterTwoDropdown" style="width: 100%;"></select>
+        </div>
+      </div>
+
+      <div class="arena-body">
+        <div id="battleLogLeft" class="arena-fighter-panel">
+          <div style="text-align:center; color:#888; margin-top:20px;">No fighter selected.</div>
+        </div>
+        <div id="battleLogCenter" class="arena-log-panel">
+          <div style="text-align:center; color:#888; margin-top:30px;">Select two fighters or trigger a world encounter to view the battle log!</div>
+        </div>
+        <div id="battleLogRight" class="arena-fighter-panel">
+          <div style="text-align:center; color:#888; margin-top:20px;">No fighter selected.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Zoom Modal -->
+  <div id="zoomModal" class="zoom-modal">
+    <div class="zoom-header">
+      <div style="font-size: 1.2rem; color: #d4af37; font-weight: bold; text-shadow: 0 2px 4px #000;">
+        Interactive 5K Deep Zoom Viewer (Up to 25x)
+      </div>
+      <div class="zoom-controls-hud">
+        <span style="color: #ccc; font-size: 0.85rem; align-self: center;">Wheel to Zoom • Drag to Pan • Click to Inspect</span>
+        <button id="resetZoomBtn" style="padding: 5px 12px;">Reset View</button>
+        <button id="closeZoomBtn" style="background: #c0392b; color: white; padding: 5px 12px;">Close</button>
+      </div>
+    </div>
+    <div id="zoomViewport" class="zoom-viewport">
+      <div id="zoomCanvasWrapper" class="zoom-canvas-wrapper">
+        <canvas id="zoomCanvas" width="5120" height="2880"></canvas>
+        <canvas id="zoomActorCanvas" width="5120" height="2880"></canvas>
+        <svg id="zoomSvgOverlay" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5120 2880" width="5120" height="2880"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide-in Map Editor Sidebar -->
+<!-- Slide-in Map Editor Sidebar with Zone & Terrain Brushes -->
+<!-- Slide-in Map Editor Sidebar with 4 Categories -->
+  <div id="mapEditorSidebar" class="map-editor-sidebar">
+    <div class="editor-header">
+      <h3>🛠️ World Map Sculptor</h3>
+      <button id="closeEditorBtn" class="close-sidebar-btn">&times;</button>
+    </div>
+    <div class="editor-body">
+
+      <!-- 4-Way Category Tabs -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px;">
+        <button class="editor-cat-tab" data-cat="terrain" style="padding: 7px 2px; font-size: 0.72rem; font-weight: bold; background: #342918; border: 1px solid #f1c40f; border-radius: 5px; color: #ffd700; cursor: pointer;">🏔️ Height</button>
+        <button class="editor-cat-tab" data-cat="zone" style="padding: 7px 2px; font-size: 0.72rem; font-weight: bold; background: #1a1622; border: 1px solid #3d3448; border-radius: 5px; color: #e0d5c1; cursor: pointer;">👑 Zones</button>
+        <button class="editor-cat-tab" data-cat="settlement" style="padding: 7px 2px; font-size: 0.72rem; font-weight: bold; background: #1a1622; border: 1px solid #3d3448; border-radius: 5px; color: #e0d5c1; cursor: pointer;">🏛️ Towns</button>
+        <button class="editor-cat-tab" data-cat="route" style="padding: 7px 2px; font-size: 0.72rem; font-weight: bold; background: #1a1622; border: 1px solid #3d3448; border-radius: 5px; color: #e0d5c1; cursor: pointer;">🛣️ Routes</button>
+      </div>
+
+      <!-- 1. TERRAIN TOOLS WITH MOUNTAIN LEGEND BRUSHES -->
+      <div id="terrainToolsCard" class="editor-card">
+        <div class="editor-card-title">Height &amp; Mountain Sculpting</div>
+        <div class="editor-grid-tools">
+          <button class="editor-tool-btn" data-tool="raise">⬆️ Raise Land</button>
+          <button class="editor-tool-btn" data-tool="lower">⬇️ Lower / Sea</button>
+          <button class="editor-tool-btn" data-tool="smooth">🌊 Smooth Height</button>
+          <button class="editor-tool-btn" data-tool="flatten">📏 Flatten / Plateau</button>
+          <button class="editor-tool-btn" data-tool="mountain_stamp" style="color: #ecf0f1; border-color: #7f8c8d; font-weight: bold;">🏔️ Mountain Stamp</button>
+          <button class="editor-tool-btn" data-tool="mountain_erase" style="color: #e74c3c; border-color: #7f8c8d;">🧹 Erase Mountains</button>
+        </div>
+      </div>
+
+      <!-- 2. BIOME PRESETS -->
+      <div id="biomeToolsCard" class="editor-card">
+        <div class="editor-card-title">Biome Stamp Brushes</div>
+        <div class="editor-grid-tools">
+          <button class="editor-tool-btn" data-tool="preset" data-preset="deep_ocean">🌊 Deep Ocean</button>
+          <button class="editor-tool-btn" data-tool="preset" data-preset="shallows">🏖️ Coast Shallows</button>
+          <button class="editor-tool-btn" data-tool="preset" data-preset="sand">🏜️ Beach / Sand</button>
+          <button class="editor-tool-btn" data-tool="preset" data-preset="grass">🌿 Grassland</button>
+          <button class="editor-tool-btn" data-tool="preset" data-preset="forest">🌲 Forest</button>
+          <button class="editor-tool-btn" data-tool="preset" data-preset="hills">⛰️ Hills</button>
+          <button class="editor-tool-btn" data-tool="preset" data-preset="mountain">🏔️ Mountain</button>
+          <button class="editor-tool-btn" data-tool="preset" data-preset="snow">❄️ Snow Peak</button>
+        </div>
+      </div>
+
+      <!-- 3. ZONE PAINTER -->
+      <div id="zoneToolsCard" class="editor-card" style="display: none;">
+        <div class="editor-card-title">Territory &amp; Hierarchy Tier</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+          <button class="zone-tier-btn" data-ztier="grand" style="padding: 6px; font-size: 0.76rem; border: 1px solid #f1c40f; background: #342918; border-radius: 4px; color: #fff; cursor: pointer;">Grand (T1)</button>
+          <button class="zone-tier-btn" data-ztier="med" style="padding: 6px; font-size: 0.76rem; border: 1px solid #3d3448; background: #1a1622; border-radius: 4px; color: #fff; cursor: pointer;">Medium (T2)</button>
+          <button class="zone-tier-btn" data-ztier="small" style="padding: 6px; font-size: 0.76rem; border: 1px solid #3d3448; background: #1a1622; border-radius: 4px; color: #fff; cursor: pointer;">Small (T3)</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
+          <button class="zone-mode-btn" data-zmode="paint" style="padding: 6px; font-size: 0.8rem; border: 1px solid #f1c40f; background: #342918; border-radius: 4px; color: #2ecc71; font-weight: bold; cursor: pointer;">🖌️ Paint Zone</button>
+          <button class="zone-mode-btn" data-zmode="erase" style="padding: 6px; font-size: 0.8rem; border: 1px solid #3d3448; background: #1a1622; border-radius: 4px; color: #e74c3c; font-weight: bold; cursor: pointer;">🧹 Erase Zone</button>
+        </div>
+
+        <div class="editor-slider-row" style="margin-top: 6px;">
+          <label style="font-size: 0.75rem; color: #c5a059;">Select Territory / Zone:</label>
+          <select id="activeZoneSelect" style="width: 100%; padding: 6px; background: #100e14; border: 1px solid #444; color: #fff; border-radius: 4px;"></select>
+        </div>
+
+        <div style="background: #100d14; border: 1px dashed #5a4868; padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+          <div style="font-size: 0.75rem; color: #74b9ff; font-weight: bold;">Zone Titles &amp; Identity:</div>
+          
+          <div style="display: flex; gap: 6px;">
+            <select id="zoneTitleSelect" style="flex: 1; padding: 6px; font-size: 0.78rem; background: #181420; border: 1px solid #444; color: #fff; border-radius: 4px;"></select>
+            <button id="zoneRandomNameBtn" type="button" style="padding: 4px 10px; font-size: 0.85rem;" title="Randomize Name">🎲</button>
+          </div>
+
+          <input type="text" id="zoneCustomName" value="Eldoria" placeholder="Zone Name" style="padding: 6px; font-size: 0.85rem; background: #181420; border: 1px solid #444; color: #ffd700; border-radius: 4px; width: 100%;">
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
+            <label style="font-size: 0.75rem; color: #c5a059; font-weight: bold;">Zone Tint Color:</label>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <input type="color" id="zoneColorPicker" value="#e74c3c" style="padding: 0; width: 42px; height: 28px; border: 1px solid #444; border-radius: 4px; background: none; cursor: pointer;">
+              <button id="zoneRandomColorBtn" type="button" style="padding: 4px 8px; font-size: 0.75rem; background: #2a2232; border: 1px solid #444; color: #ddd; border-radius: 3px;" title="Randomize Color">🎨</button>
+            </div>
+          </div>
+
+          <button id="zoneCreateBtn" type="button" style="background: #27ae60; color: #fff; padding: 7px; font-weight: bold; border-radius: 4px; font-size: 0.82rem; cursor: pointer;">+ Create &amp; Select Zone</button>
+        </div>
+      </div>
+
+      <!-- 4. SETTLEMENT / POI TOOLS -->
+      <div id="settlementToolsCard" class="editor-card" style="display: none;">
+        <div class="editor-card-title">Manual Placement &amp; Customization</div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-size: 0.75rem; color: #c5a059;">Settlement / POI Type:</label>
+          <select id="settlementTypeSelect" style="width: 100%; padding: 6px; background: #100e14; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 0.82rem;"></select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="font-size: 0.75rem; color: #c5a059;">Location Name:</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="settlementCustomName" value="Highford" placeholder="Settlement Name" style="flex: 1; padding: 6px; background: #100e14; border: 1px solid #444; color: #ffd700; border-radius: 4px; font-size: 0.85rem;">
+            <button id="settlementRandomNameBtn" type="button" style="padding: 4px 10px; font-size: 0.85rem;">🎲</button>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0;">
+          <input type="checkbox" id="settlementAutoConnectCb" checked style="accent-color: #d4af37; cursor: pointer;">
+          <label for="settlementAutoConnectCb" style="font-size: 0.78rem; color: #74b9ff; cursor: pointer;">🛣️ Auto-Connect to Road / Sea Route</label>
+        </div>
+
+        <!-- AUTO-POPULATE SECTION -->
+        <div style="background: #100d14; border: 1px dashed #d4af37; padding: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+          <div style="font-size: 0.78rem; color: #f1c40f; font-weight: bold;">🏘️ Auto-Populate Selected Zone (Towns Only)</div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+            <button class="autopop-tier-btn" data-aptier="grand" style="padding: 5px; font-size: 0.72rem; border: 1px solid #f1c40f; background: #342918; border-radius: 4px; color: #fff; cursor: pointer;">Grand</button>
+            <button class="autopop-tier-btn" data-aptier="med" style="padding: 5px; font-size: 0.72rem; border: 1px solid #3d3448; background: #1a1622; border-radius: 4px; color: #fff; cursor: pointer;">Medium</button>
+            <button class="autopop-tier-btn" data-aptier="small" style="padding: 5px; font-size: 0.72rem; border: 1px solid #3d3448; background: #1a1622; border-radius: 4px; color: #fff; cursor: pointer;">Small</button>
+          </div>
+
+          <select id="autoPopZoneSelect" style="width: 100%; padding: 6px; font-size: 0.78rem; background: #181420; border: 1px solid #444; color: #fff; border-radius: 4px;"></select>
+
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <label style="font-size: 0.75rem; color: #c5a059;">Count to Spawn:</label>
+            <input type="number" id="autoPopCountInput" min="1" max="50" value="10" style="width: 60px; padding: 4px; background: #181420; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 0.8rem;">
+          </div>
+
+          <button id="autoPopExecuteBtn" type="button" style="background: #e67e22; color: #fff; padding: 7px; font-weight: bold; border-radius: 4px; font-size: 0.82rem; cursor: pointer;">⚡ Populate Zone with Towns</button>
+        </div>
+      </div>
+
+      <!-- 5. ROUTE CONNECTOR & REMOVER TOOLS -->
+      <div id="routeToolsCard" class="editor-card" style="display: none;">
+        <div class="editor-card-title">Road &amp; Sea Route Manager</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button class="route-tool-btn" data-rtool="connect" style="padding: 6px; font-size: 0.78rem; border: 1px solid #f1c40f; background: #342918; border-radius: 4px; color: #2ecc71; font-weight: bold; cursor: pointer;">🔗 Pick &amp; Connect</button>
+          <button class="route-tool-btn" data-rtool="delete_click" style="padding: 6px; font-size: 0.78rem; border: 1px solid #3d3448; background: #1a1622; border-radius: 4px; color: #e74c3c; font-weight: bold; cursor: pointer;">✂️ Click Path to Cut</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+          <label style="font-size: 0.75rem; color: #c5a059;">Route Category:</label>
+          <select id="routeTypeSelect" style="width: 100%; padding: 6px; background: #100e14; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 0.8rem;">
+            <option value="auto">Auto-Detect (Road or Sea)</option>
+            <option value="highway">Major Highway (High-Speed)</option>
+            <option value="road">Minor Rural Road</option>
+            <option value="water">⚓ Nautical Sea Route</option>
+          </select>
+        </div>
+
+        <!-- Node Selection Controls -->
+        <div style="background: #14101a; border: 1px solid #3d3448; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+          <div>
+            <div style="font-size: 0.72rem; color: #2ecc71; font-weight: bold;">🟢 Origin (Node A):</div>
+            <select id="routeSelectNodeA" style="width: 100%; padding: 5px; background: #181420; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 0.78rem; margin-top: 2px;"></select>
+          </div>
+
+          <div style="display: flex; justify-content: center;">
+            <button id="routeSwapBtn" type="button" style="padding: 3px 10px; font-size: 0.75rem; background: #2a2232; border: 1px solid #555; color: #ffd700; border-radius: 3px; cursor: pointer;">⇅ Swap Origin &amp; Destination</button>
+          </div>
+
+          <div>
+            <div style="font-size: 0.72rem; color: #3498db; font-weight: bold;">🔵 Destination (Node B):</div>
+            <select id="routeSelectNodeB" style="width: 100%; padding: 5px; background: #181420; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 0.78rem; margin-top: 2px;"></select>
+          </div>
+
+          <div style="display: flex; gap: 6px; margin-top: 4px;">
+            <button id="routeConnectBtn" type="button" style="flex: 1; background: #27ae60; color: #fff; padding: 8px; font-weight: bold; border-radius: 4px; font-size: 0.82rem; cursor: pointer;" disabled>🔗 Connect Route</button>
+            <button id="routeDisconnectBtn" type="button" style="flex: 1; background: #c0392b; color: #fff; padding: 8px; font-weight: bold; border-radius: 4px; font-size: 0.82rem; cursor: pointer;" disabled>❌ Disconnect</button>
+          </div>
+
+          <button id="routeClearBtn" type="button" style="background: #2a2232; color: #aaa; padding: 4px; font-size: 0.72rem; border-radius: 3px; cursor: pointer;">Clear Selection</button>
+        </div>
+
+        <!-- Node A Active Connections Box -->
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+          <div style="font-size: 0.74rem; color: #c5a059; font-weight: bold;">Active Connections for Node A:</div>
+          <div id="routeConnectedList" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
+        </div>
+
+        <div style="font-size: 0.72rem; color: #aaa; line-height: 1.4;">
+          💡 <strong>Tip:</strong> Click any settlement on the map to set Node A, then click a second settlement to set Node B. Ports will auto-route via water!
+        </div>
+      </div>
+
+      <!-- SHARED BRUSH PROPERTIES (For Terrain & Zones) -->
+      <div id="brushPropertiesCard" class="editor-card">
+        <div class="editor-card-title">Brush Properties</div>
+        
+        <div class="editor-slider-row">
+          <div class="editor-slider-header">
+            <span>Brush Size (Radius):</span>
+            <span id="editorBrushSizeVal">45px</span>
+          </div>
+          <input type="range" id="editorBrushSize" min="5" max="200" value="45">
+        </div>
+
+        <div class="editor-slider-row">
+          <div class="editor-slider-header">
+            <span>Flow Intensity:</span>
+            <span id="editorBrushStrVal">15%</span>
+          </div>
+          <input type="range" id="editorBrushStr" min="0.02" max="0.5" step="0.02" value="0.15">
+        </div>
+
+        <div class="editor-slider-row">
+          <div class="editor-slider-header">
+            <span>Edge Hardness:</span>
+            <span id="editorBrushHardVal">50%</span>
+          </div>
+          <input type="range" id="editorBrushHard" min="0.0" max="1.0" step="0.05" value="0.5">
+        </div>
+      </div>
+
+      <!-- History & Actions -->
+      <div class="editor-card">
+        <div class="editor-card-title">History &amp; Actions</div>
+        <div class="editor-history-row">
+          <button id="editorUndoBtn" style="background:#2c3e50; color:#fff;" disabled>↶ Undo</button>
+          <button id="editorRedoBtn" style="background:#2c3e50; color:#fff;" disabled>↷ Redo</button>
+        </div>
+        <button id="editorSmoothAllBtn" style="background:#e67e22; color:#fff; margin-top:6px; font-size:0.8rem;">✨ Global Terrain Soften</button>
+      </div>
+
+    </div>
+  </div>
+<script>
+// --- State & Management ---
+let worldData = null;
+let populatedCharacters = [];
+const characterImageCache = new Map();
+let imageRenderDebounceTimeout = null;
+
+let isSimulationRunning = false;
+let simRafId = null;
+let lastSimTime = 0;
+let simSpeedMultiplier = 1.0;
+let wasSimRunningBeforeBattle = false;
+let encounterCheckTimer = 0;
+
+let followedCharacter = null;
+let activeEncounterPair = null;
+let encounterBannerTimeout = null;
+
+function getRenderOptions() {
+  return {
+    style: document.getElementById('style').value,
+    showGrand: document.getElementById('showGrand').checked,
+    showMed: document.getElementById('showMed').checked,
+    showSmall: document.getElementById('showSmall').checked,
+    showRoads: document.getElementById('showRoads').checked,
+    showMountains: document.getElementById('showMountains').checked,
+    showHillshade: document.getElementById('showHillshade').checked,
+    showPois: document.getElementById('showPois').checked,
+    showWaterZones: document.getElementById('showWaterZones')?.checked ?? true,
+    showLegend: document.getElementById('showLegend').checked,
+    lbl_grand: document.getElementById('lbl_grand')?.checked ?? true,
+    lbl_med: document.getElementById('lbl_med')?.checked ?? true,
+    lbl_small: document.getElementById('lbl_small')?.checked ?? true,
+    lbl_water: document.getElementById('lbl_water')?.checked ?? true,
+    lbl_river: document.getElementById('lbl_river')?.checked ?? true,
+    lbl_capital: document.getElementById('lbl_capital')?.checked ?? true,
+    lbl_city: document.getElementById('lbl_city')?.checked ?? true,
+    lbl_town: document.getElementById('lbl_town')?.checked ?? true,
+    lbl_village: document.getElementById('lbl_village')?.checked ?? true,
+    lbl_hamlet: document.getElementById('lbl_hamlet')?.checked ?? true,
+    lbl_port: document.getElementById('lbl_port')?.checked ?? true,
+    lbl_fort: document.getElementById('lbl_fort')?.checked ?? true,
+    lbl_spire: document.getElementById('lbl_spire')?.checked ?? true,
+    lbl_mine: document.getElementById('lbl_mine')?.checked ?? true,
+    lbl_ruins: document.getElementById('lbl_ruins')?.checked ?? true
+  };
+}
+
+function generateWorldMap() {
+  pauseSimulation();
+  stopFollowing();
+
+  const width = 5120, height = 2880;
+  const seed = document.getElementById('seed').value || "Aethelgard";
+  const mapType = document.getElementById('mapType').value;
+  const isWilderness = document.getElementById('isWildernessCb')?.checked ?? false;
+  const numGrandZones = parseInt(document.getElementById('realms').value);
+  const targetRivers = parseInt(document.getElementById('rivers').value);
+  const targetPois = parseInt(document.getElementById('poiDensity').value);
+
+  worldData = WorldGen.generateWorld({
+    width, height, step: 2,
+    seed, mapType, numGrandZones,
+    targetRivers, targetPois,
+    isWilderness: isWilderness
+  });
+
+  const opts = getRenderOptions();
+  let activeTier = 'none';
+  if (!isWilderness) {
+    if (opts.showSmall) activeTier = 'small';
+    else if (opts.showMed) activeTier = 'med';
+    else if (opts.showGrand) activeTier = 'grand';
+  }
+
+  if (typeof TerrainGL !== 'undefined') {
+    TerrainGL.uploadWorldData(worldData, activeTier);
+  }
+
+  if (populatedCharacters.length > 0) {
+    distributeCharactersOnMap(populatedCharacters);
+  }
+
+  renderMap();
+}
+
+function renderMap() {
+  if (!worldData) return;
+  const opts = getRenderOptions();
+
+  // Determine active shading tier based on which checkbox is checked
+  let activeTier = 'none';
+  if (opts.showSmall) activeTier = 'small';
+  else if (opts.showMed) activeTier = 'med';
+  else if (opts.showGrand) activeTier = 'grand';
+
+  // 1. Render GPU Terrain with exact active zone shading
+  if (typeof TerrainGL !== 'undefined') {
+    TerrainGL.updateZoneTexture(worldData, activeTier);
+    TerrainGL.render(opts);
+  }
+
+  // 2. Render 2D Vector Features (Rivers, Roads, Mountains, Towns, Borders)
+  const featCanvas = document.getElementById('featureCanvas');
+  if (featCanvas) {
+    WorldGen.renderFeaturesToCanvas(featCanvas, worldData, opts);
+  }
+
+  // 3. Render SVG Labels
+  const svgHtml = WorldGen.buildSvgOverlay(worldData, opts);
+  document.getElementById('mapSvgOverlay').innerHTML = svgHtml;
+
+  renderActors();
+  populateSidebarList();
+}
+
+// --- Character / Simulation Hooks ---
+function fetchSavedCharactersFromDB(callback) {
+  const request = indexedDB.open("characterDatabase", 3);
+  request.onsuccess = function(event) {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains("characters")) {
+      callback([]);
+      return;
+    }
+    const transaction = db.transaction(["characters"], "readonly");
+    const objectStore = transaction.objectStore("characters");
+    const cursorReq = objectStore.openCursor();
+    const list = [];
+    cursorReq.onsuccess = function(e) {
+      const cursor = e.target.result;
+      if (cursor) {
+        list.push(cursor.value);
+        cursor.continue();
+      } else {
+        callback(list);
+      }
+    };
+    cursorReq.onerror = () => callback([]);
+  };
+  request.onerror = () => callback([]);
+}
+
+function distributeCharactersOnMap(characters) {
+  if (!worldData || !characters || characters.length === 0) return;
+
+  const validSettlementNodes = worldData.capitals.concat(worldData.pois);
+  validSettlementNodes.forEach(node => { node.charactersInLocation = []; });
+
+  const rng = new WorldGen.SeededRandom(document.getElementById('seed').value + "_hero_dist");
+  const allRoadPaths = (worldData.majorRoadPaths || []).concat(worldData.minorRoadPaths || []);
+
+  const totalChars = characters.length;
+  const numStationed = Math.round(totalChars * 0.75);
+  const numRoads = Math.round(totalChars * 0.20);
+
+  let pendingImages = 0;
+  function onImageLoaded() {
+    pendingImages--;
+    if (pendingImages <= 0) {
+      if (imageRenderDebounceTimeout) clearTimeout(imageRenderDebounceTimeout);
+      imageRenderDebounceTimeout = setTimeout(() => { renderActors(); }, 60);
+    }
+  }
+
+  populatedCharacters = characters.map((char, index) => {
+    let placementCategory = "location";
+    if (totalChars >= 4) {
+      if (index < numStationed) placementCategory = "location";
+      else if (index < numStationed + numRoads) placementCategory = "road";
+      else placementCategory = "wilderness";
+    } else {
+      let roll = rng.next();
+      if (roll < 0.75) placementCategory = "location";
+      else if (roll < 0.95) placementCategory = "road";
+      else placementCategory = "wilderness";
+    }
+
+    let isVisibleOnMap = false;
+    let px = 0, py = 0, x = 0, y = 0;
+    let assignedLocationName = "Wilderness";
+    let stationedNode = null;
+    let currentPath = null;
+    let simState = "resting";
+    let restTimer = 15.0 + rng.next() * 35.0;
+
+    if (placementCategory === "location") {
+      let rankStr = (char.potential || "").toUpperCase();
+      let targetNode = null;
+
+      if (rankStr.includes("EX") || rankStr.includes("SSS") || rankStr.includes("SS") || rankStr.includes("S")) {
+        let eliteTargets = validSettlementNodes.filter(n => ["capital", "spire", "fort", "city"].includes(n.type || n.tier));
+        targetNode = WorldGen.safeSample(eliteTargets, rng, validSettlementNodes[index % validSettlementNodes.length]);
+      } else if (rankStr.includes("A") || rankStr.includes("B")) {
+        let midTargets = validSettlementNodes.filter(n => ["city", "town", "port", "fort"].includes(n.type || n.tier));
+        targetNode = WorldGen.safeSample(midTargets, rng, validSettlementNodes[index % validSettlementNodes.length]);
+      } else {
+        targetNode = validSettlementNodes[index % validSettlementNodes.length];
+      }
+
+      stationedNode = targetNode;
+      px = targetNode.px; py = targetNode.py;
+      x = targetNode.x; y = targetNode.y;
+      assignedLocationName = targetNode.name;
+      isVisibleOnMap = false;
+      simState = "resting";
+
+      if (!targetNode.charactersInLocation) targetNode.charactersInLocation = [];
+      targetNode.charactersInLocation.push(char);
+
+    } else if (placementCategory === "road") {
+      isVisibleOnMap = true;
+      simState = "traveling";
+      if (allRoadPaths.length > 0) {
+        let chosenPath = WorldGen.safeSample(allRoadPaths, rng, allRoadPaths[0]);
+        let startIdx = Math.floor(rng.next() * (chosenPath.length - 1));
+        currentPath = chosenPath.slice(startIdx);
+        let chosenPt = currentPath[0] || chosenPath[0];
+        px = chosenPt.px; py = chosenPt.py;
+        x = chosenPt.x; y = chosenPt.y;
+        assignedLocationName = "Trade Highway / Roadway";
+      } else {
+        let targetNode = validSettlementNodes[index % validSettlementNodes.length];
+        px = targetNode.px + 20; py = targetNode.py + 20;
+        x = px / worldData.STEP; y = py / worldData.STEP;
+        assignedLocationName = "Crossroads Byway";
+      }
+    } else {
+      isVisibleOnMap = true;
+      simState = "wilderness";
+      let cx = Math.floor(rng.next() * (worldData.gw - 40)) + 20;
+      let cy = Math.floor(rng.next() * (worldData.gh - 40)) + 20;
+      
+      let candidate = null;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        let testIdx = cy * worldData.gw + cx;
+        if (!worldData.isWater[testIdx] && worldData.elevation[testIdx] >= 0.44) {
+          candidate = { cx, cy };
+          break;
+        }
+        cx = Math.floor(rng.next() * (worldData.gw - 40)) + 20;
+        cy = Math.floor(rng.next() * (worldData.gh - 40)) + 20;
+      }
+      if (!candidate) candidate = { cx: validSettlementNodes[0].x + 35, cy: validSettlementNodes[0].y + 35 };
+
+      px = candidate.cx * worldData.STEP + worldData.STEP/2;
+      py = candidate.cy * worldData.STEP + worldData.STEP/2;
+      x = candidate.cx; y = candidate.cy;
+      assignedLocationName = "Wilderness / Frontier Outskirts";
+      restTimer = 1.0 + rng.next() * 3.0;
+    }
+
+    if (char.pixelArtImage && !characterImageCache.has(char.key)) {
+      pendingImages++;
+      const img = new Image();
+      img.src = char.pixelArtImage;
+      img.onload = onImageLoaded;
+      img.onerror = onImageLoaded;
+      characterImageCache.set(char.key, img);
+    }
+
+    let baseSpeed = 90 + rng.next() * 50;
+    if (['Scout', 'Trickshot', 'Deadeye', 'ArcaneArcher', 'GodEye'].includes(char.combatClass)) baseSpeed *= 1.25;
+    else if (['Juggernaut', 'Templar', 'Guardian'].includes(char.combatClass)) baseSpeed *= 0.88;
+
+    let charCompId = 0;
+    if (stationedNode && stationedNode.compId !== undefined) {
+      charCompId = stationedNode.compId;
+    } else if (worldData && worldData.componentId) {
+      let cIdx = Math.min(worldData.gh - 1, Math.max(0, Math.floor(y))) * worldData.gw + Math.min(worldData.gw - 1, Math.max(0, Math.floor(x)));
+      let comp = worldData.componentId[cIdx];
+      charCompId = (comp !== undefined && comp !== -1) ? comp : 0;
+    }
+
+    let resolvedChar = {
+      ...char,
+      type: "character",
+      tier: "character",
+      name: `${char.firstName} ${char.lastName}`,
+      placementCategory: placementCategory,
+      isVisibleOnMap: isVisibleOnMap,
+      stationedNode: stationedNode,
+      assignedLocationName: assignedLocationName,
+      compId: charCompId,
+      x: x, y: y,
+      px: px, py: py,
+      simState: simState,
+      restTimer: restTimer,
+      currentPath: currentPath,
+      pathIndex: 0,
+      segmentProgress: 0,
+      moveSpeed: baseSpeed,
+      targetNode: null,
+      duelCooldown: 0
+    };
+    if (stationedNode && stationedNode.charactersInLocation) {
+      let idxInLoc = stationedNode.charactersInLocation.indexOf(char);
+      if (idxInLoc !== -1) stationedNode.charactersInLocation[idxInLoc] = resolvedChar;
+    }
+    return resolvedChar;
+  });
+
+  worldData.allNodes = validSettlementNodes.concat(populatedCharacters);
+  renderActors();
+  syncBattleSimulatorDropdowns();
+}
+
+function handlePopulateCharacters(onComplete) {
+  const overlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+  overlay.classList.add('active');
+  loadingText.innerText = "Accessing Character Vault...";
+
+  fetchSavedCharactersFromDB((chars) => {
+    overlay.classList.remove('active');
+    if (!chars || chars.length === 0) {
+      alert("No saved characters found in IndexedDB!\n\nPlease generate characters first, then click 'Populate Characters' again.");
+      if (onComplete) onComplete(false);
+      return;
+    }
+
+    distributeCharactersOnMap(chars);
+    renderMap();
+    if (onComplete) onComplete(true);
+    else alert(`Successfully populated ${chars.length} heroes!`);
+  });
+}
+
+function drawCharacterMarker(ctx, char) {
+  ctx.save();
+  const isFollowed = (followedCharacter && (char === followedCharacter || char.key === followedCharacter.key));
+  const radius = isFollowed ? 4.5 : 3.0;
+  const cx = char.px;
+  const cy = char.py;
+
+  if (isFollowed) {
+    ctx.shadowColor = "#9b59b6";
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + 4.0, 0, Math.PI * 2);
+    ctx.strokeStyle = "#f1c40f";
+    ctx.lineWidth = 2.0;
+    ctx.stroke();
+  } else {
+    ctx.shadowColor = "rgba(243, 156, 18, 0.9)";
+    ctx.shadowBlur = 6;
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 1.2, 0, Math.PI * 2);
+  ctx.fillStyle = isFollowed ? "#ffffff" : "#d4af37";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = isFollowed ? "#000006" : "#000007";
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function renderActors() {
+  const canvas = document.getElementById('actorCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const showChars = document.getElementById('showCharacters')?.checked ?? true;
+  const showCharLbl = document.getElementById('lbl_character')?.checked ?? true;
+
+  if (showChars && populatedCharacters && populatedCharacters.length > 0) {
+    for (let char of populatedCharacters) {
+      if (char.isVisibleOnMap || char === followedCharacter) {
+        drawCharacterMarker(ctx, char);
+
+        if (showCharLbl || char === followedCharacter) {
+          ctx.save();
+          ctx.font = (char === followedCharacter) ? "bold 15px Cinzel, Georgia, serif" : "bold 13px Cinzel, Georgia, serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "bottom";
+          ctx.lineWidth = 3.5;
+          ctx.strokeStyle = "#000000";
+          ctx.strokeText(`★ ${char.name}`, char.px, char.py - 10);
+          ctx.fillStyle = (char === followedCharacter) ? "#f1c40f" : "#f39c12";
+          ctx.fillText(`★ ${char.name}`, char.px, char.py - 10);
+          ctx.restore();
+        }
+      }
+    }
+  }
+
+  const zoomModal = document.getElementById('zoomModal');
+  if (zoomModal && zoomModal.classList.contains('active')) {
+    const zCanvas = document.getElementById('zoomActorCanvas');
+    if (zCanvas) {
+      const zCtx = zCanvas.getContext('2d');
+      zCtx.clearRect(0, 0, zCanvas.width, zCanvas.height);
+      zCtx.drawImage(canvas, 0, 0);
+    }
+  }
+}
+
+// --- Movement & Navigation Logic ---
+function findGraphRoute(startNode, endNode, roadGraph) {
+  if (!startNode || !endNode || !roadGraph) return null;
+  if (startNode === endNode) return [];
+
+  let openSet = new WorldGen.PriorityQueue();
+  let gScore = new Map();
+  let cameFrom = new Map();
+
+  gScore.set(startNode, 0);
+  openSet.push(startNode, Math.hypot(startNode.px - endNode.px, startNode.py - endNode.py));
+  let visited = new Set();
+
+  while (!openSet.isEmpty()) {
+    let current = openSet.pop();
+    if (current === endNode) {
+      let fullEdgeList = [];
+      let curr = endNode;
+      while (cameFrom.has(curr)) {
+        let { from, edge } = cameFrom.get(curr);
+        fullEdgeList.unshift({ from, to: curr, edge });
+        curr = from;
+      }
+      return fullEdgeList;
+    }
+
+    visited.add(current);
+    const neighbors = roadGraph.get(current) || [];
+    for (let edge of neighbors) {
+      let neighbor = edge.target;
+      if (visited.has(neighbor)) continue;
+
+      let edgeDist = 0;
+      if (edge.path && edge.path.length > 0) {
+        edgeDist = Math.hypot(edge.path[0].px - edge.path[edge.path.length - 1].px, edge.path[0].py - edge.path[edge.path.length - 1].py);
+      } else {
+        edgeDist = Math.hypot(current.px - neighbor.px, current.py - neighbor.py);
+      }
+
+      let costMultiplier = edge.type === 'water' ? 0.85 : 1.0;
+      let tentativeG = (gScore.get(current) || 0) + edgeDist * costMultiplier;
+
+      if (tentativeG < (gScore.get(neighbor) || Infinity)) {
+        cameFrom.set(neighbor, { from: current, edge: edge });
+        gScore.set(neighbor, tentativeG);
+        let h = Math.hypot(neighbor.px - endNode.px, neighbor.py - endNode.py);
+        openSet.push(neighbor, tentativeG + h);
+      }
+    }
+  }
+  return null;
+}
+
+function assembleCharacterJourneyPath(char, startNode, destNode, worldData, rng) {
+  const { roadGraph, elevation, isWater, hasRoad, gw, gh } = worldData;
+  let fullPointPath = [];
+
+  if (char.simState === "wilderness" || !char.stationedNode || Math.hypot(char.px - startNode.px, char.py - startNode.py) > 15) {
+    let startPoint = { x: char.x, y: char.y, px: char.px, py: char.py };
+    let wildToRoad = WorldGen.findSmartRoad(startPoint, startNode, elevation, isWater, hasRoad, gw, gh);
+    if (wildToRoad && wildToRoad.length > 1) {
+      fullPointPath.push(...WorldGen.smoothPathChaikin(wildToRoad, 1));
+    } else {
+      fullPointPath.push({ px: char.px, py: char.py });
+      fullPointPath.push({ px: startNode.px, py: startNode.py });
+    }
+  }
+
+  if (startNode === destNode) {
+    return fullPointPath.length > 1 ? fullPointPath : null;
+  }
+
+  const routeEdges = findGraphRoute(startNode, destNode, roadGraph);
+
+  if (routeEdges && routeEdges.length > 0) {
+    let i = 0;
+    while (i < routeEdges.length) {
+      let currentStep = routeEdges[i];
+
+      let shortcutTaken = false;
+      if (i + 1 < routeEdges.length) {
+        let nextStep = routeEdges[i + 1];
+        if (currentStep.edge.type !== 'water' && nextStep.edge.type !== 'water') {
+          let nodeA = currentStep.from;
+          let nodeC = nextStep.to;
+
+          let roadLen = (currentStep.edge.path ? currentStep.edge.path.length : 10) + (nextStep.edge.path ? nextStep.edge.path.length : 10);
+          let directDist = Math.hypot(nodeA.px - nodeC.px, nodeA.py - nodeC.py);
+
+          if (directDist < roadLen * 1.5 && rng.next() < 0.35) {
+            let wildShortcut = WorldGen.findSmartRoad(nodeA, nodeC, elevation, isWater, hasRoad, gw, gh);
+            if (wildShortcut && wildShortcut.length > 1) {
+              let smoothShortcut = WorldGen.smoothPathChaikin(wildShortcut, 2);
+              if (fullPointPath.length > 0) smoothShortcut = smoothShortcut.slice(1);
+              fullPointPath.push(...smoothShortcut);
+              shortcutTaken = true;
+              i += 2;
+            }
+          }
+        }
+      }
+
+      if (!shortcutTaken) {
+        let edgePath = currentStep.edge.path;
+        if (edgePath && edgePath.length > 0) {
+          let copy = [...edgePath];
+          if (fullPointPath.length > 0) copy = copy.slice(1);
+          fullPointPath.push(...copy);
+        } else {
+          fullPointPath.push({ px: currentStep.to.px, py: currentStep.to.py });
+        }
+        i++;
+      }
+    }
+  } else {
+    if (startNode.compId === destNode.compId) {
+      let fallbackPath = WorldGen.findSmartRoad(startNode, destNode, elevation, isWater, hasRoad, gw, gh);
+      if (fallbackPath && fallbackPath.length > 1) {
+        let smooth = WorldGen.smoothPathChaikin(fallbackPath, 2);
+        if (fullPointPath.length > 0) smooth = smooth.slice(1);
+        fullPointPath.push(...smooth);
+      } else {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  return fullPointPath.length > 1 ? fullPointPath : null;
+}
+
+function pickNextDestinationForCharacter(char) {
+  if (!worldData) return;
+  const rng = new WorldGen.SeededRandom(`${char.key || char.name}_${Date.now()}`);
+  const allSettlements = worldData.capitals.concat(worldData.pois);
+  const roadGraph = worldData.roadGraph;
+  const { elevation, isWater, hasRoad, gw, gh } = worldData;
+
+  if (char.simState === "wilderness" || !char.stationedNode) {
+    let sameCompSettlements = allSettlements.filter(s => s.compId === char.compId);
+    let searchPool = sameCompSettlements.length > 0 ? sameCompSettlements : allSettlements;
+
+    let nearest = searchPool[0], nearestDist = Infinity;
+    for (let s of searchPool) {
+      let d = Math.hypot(s.px - char.px, s.py - char.py);
+      if (d < nearestDist) { nearestDist = d; nearest = s; }
+    }
+
+    if (nearest) {
+      let startPoint = { x: char.x, y: char.y, px: char.px, py: char.py };
+      let wildPath = WorldGen.findSmartRoad(startPoint, nearest, elevation, isWater, hasRoad, gw, gh);
+      let finalPath = null;
+
+      if (wildPath && wildPath.length > 1) {
+        finalPath = WorldGen.smoothPathChaikin(wildPath, 2);
+      } else {
+        finalPath = [
+          { x: char.x, y: char.y, px: char.px, py: char.py },
+          { x: nearest.x, y: nearest.y, px: nearest.px, py: nearest.py }
+        ];
+      }
+
+      char.currentPath = finalPath;
+      char.pathIndex = 0;
+      char.segmentProgress = 0;
+      char.targetNode = nearest;
+      char.simState = "traveling";
+      char.isVisibleOnMap = true;
+      char.assignedLocationName = `Heading to ${nearest.name} (from Wilderness)`;
+      return;
+    }
+  }
+
+  let startNode = char.stationedNode;
+  if (!startNode) {
+    let best = allSettlements[0], bestDist = Infinity;
+    for (let s of allSettlements) {
+      let d = Math.hypot(s.px - char.px, s.py - char.py);
+      if (d < bestDist) { bestDist = d; best = s; }
+    }
+    startNode = best;
+    char.stationedNode = startNode;
+  }
+
+  if (rng.next() < 0.45) {
+    char.simState = "resting";
+    char.restTimer = 25 + rng.next() * 45;
+    char.assignedLocationName = `${startNode.name} (Patrol / Garrison)`;
+    return;
+  }
+
+  let rankStr = (char.potential || "").toUpperCase();
+  let isElite = rankStr.includes('S') || rankStr.includes('EX');
+  let crossContinentChance = isElite ? 0.12 : 0.04;
+  let tryCrossContinent = (rng.next() < crossContinentChance) && (worldData.grandZones.length > 1);
+
+  let destNode = null;
+  let journeyPath = null;
+
+  if (tryCrossContinent) {
+    let overseasCandidates = allSettlements.filter(s => s.compId !== startNode.compId && ["capital", "city", "port", "spire"].includes(s.type || s.tier));
+    if (overseasCandidates.length > 0) {
+      for (let attempt = 0; attempt < Math.min(4, overseasCandidates.length); attempt++) {
+        let candidate = WorldGen.safeSample(overseasCandidates, rng, null);
+        if (candidate) {
+          let testRoute = findGraphRoute(startNode, candidate, roadGraph);
+          if (testRoute && testRoute.length > 0) {
+            let path = assembleCharacterJourneyPath(char, startNode, candidate, worldData, rng);
+            if (path && path.length > 1) {
+              destNode = candidate;
+              journeyPath = path;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (!destNode || !journeyPath) {
+    let targetCandidates = [];
+    let journeyTypeRoll = rng.next();
+
+    if (journeyTypeRoll < 0.75) {
+      const edges = roadGraph ? roadGraph.get(startNode) : null;
+      if (edges && edges.length > 0) {
+        targetCandidates = edges.map(e => e.target);
+      }
+      if (!targetCandidates || targetCandidates.length === 0) {
+        targetCandidates = allSettlements.filter(s => s !== startNode && s.compId === startNode.compId && Math.hypot(s.px - startNode.px, s.py - startNode.py) <= 450);
+      }
+    } else {
+      targetCandidates = allSettlements.filter(s => s !== startNode && s.compId === startNode.compId && Math.hypot(s.px - startNode.px, s.py - startNode.py) <= 1400);
+    }
+
+    if (!targetCandidates || targetCandidates.length === 0) {
+      targetCandidates = allSettlements.filter(s => s !== startNode && s.compId === startNode.compId);
+    }
+
+    if (targetCandidates.length > 0) {
+      for (let attempt = 0; attempt < Math.min(4, targetCandidates.length); attempt++) {
+        let candidate = WorldGen.safeSample(targetCandidates, rng, null);
+        if (candidate) {
+          let path = assembleCharacterJourneyPath(char, startNode, candidate, worldData, rng);
+          if (path && path.length > 1) {
+            destNode = candidate;
+            journeyPath = path;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (destNode && journeyPath && journeyPath.length > 1) {
+    char.currentPath = journeyPath;
+    char.pathIndex = 0;
+    char.segmentProgress = 0;
+    char.targetNode = destNode;
+    char.simState = "traveling";
+    char.isVisibleOnMap = true;
+    char.assignedLocationName = (destNode.compId !== startNode.compId)
+      ? `Expedition to ${destNode.name} (Overseas)`
+      : `En route to ${destNode.name}`;
+
+    if (char.stationedNode && char.stationedNode.charactersInLocation) {
+      let idx = char.stationedNode.charactersInLocation.indexOf(char);
+      if (idx !== -1) char.stationedNode.charactersInLocation.splice(idx, 1);
+    }
+    char.stationedNode = null;
+    return;
+  }
+
+  char.simState = "resting";
+  char.restTimer = 20.0;
+}
+
+function updateCharacterMovement(dt) {
+  if (!worldData || !populatedCharacters || populatedCharacters.length === 0) return;
+
+  const autoDuels = document.getElementById('autoDuels')?.checked ?? true;
+
+  for (let char of populatedCharacters) {
+    if (char.duelCooldown > 0) {
+      char.duelCooldown = Math.max(0, char.duelCooldown - dt);
+    }
+
+    if (char.simState === "resting") {
+      char.restTimer -= dt * simSpeedMultiplier;
+      if (char.restTimer <= 0) {
+        pickNextDestinationForCharacter(char);
+      }
+    } else if (char.simState === "traveling") {
+      if (!char.currentPath || char.currentPath.length < 2) {
+        char.simState = "resting";
+        char.restTimer = 15.0;
+        continue;
+      }
+
+      let moveDist = char.moveSpeed * simSpeedMultiplier * dt;
+
+      while (moveDist > 0 && char.pathIndex < char.currentPath.length - 1) {
+        let p1 = char.currentPath[char.pathIndex];
+        let p2 = char.currentPath[char.pathIndex + 1];
+        let segDist = Math.hypot(p2.px - p1.px, p2.py - p1.py) || 1e-4;
+        let remSeg = segDist * (1.0 - char.segmentProgress);
+
+        if (moveDist >= remSeg) {
+          moveDist -= remSeg;
+          char.pathIndex++;
+          char.segmentProgress = 0;
+
+          if (char.pathIndex >= char.currentPath.length - 1) {
+            let dest = char.targetNode || char.currentPath[char.currentPath.length - 1];
+            char.px = dest.px;
+            char.py = dest.py;
+            char.x = char.px / worldData.STEP;
+            char.y = char.py / worldData.STEP;
+
+            char.simState = "resting";
+            char.restTimer = 15 + Math.random() * 45;
+            char.stationedNode = dest;
+            char.assignedLocationName = dest.name || "Settlement Garrison";
+            char.isVisibleOnMap = false;
+
+            if (dest.charactersInLocation && !dest.charactersInLocation.includes(char)) {
+              dest.charactersInLocation.push(char);
+            }
+            break;
+          }
+        } else {
+          char.segmentProgress += moveDist / segDist;
+          moveDist = 0;
+          let curP1 = char.currentPath[char.pathIndex];
+          let curP2 = char.currentPath[char.pathIndex + 1];
+          char.px = curP1.px + (curP2.px - curP1.px) * char.segmentProgress;
+          char.py = curP1.py + (curP2.py - curP1.py) * char.segmentProgress;
+          char.x = char.px / worldData.STEP;
+          char.y = char.py / worldData.STEP;
+        }
+      }
+    } else if (char.simState === "wilderness") {
+      char.restTimer -= dt * simSpeedMultiplier;
+      if (char.restTimer <= 0) {
+        pickNextDestinationForCharacter(char);
+      }
+    }
+  }
+
+  encounterCheckTimer += dt;
+  if (autoDuels && encounterCheckTimer >= 5.0) {
+    encounterCheckTimer = 0;
+    let roadEncounterTriggered = false;
+
+    for (let i = 0; i < populatedCharacters.length; i++) {
+      let c1 = populatedCharacters[i];
+      if (!c1.isVisibleOnMap || c1.duelCooldown > 0) continue;
+
+      for (let j = i + 1; j < populatedCharacters.length; j++) {
+        let c2 = populatedCharacters[j];
+        if (!c2.isVisibleOnMap || c2.duelCooldown > 0) continue;
+
+        let dist = Math.hypot(c1.px - c2.px, c1.py - c2.py);
+        let r1 = (c1 === followedCharacter) ? 4.5 : 3.0;
+        let r2 = (c2 === followedCharacter) ? 4.5 : 3.0;
+        let touchDist = (r1 + r2) + 2.0;
+
+        if (dist <= touchDist) {
+          triggerEncounterAlert(c1, c2, c1.assignedLocationName || "Trade Highway");
+          roadEncounterTriggered = true;
+          break;
+        }
+      }
+      if (roadEncounterTriggered) break;
+    }
+
+    if (!roadEncounterTriggered && Math.random() < 0.25) {
+      const allSettlements = worldData.capitals.concat(worldData.pois);
+      for (let loc of allSettlements) {
+        if (loc.charactersInLocation && loc.charactersInLocation.length >= 2) {
+          let readyHeroes = loc.charactersInLocation.filter(h => (h.duelCooldown || 0) <= 0);
+          if (readyHeroes.length >= 2) {
+            let h1 = readyHeroes[0];
+            let h2 = readyHeroes[1];
+            triggerEncounterAlert(h1, h2, `${loc.name} Garrison Arena`);
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+function simTick(timestamp) {
+  if (!isSimulationRunning) return;
+  if (!lastSimTime) lastSimTime = timestamp;
+  let dt = Math.min((timestamp - lastSimTime) / 1000, 0.1);
+  lastSimTime = timestamp;
+
+  updateCharacterMovement(dt);
+  renderActors();
+
+  if (followedCharacter) {
+    updateFollowCamera();
+  }
+
+  simRafId = requestAnimationFrame(simTick);
+}
+
+function updateSimButton() {
+  const btn = document.getElementById('toggleSimBtn');
+  if (isSimulationRunning) {
+    btn.style.background = "#e67e22";
+    btn.innerText = "⏸ Pause Movement";
+  } else {
+    btn.style.background = "#27ae60";
+    btn.innerText = "▶ Move Characters";
+  }
+}
+
+function startSimulation() {
+  if (isSimulationRunning) return;
+  if (!populatedCharacters || populatedCharacters.length === 0) {
+    handlePopulateCharacters((success) => {
+      if (success) {
+        isSimulationRunning = true;
+        lastSimTime = performance.now();
+        updateSimButton();
+        simRafId = requestAnimationFrame(simTick);
+      }
+    });
+    return;
+  }
+  isSimulationRunning = true;
+  lastSimTime = performance.now();
+  updateSimButton();
+  simRafId = requestAnimationFrame(simTick);
+}
+
+function pauseSimulation() {
+  isSimulationRunning = false;
+  if (simRafId) cancelAnimationFrame(simRafId);
+  simRafId = null;
+  updateSimButton();
+}
+
+function toggleSimulation() {
+  if (isSimulationRunning) pauseSimulation();
+  else startSimulation();
+}
+
+// --- Follow Camera Helpers ---
+function updateFollowButtonState(char) {
+  const followBtn = document.getElementById('csFollowBtn');
+  if (!followBtn) return;
+  if (followedCharacter && char && (followedCharacter === char || followedCharacter.key === char.key)) {
+    followBtn.innerText = "⏹ Unfollow";
+    followBtn.style.background = "#c0392b";
+  } else {
+    followBtn.innerText = "👁️ Follow";
+    followBtn.style.background = "#8e44ad";
+  }
+}
+
+function startFollowing(char) {
+  if (!char) return;
+  followedCharacter = char;
+  if (mainZoomScale < 3.0) mainZoomScale = 4.5;
+  updateFollowButtonState(char);
+  updateFollowCamera();
+  renderActors();
+}
+
+function stopFollowing() {
+  if (!followedCharacter) return;
+  const prev = followedCharacter;
+  followedCharacter = null;
+  updateFollowButtonState(prev);
+  renderActors();
+  const tooltip = document.getElementById('mapTooltip');
+  if (tooltip) tooltip.style.display = 'none';
+}
+
+function toggleFollowCharacter(char) {
+  if (followedCharacter && (followedCharacter === char || followedCharacter.key === char.key)) {
+    stopFollowing();
+  } else {
+    startFollowing(char);
+  }
+}
+
+function updateFollowCamera() {
+  if (!followedCharacter || !worldData) return;
+  const wrapper = document.getElementById('mainCanvasWrapper');
+  const viewport = document.getElementById('mainMapViewport');
+  const tooltip = document.getElementById('mapTooltip');
+  const ttEmblem = document.getElementById('ttEmblem');
+  const ttMeta = document.getElementById('ttMeta');
+  const ttRosterHint = document.getElementById('ttRosterHint');
+
+  const wrapperW = wrapper.clientWidth;
+  const wrapperH = wrapper.clientHeight;
+
+  const relX = (followedCharacter.px / 5120 - 0.5) * wrapperW;
+  const relY = (followedCharacter.py / 2880 - 0.5) * wrapperH;
+
+  mainPanX = -relX * mainZoomScale;
+  mainPanY = -relY * mainZoomScale;
+
+  wrapper.style.transform = `translate3d(${mainPanX}px, ${mainPanY}px, 0) scale(${mainZoomScale})`;
+  document.getElementById('mainZoomBadge').innerText = `${Math.round(mainZoomScale * 100)}%`;
+
+  const vRect = viewport.getBoundingClientRect();
+  const screenX = vRect.width / 2;
+  const screenY = vRect.height / 2;
+
+  tooltip.style.left = `${screenX}px`;
+  tooltip.style.top = `${screenY}px`;
+  document.getElementById('ttTitle').innerText = followedCharacter.name;
+  document.getElementById('ttType').innerText = `Hero: ${followedCharacter.race || 'Human'} ${followedCharacter.combatClass || 'Warrior'}`;
+
+  let locDesc = followedCharacter.assignedLocationName || 'Wilderness';
+  if (followedCharacter.simState === "traveling") {
+    locDesc = `En route (${followedCharacter.assignedLocationName})`;
+  } else if (followedCharacter.simState === "resting") {
+    locDesc = `Stationed at ${followedCharacter.stationedNode ? followedCharacter.stationedNode.name : 'Settlement'}`;
+  }
+  document.getElementById('ttRealm').innerText = `${locDesc} • 🎥 Following`;
+
+  ttMeta.style.display = 'block';
+  ttMeta.innerText = `Potential: ${followedCharacter.potential || 'Unknown'}`;
+  ttRosterHint.style.display = 'none';
+
+  if (followedCharacter.pixelArtImage) {
+    ttEmblem.src = followedCharacter.pixelArtImage;
+    ttEmblem.style.display = 'block';
+  } else {
+    ttEmblem.style.display = 'none';
+  }
+  tooltip.style.display = 'block';
+
+  const charSidebar = document.getElementById('characterStatusSidebar');
+  if (charSidebar && charSidebar.classList.contains('active')) {
+    let csLocDesc = followedCharacter.assignedLocationName || "Unknown Location";
+    if (followedCharacter.simState === "traveling") csLocDesc = "Traveling (" + followedCharacter.assignedLocationName + ")";
+    else if (followedCharacter.simState === "resting") csLocDesc = "Resting at " + (followedCharacter.stationedNode ? followedCharacter.stationedNode.name : "Settlement");
+    document.getElementById('csLocationDesc').innerText = csLocDesc;
+    document.getElementById('csRealmDesc').innerText = WorldGen.getResolvedRealmString(worldData, followedCharacter);
+  }
+}
+
+// --- Battle Arena & Encounter System ---
+function openBattleArenaModal() {
+  if (isSimulationRunning) {
+    wasSimRunningBeforeBattle = true;
+    pauseSimulation();
+  } else {
+    wasSimRunningBeforeBattle = false;
+  }
+  document.getElementById('battleArenaModal').classList.add('active');
+}
+
+function closeBattleArenaModal() {
+  document.getElementById('battleArenaModal').classList.remove('active');
+  if (typeof stopBattle === 'function') stopBattle();
+  else if (window.BattleSimulator && typeof window.BattleSimulator.stopBattle === 'function') window.BattleSimulator.stopBattle();
+
+  if (wasSimRunningBeforeBattle) {
+    startSimulation();
+    wasSimRunningBeforeBattle = false;
+  }
+}
+
+function syncBattleSimulatorDropdowns() {
+  const drop1 = document.getElementById('characterOneDropdown');
+  const drop2 = document.getElementById('characterTwoDropdown');
+  if (!drop1 || !drop2 || !populatedCharacters) return;
+
+  const prev1 = drop1.value;
+  const prev2 = drop2.value;
+
+  drop1.innerHTML = '<option value="">Select Fighter 1...</option>';
+  drop2.innerHTML = '<option value="">Select Fighter 2...</option>';
+
+  populatedCharacters.forEach(c => {
+    const label = `${c.name} (${c.combatClass || 'Warrior'} - ${c.potential || 'F'})`;
+    drop1.innerHTML += `<option value="${c.key}">${label}</option>`;
+    drop2.innerHTML += `<option value="${c.key}">${label}</option>`;
+  });
+
+  if (prev1) drop1.value = prev1;
+  if (prev2) drop2.value = prev2;
+
+  drop1.onchange = () => {
+    if (window.BattleSimulator && typeof loadCharacterFromDropdown === 'function') loadCharacterFromDropdown(1);
+  };
+  drop2.onchange = () => {
+    if (window.BattleSimulator && typeof loadCharacterFromDropdown === 'function') loadCharacterFromDropdown(2);
+  };
+}
+
+function launchDuelInArena(char1, char2, locationLabel = "Wilderness") {
+  if (!char1 || !char2) return;
+  const drop1 = document.getElementById('characterOneDropdown');
+  const drop2 = document.getElementById('characterTwoDropdown');
+
+  syncBattleSimulatorDropdowns();
+
+  if (drop1) drop1.value = char1.key;
+  if (drop2) drop2.value = char2.key;
+
+  openBattleArenaModal();
+
+  if (typeof startBattle === 'function') {
+    startBattle();
+  } else if (window.BattleSimulator && typeof window.BattleSimulator.startBattle === 'function') {
+    window.BattleSimulator.startBattle();
+  }
+}
+
+function triggerEncounterAlert(char1, char2, locationLabel) {
+  const autoDuels = document.getElementById('autoDuels')?.checked ?? true;
+  if (!autoDuels) return;
+
+  char1.duelCooldown = 45;
+  char2.duelCooldown = 45;
+
+  activeEncounterPair = { char1, char2, locationLabel };
+
+  const banner = document.getElementById('encounterBanner');
+  const title = document.getElementById('encTitle');
+  const desc = document.getElementById('encDesc');
+
+  title.innerText = `⚔️ Duel Encounter: ${char1.name} vs ${char2.name}!`;
+  desc.innerText = `Crossing blades near ${locationLabel}. Click 'Watch Duel' to spectate!`;
+
+  banner.classList.add('active');
+
+  if (encounterBannerTimeout) clearTimeout(encounterBannerTimeout);
+  encounterBannerTimeout = setTimeout(() => {
+    banner.classList.remove('active');
+  }, 7000);
+}
+
+function syncZoomModalContent() {
+  const mapCanvas = document.getElementById('mapCanvas');
+  const zoomCanvas = document.getElementById('zoomCanvas');
+  if (!mapCanvas || !zoomCanvas) return;
+  const zCtx = zoomCanvas.getContext('2d');
+  zCtx.clearRect(0, 0, zoomCanvas.width, zoomCanvas.height);
+  zCtx.drawImage(mapCanvas, 0, 0);
+
+  const zoomActorCanvas = document.getElementById('zoomActorCanvas');
+  const actorCanvas = document.getElementById('actorCanvas');
+  if (zoomActorCanvas && actorCanvas) {
+    const zaCtx = zoomActorCanvas.getContext('2d');
+    zaCtx.clearRect(0, 0, zoomActorCanvas.width, zoomActorCanvas.height);
+    zaCtx.drawImage(actorCanvas, 0, 0);
+  }
+
+  const zoomSvg = document.getElementById('zoomSvgOverlay');
+  const mapSvg = document.getElementById('mapSvgOverlay');
+  if (zoomSvg && mapSvg) {
+    zoomSvg.innerHTML = mapSvg.innerHTML;
+  }
+}
+
+function exportSVG() {
+  if (!worldData) return;
+  const canvas = document.getElementById('mapCanvas');
+  const opts = getRenderOptions();
+  const svg = WorldGen.exportSvgString(worldData, canvas, opts);
+
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `realm_map_${document.getElementById('seed').value}.svg`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- Pan & Zoom Viewport Controller ---
+let mainZoomScale = 1;
+let mainPanX = 0, mainPanY = 0;
+let isMainDragging = false, mainStartX = 0, mainStartY = 0;
+let mainMouseDownX = 0, mainMouseDownY = 0;
+let mainRafId = null;
+let hoverRafId = null;
+let latestHoverEvent = null;
+
+function setupMainMapZoom() {
+  const viewport = document.getElementById('mainMapViewport');
+  const wrapper = document.getElementById('mainCanvasWrapper');
+  const badge = document.getElementById('mainZoomBadge');
+  const inBtn = document.getElementById('mainZoomInBtn');
+  const outBtn = document.getElementById('mainZoomOutBtn');
+  const resetBtn = document.getElementById('mainZoomResetBtn');
+  const tooltip = document.getElementById('mapTooltip');
+  const ttEmblem = document.getElementById('ttEmblem');
+  const ttMeta = document.getElementById('ttMeta');
+  const ttRosterHint = document.getElementById('ttRosterHint');
+
+  function requestTransformUpdate() {
+    if (mainRafId) return;
+    mainRafId = requestAnimationFrame(() => {
+      wrapper.style.transform = `translate3d(${mainPanX}px, ${mainPanY}px, 0) scale(${mainZoomScale})`;
+      badge.innerText = `${Math.round(mainZoomScale * 100)}%`;
+      mainRafId = null;
+    });
+  }
+
+  function resetMainZoom() {
+    stopFollowing();
+    mainZoomScale = 1;
+    mainPanX = 0;
+    mainPanY = 0;
+    requestTransformUpdate();
+    tooltip.style.display = 'none';
+  }
+
+  function performHoverCheck() {
+    hoverRafId = null;
+    if (followedCharacter) {
+      updateFollowCamera();
+      return;
+    }
+    // Suppress hover tooltips while map editor is active
+    if (typeof MapEditor !== 'undefined' && MapEditor.isActive) {
+      tooltip.style.display = 'none';
+      return;
+      // Inside performHoverCheck() in setupMainMapZoom():
+  if (typeof SettlementEditor !== 'undefined') {
+    let gx = Math.min(worldData.gw - 1, Math.max(0, Math.floor(canvasX / worldData.STEP)));
+    let gy = Math.min(worldData.gh - 1, Math.max(0, Math.floor(canvasY / worldData.STEP)));
+    SettlementEditor.updateHoverJurisdiction(gx, gy);
+  }
+    }
+
+    const e = latestHoverEvent;
+    if (!e || !worldData || !worldData.allNodes || isMainDragging) return;
+
+    const vRect = viewport.getBoundingClientRect();
+    if (e.clientX < vRect.left || e.clientX > vRect.right || e.clientY < vRect.top || e.clientY > vRect.bottom) {
+      tooltip.style.display = 'none';
+      return;
+    }
+
+    const wrapperW = wrapper.clientWidth;
+    const wrapperH = wrapper.clientHeight;
+    const dx = e.clientX - (vRect.left + vRect.width / 2);
+    const dy = e.clientY - (vRect.top + vRect.height / 2);
+
+    const relX = (dx - mainPanX) / mainZoomScale;
+    const relY = (dy - mainPanY) / mainZoomScale;
+
+    const canvasX = (relX / wrapperW + 0.5) * 5120;
+    const canvasY = (relY / wrapperH + 0.5) * 2880;
+
+    const maxHoverDistSq = 10 * 10;
+    let best = null, bestDistSq = maxHoverDistSq;
+
+    if (populatedCharacters && populatedCharacters.length > 0) {
+      for (let i = 0; i < populatedCharacters.length; i++) {
+        let char = populatedCharacters[i];
+        if (char.isVisibleOnMap) {
+          let diffX = char.px - canvasX;
+          let diffY = char.py - canvasY;
+          let dSq = diffX * diffX + diffY * diffY;
+          if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            best = char;
+          }
+        }
+      }
+    }
+
+    if (!best) {
+      const targets = worldData.allNodes;
+      for (let i = 0; i < targets.length; i++) {
+        let target = targets[i];
+        if (target.type !== "character") {
+          let diffX = target.px - canvasX;
+          let diffY = target.py - canvasY;
+          let dSq = diffX * diffX + diffY * diffY;
+          if (dSq < bestDistSq) {
+            bestDistSq = dSq;
+            best = target;
+          }
+        }
+      }
+    }
+
+    if (best) {
+      tooltip.style.left = `${e.clientX - vRect.left}px`;
+      tooltip.style.top = `${e.clientY - vRect.top}px`;
+      document.getElementById('ttTitle').innerText = best.name;
+      
+      let typeTitles = {
+        character: "Hero on the Move",
+        capital: "Imperial / Royal Capital (Grand Realm)",
+        city: "Major City (Duchy / State Seat)",
+        town: "Walled Town (Barony / County Seat)",
+        village: "Village (Rural Center)",
+        hamlet: "Crossroads Hamlet",
+        port: "Coastal Harbor / Naval Seaport",
+        fort: "Border Citadel / Fortress",
+        spire: "Arcane High Spire",
+        mine: "Quarry / Mineral Excavation",
+        ruins: "Ancient Ruins / Fallen Sanctum"
+      };
+      
+      if (best.type === "character") {
+        document.getElementById('ttType').innerText = `Hero: ${best.race || 'Human'} ${best.combatClass ||'Warrior'}`;
+        document.getElementById('ttRealm').innerText = `${best.assignedLocationName || 'Traveling'} • Click to view Status`;
+        ttMeta.style.display = 'block';
+        ttMeta.innerText = `Potential: ${best.potential || 'Unknown'}`;
+        ttRosterHint.style.display = 'none';
+        if (best.pixelArtImage) {
+          ttEmblem.src = best.pixelArtImage;
+          ttEmblem.style.display = 'block';
+        } else {
+          ttEmblem.style.display = 'none';
+        }
+      } else {
+        document.getElementById('ttType').innerText = typeTitles[best.type || best.tier] || "Settlement";
+        document.getElementById('ttRealm').innerText = WorldGen.getResolvedRealmString(worldData, best);
+        ttMeta.style.display = 'none';
+        ttEmblem.style.display = 'none';
+
+        let stationedCount = best.charactersInLocation ? best.charactersInLocation.length : 0;
+        if (stationedCount > 0) {
+          ttRosterHint.style.display = 'block';
+          ttRosterHint.innerText = `👥 ${stationedCount} Hero(es) Stationed Here (Click to view)`;
+        } else {
+          ttRosterHint.style.display = 'none';
+        }
+      }
+      tooltip.style.display = 'block';
+    } else {
+      let gx = Math.min(worldData.gw - 1, Math.max(0, Math.floor(canvasX / worldData.STEP)));
+      let gy = Math.min(worldData.gh - 1, Math.max(0, Math.floor(canvasY / worldData.STEP)));
+      let cIdx = gy * worldData.gw + gx;
+
+      if (worldData.isWater[cIdx] && worldData.waterZoneState && worldData.waterZones) {
+        let wzId = worldData.waterZoneState[cIdx];
+        let wz = worldData.waterZones.find(z => z.id === wzId);
+        if (wz) {
+          tooltip.style.left = `${e.clientX - vRect.left}px`;
+          tooltip.style.top = `${e.clientY - vRect.top}px`;
+          document.getElementById('ttTitle').innerText = wz.name;
+          document.getElementById('ttType').innerText = `🌊 Body of Water (${wz.subType})`;
+          document.getElementById('ttRealm').innerText = `Area: ~${Math.round(wz.cellCount * 0.8)} sq. leagues`;
+          ttMeta.style.display = 'none';
+          ttEmblem.style.display = 'none';
+          ttRosterHint.style.display = 'none';
+          tooltip.style.display = 'block';
+          return;
+        }
+      }
+      tooltip.style.display = 'none';
+    }
+  }
+
+  viewport.addEventListener('wheel', (e) => {
+    if (typeof MapEditor !== 'undefined' && MapEditor.isActive && e.shiftKey) return;
+    e.preventDefault();
+    let delta = e.deltaY < 0 ? 1.15 : 0.85;
+    mainZoomScale = Math.max(0.5, Math.min(25, mainZoomScale * delta));
+    if (followedCharacter) {
+      updateFollowCamera();
+    } else {
+      requestTransformUpdate();
+    }
+  }, { passive: false });
+
+  viewport.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.map-hud')) return;
+    
+    // When editor is active, only right click (button 2), middle click (1), or spacebar pans
+    if (typeof MapEditor !== 'undefined' && MapEditor.isActive) {
+      if (e.button !== 2 && e.button !== 1 && !e.spaceKey && !e.altKey) {
+        return;
+      }
+    }
+
+    isMainDragging = true;
+    mainStartX = e.clientX - mainPanX;
+    mainStartY = e.clientY - mainPanY;
+    mainMouseDownX = e.clientX;
+    mainMouseDownY = e.clientY;
+    if (!followedCharacter) {
+      tooltip.style.display = 'none';
+    }
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (isMainDragging) {
+      mainPanX = e.clientX - mainStartX;
+      mainPanY = e.clientY - mainStartY;
+      requestTransformUpdate();
+      return;
+    }
+
+    latestHoverEvent = e;
+    if (!hoverRafId) {
+      hoverRafId = requestAnimationFrame(performHoverCheck);
+    }
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (!isMainDragging) return;
+    isMainDragging = false;
+
+    const dragDist = Math.hypot(e.clientX - mainMouseDownX, e.clientY - mainMouseDownY);
+    if (dragDist > 8 && followedCharacter) {
+      stopFollowing();
+    }
+
+    // Do not trigger settlement clicks if editor is open
+    if (typeof MapEditor !== 'undefined' && MapEditor.isActive) return;
+
+    if (dragDist < 6 && worldData && worldData.allNodes) {
+      const vRect = viewport.getBoundingClientRect();
+      if (e.clientX >= vRect.left && e.clientX <= vRect.right && e.clientY >= vRect.top && e.clientY <= vRect.bottom) {
+        const wrapperW = wrapper.clientWidth;
+        const wrapperH = wrapper.clientHeight;
+        const dx = e.clientX - (vRect.left + vRect.width / 2);
+        const dy = e.clientY - (vRect.top + vRect.height / 2);
+
+        const relX = (dx - mainPanX) / mainZoomScale;
+        const relY = (dy - mainPanY) / mainZoomScale;
+
+        const canvasX = (relX / wrapperW + 0.5) * 5120;
+        const canvasY = (relY / wrapperH + 0.5) * 2880;
+
+        let best = null;
+        let clickThreshold = 60 / mainZoomScale + 18;
+        let bestDistSq = clickThreshold * clickThreshold;
+
+        if (populatedCharacters && populatedCharacters.length > 0) {
+          for (let char of populatedCharacters) {
+            if (char.isVisibleOnMap || char === followedCharacter) {
+              let diffX = char.px - canvasX;
+              let diffY = char.py - canvasY;
+              let dSq = diffX * diffX + diffY * diffY;
+              if (dSq < bestDistSq) {
+                bestDistSq = dSq;
+                best = char;
+              }
+            }
+          }
+        }
+
+        if (!best) {
+          for (let target of worldData.allNodes) {
+            if (target.type !== "character") {
+              let diffX = target.px - canvasX;
+              let diffY = target.py - canvasY;
+              let dSq = diffX * diffX + diffY * diffY;
+              if (dSq < bestDistSq) {
+                bestDistSq = dSq;
+                best = target;
+              }
+            }
+          }
+        }
+
+        if (best) {
+          if (best.type === "character") {
+            openCharacterStatusSidebar(best);
+          } else {
+            openLocationInfoSidebar(best);
+          }
+        }
+      }
+    }
+  });
+
+  viewport.addEventListener('mouseleave', () => { 
+    if (!followedCharacter) {
+      tooltip.style.display = 'none'; 
+    }
+    latestHoverEvent = null;
+  });
+
+  viewport.addEventListener('contextmenu', (e) => {
+    if (typeof MapEditor !== 'undefined' && MapEditor.isActive) {
+      e.preventDefault(); // Prevent context menu when right-clicking to pan
+    }
+  });
+
+  inBtn.addEventListener('click', () => {
+    mainZoomScale = Math.min(25, mainZoomScale * 1.35);
+    if (followedCharacter) updateFollowCamera();
+    else requestTransformUpdate();
+  });
+
+  outBtn.addEventListener('click', () => {
+    mainZoomScale = Math.max(0.5, mainZoomScale * 0.75);
+    if (followedCharacter) updateFollowCamera();
+    else requestTransformUpdate();
+  });
+
+  resetBtn.addEventListener('click', resetMainZoom);
+}
+
+// --- Deep Zoom Modal Controller ---
+let zoomScale = 1;
+let panX = 0, panY = 0;
+let isDragging = false, startX = 0, startY = 0;
+let modalRafId = null;
+
+function setupZoomModal() {
+  const zoomBtn = document.getElementById('zoomBtn');
+  const zoomModal = document.getElementById('zoomModal');
+  const closeZoomBtn = document.getElementById('closeZoomBtn');
+  const resetZoomBtn = document.getElementById('resetZoomBtn');
+  const zoomViewport = document.getElementById('zoomViewport');
+  const zoomWrapper = document.getElementById('zoomCanvasWrapper');
+
+  function requestModalTransform() {
+    if (modalRafId) return;
+    modalRafId = requestAnimationFrame(() => {
+      zoomWrapper.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoomScale})`;
+      modalRafId = null;
+    });
+  }
+
+  function resetZoom() {
+    zoomScale = 1; panX = 0; panY = 0;
+    requestModalTransform();
+  }
+
+  zoomBtn.addEventListener('click', () => {
+    zoomModal.classList.add('active');
+    resetZoom();
+    syncZoomModalContent();
+  });
+
+  closeZoomBtn.addEventListener('click', () => {
+    zoomModal.classList.remove('active');
+  });
+
+  resetZoomBtn.addEventListener('click', resetZoom);
+
+  zoomViewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    let delta = e.deltaY < 0 ? 1.15 : 0.85;
+    zoomScale = Math.max(0.5, Math.min(25, zoomScale * delta));
+    requestModalTransform();
+  }, { passive: false });
+
+  zoomViewport.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    requestModalTransform();
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+  });
+}
+
+function createRandomSeed() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  let res = '';
+  for (let i = 0; i < 7; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+  return res;
+}
+
+function startAsyncGeneration() {
+  const overlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+
+  overlay.classList.add('active');
+  loadingText.innerText = "Simulating 5K World & Infrastructure...";
+
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      try {
+        generateWorldMap();
+      } catch (err) {
+        console.error("Map generation error:", err);
+      } finally {
+        overlay.classList.remove('active');
+      }
+    }, 16);
+  });
+}
+
+// --- Sidebars & Directory ---
+function focusLocationOnMap(target) {
+  if (!target || !worldData) return;
+  const wrapper = document.getElementById('mainCanvasWrapper');
+  const viewport = document.getElementById('mainMapViewport');
+  const tooltip = document.getElementById('mapTooltip');
+  const ttEmblem = document.getElementById('ttEmblem');
+  const ttMeta = document.getElementById('ttMeta');
+  const ttRosterHint = document.getElementById('ttRosterHint');
+
+  mainZoomScale = 4.5;
+  const wrapperW = wrapper.clientWidth;
+  const wrapperH = wrapper.clientHeight;
+
+  const relX = (target.px / 5120 - 0.5) * wrapperW;
+  const relY = (target.py / 2880 - 0.5) * wrapperH;
+
+  mainPanX = -relX * mainZoomScale;
+  mainPanY = -relY * mainZoomScale;
+
+  wrapper.style.transform = `translate3d(${mainPanX}px, ${mainPanY}px, 0) scale(${mainZoomScale})`;
+  document.getElementById('mainZoomBadge').innerText = `${Math.round(mainZoomScale * 100)}%`;
+
+  const vRect = viewport.getBoundingClientRect();
+  const screenX = vRect.width / 2;
+  const screenY = vRect.height / 2;
+
+  tooltip.style.left = `${screenX}px`;
+  tooltip.style.top = `${screenY}px`;
+  document.getElementById('ttTitle').innerText = target.name;
+
+  let typeTitles = {
+    character: "Hero / Adventurer",
+    capital: "Imperial / Royal Capital (Grand Realm)",
+    city: "Major City (Duchy / State Seat)",
+    town: "Walled Town (Barony / County Seat)",
+    village: "Village (Rural Center)",
+    hamlet: "Crossroads Hamlet",
+    port: "Coastal Harbor / Naval Seaport",
+    fort: "Border Citadel / Fortress",
+    spire: "Arcane High Spire",
+    mine: "Quarry / Mineral Excavation",
+    ruins: "Ancient Ruins / Fallen Sanctum"
+  };
+
+  if (target.type === "character") {
+    document.getElementById('ttType').innerText = `Hero: ${target.race || 'Human'} ${target.combatClass || 'Warrior'}`;
+    document.getElementById('ttRealm').innerText = `${target.assignedLocationName || 'Wilderness'} (${WorldGen.getResolvedRealmString(worldData, target)})`;
+    ttMeta.style.display = 'block';
+    ttMeta.innerText = `Potential: ${target.potential || 'Unknown'}`;
+    ttRosterHint.style.display = 'none';
+    if (target.pixelArtImage) {
+      ttEmblem.src = target.pixelArtImage;
+      ttEmblem.style.display = 'block';
+    } else {
+      ttEmblem.style.display = 'none';
+    }
+  } else {
+    document.getElementById('ttType').innerText = typeTitles[target.type || target.tier] || "Settlement";
+    document.getElementById('ttRealm').innerText = WorldGen.getResolvedRealmString(worldData, target);
+    ttMeta.style.display = 'none';
+    ttEmblem.style.display = 'none';
+    let count = target.charactersInLocation ? target.charactersInLocation.length : 0;
+    if (count > 0) {
+      ttRosterHint.style.display = 'block';
+      ttRosterHint.innerText = `👥 ${count} Hero(es) Stationed Here`;
+    } else {
+      ttRosterHint.style.display = 'none';
+    }
+  }
+  tooltip.style.display = 'block';
+}
+
+function openCharacterStatusSidebar(char) {
+  if (!char) return;
+  const sidebar = document.getElementById('characterStatusSidebar');
+  
+  document.getElementById('csHeroName').innerText = char.name;
+  document.getElementById('csFullName').innerText = char.name;
+  document.getElementById('csRaceBadge').innerText = char.race || 'Human';
+  document.getElementById('csClassBadge').innerText = char.combatClass || 'Warrior';
+  document.getElementById('csPotentialBadge').innerText = `Potential: ${char.potential || 'Unknown'}`;
+
+  const emblemImg = document.getElementById('csEmblemImg');
+  if (char.pixelArtImage) {
+    emblemImg.src = char.pixelArtImage;
+    emblemImg.style.display = 'block';
+  } else {
+    emblemImg.style.display = 'none';
+  }
+
+  let locCategoryText = char.assignedLocationName || "Unknown Location";
+  if (char.simState === "traveling") locCategoryText = "Traveling (" + char.assignedLocationName + ")";
+  else if (char.simState === "resting") locCategoryText = "Resting at " + (char.stationedNode ? char.stationedNode.name : "Settlement");
+
+  document.getElementById('csLocationDesc').innerText = locCategoryText;
+  document.getElementById('csRealmDesc').innerText = WorldGen.getResolvedRealmString(worldData, char);
+  document.getElementById('csCombatClassVal').innerText = char.combatClass || 'None';
+  document.getElementById('csCombatStyleVal').innerText = char.combatStyle || (['Sorcerer','Mage','Diviner','ManaWeaver','Sage','Spiritist'].includes(char.combatClass) ? 'Magic' : (['Deadeye','Scout','Trickshot','Powershot','ArcaneArcher','GodEye'].includes(char.combatClass) ? 'Ranged' : 'Melee'));
+  document.getElementById('csTechniqueVal').innerText = char.combatTechnique || 'Battleform Mastery';
+
+  document.getElementById('csRawStatus').innerText = char.statusText || "No additional status log found.";
+
+  document.getElementById('csLocateBtn').onclick = () => focusLocationOnMap(char);
+  
+  updateFollowButtonState(char);
+  document.getElementById('csFollowBtn').onclick = () => toggleFollowCharacter(char);
+
+  document.getElementById('csDuelBtn').onclick = () => {
+    const opponent = populatedCharacters.find(c => c.key !== char.key);
+    if (opponent) {
+      launchDuelInArena(char, opponent, char.assignedLocationName || "Duel");
+    } else {
+      alert("Need at least 2 populated heroes to duel!");
+    }
+  };
+
+  sidebar.classList.add('active');
+}
+
+function openLocationInfoSidebar(locationNode) {
+  if (!locationNode) return;
+  const sidebar = document.getElementById('locationInfoSidebar');
+
+  document.getElementById('locTitle').innerText = locationNode.name;
+  let typeTitles = {
+    capital: "Imperial / Royal Capital (Grand Realm Seat)",
+    city: "Major City (Duchy / State Seat)",
+    town: "Walled Town (Barony / County Seat)",
+    village: "Village (Rural Center)",
+    hamlet: "Crossroads Hamlet",
+    port: "Coastal Harbor / Naval Seaport",
+    fort: "Border Citadel / Fortress",
+    spire: "Arcane High Spire",
+    mine: "Quarry / Mineral Excavation",
+    ruins: "Ancient Ruins / Fallen Sanctum"
+  };
+  document.getElementById('locTypeSubtitle').innerText = typeTitles[locationNode.type || locationNode.tier] || "Settlement";
+  document.getElementById('locRealmHierarchy').innerHTML = `
+    <div><strong>Territory:</strong> ${WorldGen.escapeXml(WorldGen.getResolvedRealmString(worldData, locationNode))}</div>
+    <div style="font-size:0.78rem; color:#888; margin-top:3px;">Grid Map Coordinates: [X: ${Math.round(locationNode.px)}, Y: ${Math.round(locationNode.py)}]</div>
+  `;
+
+  document.getElementById('locZoomToBtn').onclick = () => focusLocationOnMap(locationNode);
+
+  const heroList = document.getElementById('locHeroList');
+  const heroes = locationNode.charactersInLocation || [];
+  document.getElementById('locHeroCount').innerText = heroes.length;
+
+  if (heroes.length === 0) {
+    heroList.innerHTML = `<div style="padding:15px; text-align:center; color:#888; font-style:italic;">No heroes currently residing or stationed here.</div>`;
+  } else {
+    let html = "";
+    if (heroes.length >= 2) {
+      html += `
+        <button id="locSparAllBtn" style="background:#c0392b; color:#fff; padding:6px 12px; font-size:0.8rem; margin-bottom:8px; border-radius:4px; font-weight:bold;">
+          ⚔️ Trigger Local Sparring Duel
+        </button>
+      `;
+    }
+    heroes.forEach((h, idx) => {
+      let avatarSrc = h.pixelArtImage || "";
+      html += `
+        <div class="loc-hero-item" data-hidx="${idx}">
+          ${avatarSrc ? `<img src="${avatarSrc}" class="loc-hero-avatar" alt="Avatar"/>` : `<div class="loc-hero-avatar" style="background:#4a3d34; display:flex; align-items:center; justify-content:center; color:#d4af37; font-weight:bold;">★</div>`}
+          <div style="flex:1; overflow:hidden;">
+            <div style="font-weight:bold; color:#fff; font-size:0.95rem;">${WorldGen.escapeXml(h.name)}</div>
+            <div style="font-size:0.75rem; color:#74b9ff;">${WorldGen.escapeXml(h.race || 'Human')} • ${WorldGen.escapeXml(h.combatClass || 'Hero')}</div>
+            <div style="font-size:0.72rem; color:#f1c40f;">${WorldGen.escapeXml(h.potential || 'Rank S')}</div>
+          </div>
+          <div style="font-size:0.8rem; color:#d4af37; font-weight:bold;">Inspect ➜</div>
+        </div>
+      `;
+    });
+    heroList.innerHTML = html;
+
+    const sparBtn = document.getElementById('locSparAllBtn');
+    if (sparBtn) {
+      sparBtn.addEventListener('click', () => {
+        launchDuelInArena(heroes[0], heroes[1], `${locationNode.name} Grounds`);
+      });
+    }
+
+    heroList.querySelectorAll('.loc-hero-item').forEach(item => {
+      item.addEventListener('click', () => {
+        let idx = parseInt(item.getAttribute('data-hidx'));
+        openCharacterStatusSidebar(heroes[idx]);
+      });
+    });
+  }
+
+  sidebar.classList.add('active');
+}
+
+function populateSidebarList() {
+  if (!worldData) return;
+  const listElem = document.getElementById('sidebarList');
+  const countElem = document.getElementById('sidebarCount');
+  const searchTxt = (document.getElementById('sidebarSearch').value || "").toLowerCase().trim();
+  const typeFilter = document.getElementById('sidebarTypeFilter').value;
+  const sortType = document.getElementById('sidebarSort').value;
+
+  const allSettlements = worldData.capitals.concat(worldData.pois);
+  const waterEntries = (worldData.waterZones || []).map(wz => ({
+    ...wz,
+    tier: "water",
+    type: "water"
+  }));
+  const riverEntries = (worldData.riverPaths || []).map(r => ({
+    ...r,
+    tier: "river",
+    type: "river"
+  }));
+  const allEntries = allSettlements.concat(populatedCharacters).concat(waterEntries).concat(riverEntries);
+  const tierRanks = { character: -1, capital: 0, city: 1, town: 2, port: 3, fort: 4, spire: 5, mine: 6, ruins: 7, village: 8, hamlet: 9 };
+  const badgeColors = {
+    water: "#74b9ff", river: "#2980b9", character: "#e17055", capital: "#f1c40f", city: "#9b59b6", town: "#3498db", port: "#00cec9",
+    fort: "#e74c3c", spire: "#9b59b6", mine: "#f39c12", ruins: "#95a5a6",
+    village: "#e67e22", hamlet: "#bdc3c7"
+  };
+
+  let items = allEntries.map(node => {
+    let type = node.type || node.tier || "village";
+    let realmStr = "";
+    if (node.type === "character") {
+      realmStr = node.placementCategory === "location" 
+        ? `Stationed at ${node.assignedLocationName}` 
+        : (node.placementCategory === "road" ? "On Trade Highway" : "In Frontier Wilds");
+    } else if (node.type === "water") {
+      realmStr = `${node.subType} (${Math.round(node.cellCount * 0.8)} sq leagues)`;
+    } else if (node.type === "river") {
+      realmStr = `Flows ${node.lengthLeagues || 50} leagues`;
+    } else {
+      realmStr = WorldGen.getResolvedRealmString(worldData, node);
+    }
+
+    return {
+      node,
+      name: node.name,
+      type: type,
+      realm: realmStr,
+      rank: tierRanks[type] !== undefined ? tierRanks[type] : 99,
+      image: node.pixelArtImage || null
+    };
+  });
+
+  items = items.filter(item => {
+    if (typeFilter !== 'all' && item.type !== typeFilter) return false;
+    if (searchTxt) {
+      let matchesName = item.name.toLowerCase().includes(searchTxt);
+      let matchesRealm = item.realm.toLowerCase().includes(searchTxt);
+      let matchesType = item.type.toLowerCase().includes(searchTxt);
+      if (!matchesName && !matchesRealm && !matchesType) return false;
+    }
+    return true;
+  });
+
+  if (sortType === 'name_asc') {
+    items.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sortType === 'name_desc') {
+    items.sort((a, b) => b.name.localeCompare(a.name));
+  } else if (sortType === 'realm') {
+    items.sort((a, b) => a.realm.localeCompare(b.realm) || a.name.localeCompare(b.name));
+  } else {
+    items.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
+  }
+
+  countElem.innerText = items.length;
+
+  if (items.length === 0) {
+    listElem.innerHTML = `<div style="text-align:center; padding: 25px; color: #888;">No matching locations or characters found.</div>`;
+    return;
+  }
+
+  let html = "";
+  for (let i = 0; i < items.length; i++) {
+    let it = items[i];
+    let col = badgeColors[it.type] || "#ddd";
+    let avatarHtml = it.image ? `<img src="${it.image}" class="sidebar-avatar" alt="avatar"/>` : "";
+    html += `
+      <div class="sidebar-item" data-sidx="${i}">
+        <div style="display: flex; align-items: center; overflow: hidden; width: 100%; cursor: pointer;">
+          ${avatarHtml}
+          <div class="item-info">
+            <div class="item-name">${WorldGen.escapeXml(it.name)}</div>
+            <div class="item-type-badge" style="color:${col}">
+              <span>●</span> ${WorldGen.escapeXml(it.type.toUpperCase())}
+            </div>
+            <div class="item-realm">${WorldGen.escapeXml(it.realm)}</div>
+          </div>
+        </div>
+        <button class="locate-btn" data-sbtn="${i}">🎯 Locate</button>
+      </div>
+    `;
+  }
+  listElem.innerHTML = html;
+
+  listElem.querySelectorAll('.sidebar-item').forEach(itemElem => {
+    itemElem.addEventListener('click', () => {
+      let idx = parseInt(itemElem.getAttribute('data-sidx'));
+      let targetNode = items[idx].node;
+      focusLocationOnMap(targetNode);
+      if (targetNode.type === "character") {
+        openCharacterStatusSidebar(targetNode);
+      } else {
+        openLocationInfoSidebar(targetNode);
+      }
+    });
+  });
+
+  listElem.querySelectorAll('.locate-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      let idx = parseInt(btn.getAttribute('data-sbtn'));
+      let targetNode = items[idx].node;
+      focusLocationOnMap(targetNode);
+      if (targetNode.type === "character") {
+        openCharacterStatusSidebar(targetNode);
+      } else {
+        openLocationInfoSidebar(targetNode);
+      }
+    });
+  });
+}
+
+// --- Event Listeners ---
+document.getElementById('generateBtn').addEventListener('click', startAsyncGeneration);
+document.getElementById('populateCharsBtn').addEventListener('click', () => handlePopulateCharacters());
+document.getElementById('toggleSimBtn').addEventListener('click', toggleSimulation);
+
+document.getElementById('simSpeed').addEventListener('input', (e) => {
+  simSpeedMultiplier = parseFloat(e.target.value);
+  document.getElementById('simSpeedVal').innerText = `${simSpeedMultiplier.toFixed(1)}x`;
+});
+
+document.getElementById('randomSeedBtn').addEventListener('click', () => {
+  document.getElementById('seed').value = createRandomSeed();
+  startAsyncGeneration();
+});
+
+document.getElementById('seed').addEventListener('change', startAsyncGeneration);
+document.getElementById('mapType').addEventListener('change', startAsyncGeneration);
+document.getElementById('realms').addEventListener('input', e => {
+  document.getElementById('realmsVal').innerText = e.target.value;
+  startAsyncGeneration();
+});
+document.getElementById('rivers').addEventListener('input', e => {
+  document.getElementById('riversVal').innerText = e.target.value;
+  startAsyncGeneration();
+});
+document.getElementById('poiDensity').addEventListener('input', e => {
+  document.getElementById('poiVal').innerText = e.target.value;
+  startAsyncGeneration();
+});
+document.getElementById('isWildernessCb')?.addEventListener('change', startAsyncGeneration);
+// Layer Toggles
+document.getElementById('showGrand').addEventListener('change', renderMap);
+document.getElementById('showMed').addEventListener('change', renderMap);
+document.getElementById('showSmall').addEventListener('change', renderMap);
+document.getElementById('showRoads').addEventListener('change', renderMap);
+document.getElementById('showMountains').addEventListener('change', renderMap);
+document.getElementById('showHillshade').addEventListener('change', renderMap);
+document.getElementById('showPois').addEventListener('change', renderMap);
+document.getElementById('showWaterZones').addEventListener('change', renderMap);
+document.getElementById('showCharacters').addEventListener('change', () => { renderActors(); });
+document.getElementById('showLegend').addEventListener('change', renderMap);
+document.getElementById('style').addEventListener('change', renderMap);
+
+// High-Res PNG Download
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  if (!worldData) return;
+  const canvas = document.getElementById('mapCanvas');
+  const actorCanvas = document.getElementById('actorCanvas');
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = 5120;
+  exportCanvas.height = 2880;
+  const expCtx = exportCanvas.getContext('2d');
+
+  expCtx.drawImage(canvas, 0, 0);
+  if (actorCanvas) expCtx.drawImage(actorCanvas, 0, 0);
+
+  const svgElem = document.getElementById('mapSvgOverlay');
+  const svgData = new XMLSerializer().serializeToString(svgElem);
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+
+  img.onload = () => {
+    expCtx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const link = document.createElement('a');
+    link.download = `world_map_${document.getElementById('seed').value}.png`;
+    link.href = exportCanvas.toDataURL("image/png");
+    link.click();
+  };
+
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    const link = document.createElement('a');
+    link.download = `world_map_${document.getElementById('seed').value}.png`;
+    link.href = exportCanvas.toDataURL("image/png");
+    link.click();
+  };
+
+  img.src = url;
+});
+
+document.getElementById('downloadSvgBtn').addEventListener('click', exportSVG);
+
+// Sidebar Drawer Event Listeners
+const sidebar = document.getElementById('locationSidebar');
+document.getElementById('openSidebarBtn').addEventListener('click', () => {
+  sidebar.classList.add('active');
+  populateSidebarList();
+});
+
+document.getElementById('closeSidebarBtn').addEventListener('click', () => {
+  sidebar.classList.remove('active');
+});
+
+document.getElementById('closeCharStatusBtn').addEventListener('click', () => {
+  document.getElementById('characterStatusSidebar').classList.remove('active');
+});
+
+document.getElementById('closeLocInfoBtn').addEventListener('click', () => {
+  document.getElementById('locationInfoSidebar').classList.remove('active');
+});
+
+document.getElementById('sidebarSearch').addEventListener('input', populateSidebarList);
+document.getElementById('sidebarTypeFilter').addEventListener('change', populateSidebarList);
+document.getElementById('sidebarSort').addEventListener('change', populateSidebarList);
+
+// Battle Arena Modal Event Listeners
+document.getElementById('openArenaBtn').addEventListener('click', () => {
+  syncBattleSimulatorDropdowns();
+  openBattleArenaModal();
+});
+
+document.getElementById('closeArenaBtn').addEventListener('click', closeBattleArenaModal);
+
+document.getElementById('encWatchBtn').addEventListener('click', () => {
+  if (activeEncounterPair) {
+    launchDuelInArena(activeEncounterPair.char1, activeEncounterPair.char2, activeEncounterPair.locationLabel);
+  }
+  document.getElementById('encounterBanner').classList.remove('active');
+});
+
+document.getElementById('encDismissBtn').addEventListener('click', () => {
+  document.getElementById('encounterBanner').classList.remove('active');
+});
+
+const pauseBtn = document.getElementById('pauseBattleButton');
+if (pauseBtn) {
+  pauseBtn.addEventListener('click', () => {
+    if (typeof togglePauseBattle === 'function') togglePauseBattle();
+    else if (window.BattleSimulator && typeof window.BattleSimulator.togglePauseBattle === 'function') window.BattleSimulator.togglePauseBattle();
+  });
+}
+
+// Label Checklist Dropdown & Toggle Listeners
+const labelMenuBtn = document.getElementById('labelMenuBtn');
+const labelMenuDropdown = document.getElementById('labelMenuDropdown');
+
+if (labelMenuBtn && labelMenuDropdown) {
+  labelMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    labelMenuDropdown.classList.toggle('active');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!labelMenuDropdown.contains(e.target) && e.target !== labelMenuBtn) {
+      labelMenuDropdown.classList.remove('active');
+    }
+  });
+
+  function refreshLabels() {
+    if (worldData) {
+      const opts = getRenderOptions();
+      const svgOverlayHtml = WorldGen.buildSvgOverlay(worldData, opts);
+      document.getElementById('mapSvgOverlay').innerHTML = svgOverlayHtml;
+      if (document.getElementById('zoomModal').classList.contains('active')) {
+        document.getElementById('zoomSvgOverlay').innerHTML = svgOverlayHtml;
+      }
+      renderActors();
+    }
+  }
+
+  document.querySelectorAll('.lbl-toggle').forEach(cb => {
+    cb.addEventListener('change', refreshLabels);
+  });
+
+  document.getElementById('lblSelectAll')?.addEventListener('click', () => {
+    document.querySelectorAll('.lbl-toggle').forEach(cb => cb.checked = true);
+    refreshLabels();
+  });
+
+  document.getElementById('lblDeselectAll')?.addEventListener('click', () => {
+    document.querySelectorAll('.lbl-toggle').forEach(cb => cb.checked = false);
+    refreshLabels();
+  });
+}
+
+window.onload = () => {
+  document.getElementById('seed').value = createRandomSeed();
+
+  // Initialize WebGL2 GPU Engine
+  const mapCanvas = document.getElementById('mapCanvas');
+  TerrainGL.init(mapCanvas);
+
+  setupMainMapZoom();
+  setupZoomModal();
+  startAsyncGeneration();
+
+  // Initialize Map Editor
+  if (typeof MapEditor !== 'undefined') {
+    MapEditor.init({
+      viewportElem: document.getElementById('mainMapViewport'),
+      canvasWrapperElem: document.getElementById('mainCanvasWrapper'),
+      mapCanvas: mapCanvas,
+      getWorldData: () => worldData,
+      getRenderOptions: getRenderOptions,
+      onRenderRequest: (fullRender = false) => {
+        if (fullRender) renderMap();
+        else TerrainGL.render(getRenderOptions());
+      }
+    });
+  }
+};
+// Initialize Zone Editor Engine
+  if (typeof ZoneEditor !== 'undefined') {
+    ZoneEditor.init({
+      getWorldData: () => worldData,
+      onRenderRequest: (fullRender = false) => {
+        if (fullRender) renderMap();
+        else TerrainGL.render(getRenderOptions());
+      }
+    });
+  }
+  // Initialize Settlement Editor Engine
+  if (typeof SettlementEditor !== 'undefined') {
+    SettlementEditor.init({
+      getWorldData: () => worldData,
+      onRenderRequest: (fullRender = false) => {
+        if (fullRender) renderMap();
+        else TerrainGL.render(getRenderOptions());
+      }
+    });
+  }
+  // Initialize Route Connector Engine
+  if (typeof RouteEditor !== 'undefined') {
+    RouteEditor.init({
+      getWorldData: () => worldData,
+      onRenderRequest: (fullRender = false) => {
+        if (fullRender) renderMap();
+        else TerrainGL.render(getRenderOptions());
+      }
+    });
+  }
+</script>
+</body>
+</html>
